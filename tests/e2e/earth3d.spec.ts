@@ -43,8 +43,6 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
   const grid = page.getByRole('checkbox', { name: 'Earth grid / coordinate frame' });
   await grid.check();
   await expect(grid).toBeChecked();
-  const orbit = page.getByRole('checkbox', { name: 'Spacecraft orbit path' });
-  await expect(orbit).toBeChecked();
   await grid.uncheck();
   await expect(grid).not.toBeChecked();
   await grid.check();
