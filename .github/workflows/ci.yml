@@ -91,6 +91,23 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - name: Verify deployed API security headers
+        shell: bash
+        env:
+          WEB_URL: https://aryaksha-web.onrender.com
+        run: |
+          for attempt in $(seq 1 18); do
+            status=$(curl --silent --show-error --max-time 15 -D /tmp/security-headers.txt -o /tmp/security-health.json -w '%{http_code}' "$WEB_URL/api/v1/health" || true)
+            if [ "$status" = "200" ] && grep -qi '^x-content-type-options: nosniff' /tmp/security-headers.txt && grep -qi '^x-frame-options: DENY' /tmp/security-headers.txt && grep -qi '^referrer-policy: strict-origin-when-cross-origin' /tmp/security-headers.txt; then
+              cat /tmp/security-health.json
+              echo "Live API security headers are present."
+              exit 0
+            fi
+            echo "Security headers not yet present or service rollout incomplete (attempt $attempt/18; HTTP ${status:-000})"
+            sleep 10
+          done
+          exit 1
+
       - name: Wait for the deployed Orekit service
         shell: bash
         env:
