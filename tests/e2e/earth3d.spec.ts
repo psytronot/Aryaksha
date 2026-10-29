@@ -2,12 +2,17 @@ import { expect, test } from '@playwright/test';
 
 test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized viewports', async ({ page }) => {
   const pageErrors: string[] = [];
+  const shaderErrors: string[] = [];
   page.on('pageerror', error => pageErrors.push(error.message));
+  page.on('console', message => {
+    if (message.type() === 'error' && /shader|WebGLProgram|WebGLRenderer/i.test(message.text())) shaderErrors.push(message.text());
+  });
 
   await page.goto('/');
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Earth 3D' })).toBeVisible();
   await expect(page.locator('.earth3d-canvas canvas')).toBeVisible();
+  await page.waitForTimeout(300);
 
   await expect(page.getByRole('button', { name: 'PLANETS', exact: true })).toBeVisible();
   const target = page.getByRole('combobox', { name: 'Choose camera target' });
@@ -45,4 +50,5 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
   expect(workspaceWidth).toBeLessThanOrEqual(390);
   await expect(page.getByRole('button', { name: 'PLANETS', exact: true })).toBeVisible();
   expect(pageErrors).toEqual([]);
+  expect(shaderErrors).toEqual([]);
 });
