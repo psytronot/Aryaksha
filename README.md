@@ -28,7 +28,7 @@ Prerequisites: Node.js 22.12+ and npm.
 
 Run the following commands from the repository root: **npm ci**, **npm run typecheck**, **npm test**, **npm run build**, and **npm start**. To run browser smoke tests, install Chromium with **npx playwright install chromium** and run **npm run test:e2e**. For live UI development, use **npm run dev** in a second terminal. The standalone API host listens on port 3000 by default.
 
-The UI has been migrated away from the AppDeploy-only frontend API client. A standalone Express API host now serves the production-built UI and exposes the mission-analysis, ISS TLE and TLE/SGP4 API routes. The AppDeploy-specific adapter in `backend/index.ts` is retained as a reference for the current live instance. Do not treat a successful source upload as a verified production migration.
+The UI uses the standalone Express API host for mission analysis, ISS TLE and TLE/SGP4 routes. Mission analysis requires the independently hosted Orekit service through `OREKIT_SERVICE_URL`; it returns a clear service error rather than silently substituting the analytical fallback when Orekit is unavailable. The AppDeploy-specific adapter in `backend/index.ts` is retained as a reference for the separate AppDeploy instance. Do not treat a successful source upload as a verified production migration.
 
 ## Phase 01 — Orekit service
 
@@ -50,7 +50,7 @@ Analysis endpoint: `POST /api/v1/orbit/analysis` with JSON:
 
 Once deployed, configure `OREKIT_SERVICE_URL` on the Aryaksha API host to the service base URL. Never commit secrets or service credentials to this repository.
 
-**Current fidelity:** Orekit Keplerian/two-body propagation only. J2, drag, solar radiation pressure and third-body forces are not configured. Dependency licence review remains necessary before redistributing a production bundle.
+**Current fidelity:** Orekit numerical propagation using a Dormand–Prince 8(5,3) integrator and Newtonian central gravity only, with a seven-day maximum propagation horizon. J2, drag, solar radiation pressure and third-body forces are not configured. This is numerical two-body propagation, not a high-fidelity force model. Dependency licence review remains necessary before redistributing a production bundle.
 
 ## Verification gate
 
