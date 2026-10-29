@@ -152,6 +152,25 @@ jobs:
           done
           exit 1
 
+      - name: Verify live Orekit malformed and null requests return structured errors
+        shell: bash
+        env:
+          OREKIT_URL: https://aryaksha-orekit.onrender.com
+        run: |
+          verified=false
+          for attempt in $(seq 1 12); do
+            malformed_status=$(curl --silent --show-error --max-time 15 -o /tmp/orekit-malformed.json -w '%{http_code}' -H 'content-type: application/json' --data-binary '{"altitudeKm":' "$OREKIT_URL/api/v1/orbit/analysis" || true)
+            null_status=$(curl --silent --show-error --max-time 15 -o /tmp/orekit-null.json -w '%{http_code}' -H 'content-type: application/json' -d 'null' "$OREKIT_URL/api/v1/orbit/analysis" || true)
+            if [ "$malformed_status" = "400" ] && [ "$null_status" = "400" ] && node -e 'for (const path of ["/tmp/orekit-malformed.json", "/tmp/orekit-null.json"]) { const p=require(path); if (p.error !== "Request body must be valid JSON.") process.exit(1); }'; then
+              verified=true
+              break
+            fi
+            echo "Orekit error-envelope rollout not ready (attempt $attempt/12; malformed HTTP ${malformed_status:-000}; null HTTP ${null_status:-000})"
+            sleep 10
+          done
+          test "$verified" = true
+          echo "Live Orekit returns the versioned JSON error envelope for malformed JSON and null bodies."
+
       - name: Verify live backend returns Orekit numerical results
         shell: bash
         env:
