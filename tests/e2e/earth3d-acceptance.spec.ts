@@ -48,3 +48,28 @@ test('Earth 3D controls remain usable on a narrow mobile viewport', async ({ pag
   await expect(lunarLayer).toBeVisible();
   await expect(lunarLayer).toBeChecked();
 });
+
+test('Earth 3D camera controls are keyboard-operable and fit a mobile viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page.getByRole('navigation', { name: 'Mobile navigation' })
+    .getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  await expect(page.getByLabel('Interactive 3D Earth with trackable spacecraft')).toBeVisible();
+  const cameraModes = page.locator('[aria-label="Camera modes"]');
+  const moon = cameraModes.getByRole('button', { name: 'MOON', exact: true });
+  await moon.focus();
+  await expect(moon).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(moon).toHaveClass(/active/);
+
+  const dimensions = await page.evaluate(() => ({
+    viewportWidth: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth
+  }));
+  expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.viewportWidth);
+  expect(pageErrors).toEqual([]);
+});
