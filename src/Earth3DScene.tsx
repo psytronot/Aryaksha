@@ -686,8 +686,6 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
 
   const dayNight = dayNightSnapshot(Number(current?.lla?.lat), Number(current?.lla?.lon), new Date(current?.time || Date.now()));
   const speed = Math.hypot(...(current?.v || [0, 0, 0]));
-  const maxBusDimensionM = Math.max(0.01, busWidthM, busHeightM, busDepthM);
-  const earthDiameterKm = 2 * 6378.137;
   return (
     <div className="page earth3d-page">
       <h1 className="earth3d-visually-hidden">Earth 3D</h1>
