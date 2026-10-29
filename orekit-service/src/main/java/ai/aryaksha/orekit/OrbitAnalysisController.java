@@ -9,6 +9,7 @@ import org.orekit.orbits.PositionAngleType;
 import org.orekit.propagation.analytical.KeplerianPropagator;
 import org.orekit.frames.FramesFactory;
 import org.orekit.time.AbsoluteDate;
+import org.orekit.time.TimeScalesFactory;
 import org.orekit.utils.Constants;
 import org.orekit.utils.PVCoordinates;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,7 +31,7 @@ public class OrbitAnalysisController {
         double periodSeconds, double periodMinutes, double periapsisAltitudeKm,
         double apoapsisAltitudeKm, double circularVelocityKmS, double specificOrbitalEnergyKm2S2
     ) {}
-    public record StateVector(double elapsedSeconds, String epoch, double[] positionKm, double[] velocityKmS) {}
+    public record StateVector(double elapsedSeconds, String epoch, String timeScale, String frame, double[] positionKm, double[] velocityKmS) {}
     public record AnalysisResponse(
         boolean valid, String engine, String engineVersion, String fidelity,
         List<String> assumptions, OrbitMetrics orbit, StateVector state, Map<String, Object> comparison
@@ -71,7 +72,7 @@ public class OrbitAnalysisController {
             input.altitudeKm(), aKm, e, input.inclinationDeg(), periodSeconds, periodSeconds / 60.0,
             rpKm - EARTH_RADIUS_KM, raKm - EARTH_RADIUS_KM, circularVelocityKmS, energyKm2S2
         );
-        StateVector state = new StateVector(0.0, epoch.toString(),
+        StateVector state = new StateVector(0.0, epoch.toString(TimeScalesFactory.getTAI()), "TAI", "EME2000",
             new double[] { position.getX() / 1000.0, position.getY() / 1000.0, position.getZ() / 1000.0 },
             new double[] { velocity.getX() / 1000.0, velocity.getY() / 1000.0, velocity.getZ() / 1000.0 }
         );
