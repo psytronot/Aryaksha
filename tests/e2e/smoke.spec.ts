@@ -30,3 +30,67 @@ test('mobile navigation opens, changes section and closes after selection', asyn
   await expect(page.getByRole('heading', { name: /Satellite tracking & pass planning/i })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Open navigation' })).toHaveAttribute('aria-expanded', 'false');
 });
+
+test('mission analysis submits numeric inputs and renders the engine result', async ({ page }) => {
+  let requestBody: unknown;
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.route('**/api/mission-analysis/orbit', async route => {
+    requestBody = route.request().postDataJSON();
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        valid: true,
+        engine: 'Orekit',
+        engineVersion: '13.1.9',
+        fidelity: 'Orekit Keplerian propagation (two-body)',
+        assumptions: ['No J2, drag, solar radiation pressure or third-body forces'],
+        orbit: {
+          altitudeKm: 550,
+          semiMajorAxisKm: 6928.137,
+          eccentricity: 0.001,
+          inclinationDeg: 97.6,
+          periodSeconds: 5738.9928,
+          periodMinutes: 95.64988,
+          periapsisAltitudeKm: 543.0719,
+          apoapsisAltitudeKm: 556.9281,
+          circularVelocityKmS: 7.58509,
+          specificOrbitalEnergyKm2S2: -28.76678
+        },
+        comparison: {
+          engineAdapter: 'orekit-http',
+          status: 'connected',
+          note: 'Results returned by the independently hosted Orekit service.'
+        }
+      })
+    });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Mission Analysis', exact: true }).click();
+  await page.getByRole('button', { name: 'Run analysis', exact: true }).click();
+
+  await expect(page.getByText(/Analysis completed · Orekit/)).toBeVisible();
+  await expect(page.getByText('95.65 min')).toBeVisible();
+  await expect(page.getByText('Connected: this result came from the Orekit service.')).toBeVisible();
+  expect(requestBody).toEqual({ altitudeKm: 550, inclinationDeg: 97.6, eccentricity: 0.001 });
+  expect(pageErrors).toEqual([]);
+});
+
+test('mission analysis displays a structured service error and remains usable', async ({ page }) => {
+  await page.route('**/api/mission-analysis/orbit', route => route.fulfill({
+    status: 502,
+    contentType: 'application/json',
+    body: JSON.stringify({ error: 'Orekit service is configured but unavailable. Check its deployment and logs.' })
+  }));
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Mission Analysis', exact: true }).click();
+  await page.getByRole('button', { name: 'Run analysis', exact: true }).click();
+
+  await expect(page.getByRole('alert')).toContainText('Orekit service is configured but unavailable.');
+  await expect(page.getByRole('button', { name: 'Run analysis', exact: true })).toBeEnabled();
+  await expect(page.getByRole('heading', { name: 'Orbital Mission Analysis' })).toBeVisible();
+});
+
