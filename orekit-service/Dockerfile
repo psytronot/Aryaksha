@@ -1,1 +1,12 @@
-RlJPTSBtYXZlbjozLjktZWNsaXBzZS10ZW11cmluLTIxIEFTIGJ1aWxkCldPUktESVIgL3dvcmtzcGFjZQpDT1BZIHBvbS54bWwgLgpDT1BZIHNyYyAuL3NyYwpSVU4gbXZuIC1CIC1Ec2tpcFRlc3RzIHBhY2thZ2UKCkZST00gZWNsaXBzZS10ZW11cmluOjIxLWpyZQpXT1JLRElSIC9hcHAKQ09QWSAtLWZyb209YnVpbGQgL3dvcmtzcGFjZS90YXJnZXQvYXJ5YWtzaGEtb3Jla2l0LXNlcnZpY2UtMC4xLjAuamFyIC9hcHAvc2VydmljZS5qYXIKRU5WIFBPUlQ9ODA4MApFWFBPU0UgODA4MApFTlRSWVBPSU5UIFsiamF2YSIsICItWFg6TWF4UkFNUGVyY2VudGFnZT03NSIsICItamFyIiwgIi9hcHAvc2VydmljZS5qYXIiXQo=
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /workspace
+COPY pom.xml .
+COPY src ./src
+RUN mvn -B -DskipTests package
+
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY --from=build /workspace/target/aryaksha-orekit-service-0.1.0.jar /app/service.jar
+ENV PORT=8080
+EXPOSE 8080
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "/app/service.jar"]
