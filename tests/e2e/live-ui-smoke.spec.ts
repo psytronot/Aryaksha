@@ -54,6 +54,7 @@ test('live deployed UI renders mission analysis against the versioned response c
         status: 'connected',
         note: 'Results returned by the independently hosted Orekit service.'
       }
+    })
     });
   });
 
