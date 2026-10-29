@@ -71,3 +71,26 @@ test('live deployed UI renders mission analysis against the versioned response c
   expect(requestBodies[0]).toMatchObject({ elapsedSeconds: 600 });
   expect(pageErrors).toEqual([]);
 });
+
+test('live deployed UI loads the lazy simulation, tracking and calculator workspaces', async ({ page }) => {
+  const pageErrors: string[] = [];
+  const loadedAssets: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  page.on('response', response => {
+    if (response.url().includes('/assets/')) loadedAssets.push(response.url());
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
+  await expect.poll(() => loadedAssets.some(url => /Earth3DScene-[^/]+\.js/.test(url))).toBe(true);
+
+  await page.getByRole('button', { name: 'Satellite Tracking', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Satellite tracking & pass planning' })).toBeVisible();
+  await expect.poll(() => loadedAssets.some(url => /SatelliteTrackingView-[^/]+\.js/.test(url))).toBe(true);
+
+  await page.getByRole('button', { name: 'Calculator & Reference', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Engineering tools without leaving the lab.' })).toBeVisible();
+  await expect.poll(() => loadedAssets.some(url => /ScientificCalculator-[^/]+\.js/.test(url))).toBe(true);
+  expect(pageErrors).toEqual([]);
+});
