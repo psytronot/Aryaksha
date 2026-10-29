@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity, ArrowRight, Battery, BookOpen, Calculator, Check, CircleHelp, Cpu, Download,
-  Gauge, Globe2, Info, Layers3, Orbit, Pause, Play, Radio, RefreshCw, Rocket,
+  Gauge, Globe2, Info, Layers3, Orbit, Play, Radio, RefreshCw, Rocket,
   Satellite, Search, Settings2, Target, Thermometer, TriangleAlert, Wrench, Zap
 } from 'lucide-react';
 import Earth3DScene from './Earth3DScene';
