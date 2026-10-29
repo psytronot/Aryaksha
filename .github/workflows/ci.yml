@@ -34,3 +34,51 @@ jobs:
           java-version: '21'
           cache: maven
       - run: mvn -B -f orekit-service/pom.xml test
+
+  live-integration-smoke:
+    name: Live Orekit integration smoke tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: [web-build-and-tests, orekit-service]
+    steps:
+      - name: Wait for the deployed Orekit service
+        shell: bash
+        env:
+          OREKIT_URL: https://aryaksha-orekit.onrender.com
+        run: |
+          for attempt in $(seq 1 12); do
+            if curl --silent --show-error --fail --max-time 70 "$OREKIT_URL/api/v1/health" -o /tmp/orekit-health.json; then
+              if node -e 'const p=require("/tmp/orekit-health.json"); if (p.status!=="ok" || p.engine!=="Orekit" || p.version!=="13.1.9") process.exit(1);'; then
+                cat /tmp/orekit-health.json
+                exit 0
+              fi
+            fi
+            echo "Orekit service not ready yet (attempt $attempt/12)"
+            sleep 10
+          done
+          exit 1
+
+      - name: Verify live backend returns Orekit numerical results
+        shell: bash
+        env:
+          WEB_URL: https://aryaksha-web.onrender.com
+        run: |
+          for attempt in $(seq 1 6); do
+            status=$(curl --silent --show-error --max-time 75 -o /tmp/orbit-analysis.json -w '%{http_code}' -H 'content-type: application/json' -d '{"altitudeKm":550,"inclinationDeg":97.6,"eccentricity":0.001}' "$WEB_URL/api/mission-analysis/orbit" || true)
+            if [ "$status" = "200" ] && node -e 'const p=require("/tmp/orbit-analysis.json"); if (p.valid!==true || p.engine!=="Orekit" || p.comparison?.engineAdapter!=="orekit-http" || p.comparison?.status!=="connected" || !Number.isFinite(p.orbit?.periodMinutes) || Math.abs(p.orbit.periodMinutes-95.64988)>0.02) process.exit(1);'; then
+              cat /tmp/orbit-analysis.json
+              exit 0
+            fi
+            echo "Mission analysis proxy not ready or invalid (attempt $attempt/6; HTTP ${status:-000})"
+            sleep 10
+          done
+          exit 1
+
+      - name: Verify the deployed Earth-intersection guardrail
+        shell: bash
+        env:
+          WEB_URL: https://aryaksha-web.onrender.com
+        run: |
+          status=$(curl --silent --show-error --max-time 30 -o /tmp/invalid-orbit.json -w '%{http_code}' -H 'content-type: application/json' -d '{"altitudeKm":120,"inclinationDeg":45,"eccentricity":0.02}' "$WEB_URL/api/mission-analysis/orbit" || true)
+          test "$status" = "400"
+          node -e 'const p=require("/tmp/invalid-orbit.json"); if (typeof p.error!=="string" || !p.error.includes("intersects Earth")) process.exit(1);'
