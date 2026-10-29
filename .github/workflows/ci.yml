@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+      - run: npm ci
       - name: Report dependency audit findings (non-blocking)
         shell: bash
         run: |
@@ -49,6 +49,7 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
 
   orekit-service:
     name: Orekit service build and tests
