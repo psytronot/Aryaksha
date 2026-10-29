@@ -310,7 +310,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
 
       // The Moon and planet layer use a deliberately compressed display scale;
       // they are illustrative context, not ephemeris-grade planetary positions.
-      const spaceEnvironment = createSpaceEnvironment(earthRadius, moonRadius, moonDistance);
+      const spaceEnvironment = createSpaceEnvironment(moonRadius, moonDistance);
       scene.add(spaceEnvironment.group);
 
       const orbitGeometry = new THREE.BufferGeometry();
@@ -342,8 +342,11 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       scene.add(velocityArrow, nadirArrow);
 
       const axes = new THREE.AxesHelper(7.1);
-      axes.material.transparent = true;
-      axes.material.opacity = 0.16;
+      const axesMaterials = Array.isArray(axes.material) ? axes.material : [axes.material];
+      axesMaterials.forEach(material => {
+        material.transparent = true;
+        material.opacity = 0.16;
+      });
       scene.add(axes);
 
       const resize = () => {
@@ -427,7 +430,6 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         satellite.root.position.copy(markerVector);
         satellite.root.quaternion.setFromRotationMatrix(basis);
         satellite.root.rotation.y += 0.008;
-        satellite.beacon.material = satellite.beacon.material as THREE.Material;
         (satellite.beacon.material as THREE.MeshBasicMaterial).opacity = 0.5 + 0.5 * (0.5 + 0.5 * Math.sin(performance.now() * 0.008));
 
         const ground = radial.clone().multiplyScalar(earthRadius * 1.012);
@@ -573,10 +575,10 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   const maxBusDimensionM = Math.max(0.01, busWidthM, busHeightM, busDepthM);
   const earthDiameterKm = 2 * 6378.137;
   const trueEarthToBusRatio = (earthDiameterKm * 1000) / maxBusDimensionM;
-  const visualExaggeration = Math.round((0.5 * 6378.137 / 5.15 * 1000) / maxBusDimensionM);
+  const visualExaggeration = 1_000_000;
   return (
     <div className="page">
-      <div className="page-header"><div><small>3D MISSION VIEW</small><h1>Earth 3D</h1><p>A local spacecraft-tracking globe with a detailed Earth surface, orbital path, vectors and mission HUD.</p></div></div>
+      <div className="page-header"><div><small>3D MISSION VIEW</small><h1>Earth 3D</h1><p>A local spacecraft-tracking globe with a detailed Earth surface, orbital path, vectors and mission HUD.</p><small>Scale disclosure: Earth diameter is approximately {Math.round(trueEarthToBusRatio).toLocaleString()} times the maximum bus dimension at true scale. Spacecraft geometry is enlarged by {visualExaggeration.toLocaleString()}× for visibility; dimensions are not shown to physical scale.</small></div></div>
       <article className="earth3d-workspace glass-panel">
         <div className="earth3d-canvas" ref={containerRef} aria-label="Interactive 3D Earth with trackable spacecraft" />
         <div className="earth3d-topbar">

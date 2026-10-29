@@ -9,7 +9,7 @@ import AryakshaMark from './AryakshaMark';
 import ScientificCalculator from './ScientificCalculator';
 import SatelliteTrackingView from './SatelliteTrackingView';
 import MissionAnalysisView from './MissionAnalysisView';
-import { EARTH_RADIUS, Elements, orbitalSummary, propagateState, sampleOrbit, stateToLla } from './orbit';
+import { EARTH_RADIUS, orbitalSummary, propagateState, sampleOrbit, stateToLla } from './orbit';
 import { getGlossaryEntries, getGlossaryEntry, GlossaryEntry } from './glossary';
 import { generateContinuousGroundTrack, SubPoint } from './tracking';
 import { computeDayNightBoundary, solarSubpoint } from './daynight';
@@ -231,8 +231,8 @@ function App() {
           {view === 'orbit' && <OrbitView orbit={orbit} updateOrbit={updateOrbit} maneuverAltitude={maneuverAltitude} setManeuverAltitude={setManeuverAltitude} maneuverInclination={maneuverInclination} setManeuverInclination={setManeuverInclination} maneuver={maneuver} applyPreset={applyPreset} selectedPreset={selectedPreset} />}
           {view === 'simulation' && <SimulationView model={model} current={currentState} seconds={seconds} duration={duration} running={running} setRunning={setRunning} playback={playback} setPlayback={setPlayback} setSeconds={setSeconds} mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} footprintAngle={geometry.footprintDeg} />}
           {view === 'tracking' && <SatelliteTrackingView />}
-          {view === 'missionAnalysis' && <MissionAnalysisView initialAltitudeKm={orbit.altitudeKm} initialInclinationDeg={orbit.inclinationDeg} initialEccentricity={orbit.eccentricity} />}
-          {view === 'analysis' && <AnalysisView mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} geometry={geometry} power={power} thermal={thermal} comms={comms} adcs={adcs} propulsion={propulsion} />}
+          {view === 'missionAnalysis' && <MissionAnalysisView initialAltitudeKm={orbit.altitudeKm} initialInclinationDeg={orbit.i} initialEccentricity={orbit.e} />}
+          {view === 'analysis' && <AnalysisView mission={mission} orbit={orbit} geometry={geometry} power={power} thermal={thermal} comms={comms} adcs={adcs} propulsion={propulsion} />}
           {view === 'verification' && <VerificationView verification={verification} />}
           {view === 'report' && <ReportView mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} summary={summary} geometry={geometry} verification={verification} onExport={exportReport} />}
           {view === 'instructions' && <InstructionsView />}
@@ -534,7 +534,7 @@ function GroundTrackMap({ model, current }: { model: any[]; current: any }) {
   );
 }
 
-function AnalysisView({ mission, payload, spacecraft, orbit, geometry, power, thermal, comms, adcs, propulsion }: { mission: Mission; payload: Payload; spacecraft: Spacecraft; orbit: OrbitDesign; geometry: ReturnType<typeof missionGeometry>; power: ReturnType<typeof powerAnalysis>; thermal: ReturnType<typeof thermalAnalysis>; comms: ReturnType<typeof communicationsAnalysis>; adcs: ReturnType<typeof adcsAnalysis>; propulsion: ReturnType<typeof propulsionAnalysis> }) {
+function AnalysisView({ mission, orbit, geometry, power, thermal, comms, adcs, propulsion }: { mission: Mission; orbit: OrbitDesign; geometry: ReturnType<typeof missionGeometry>; power: ReturnType<typeof powerAnalysis>; thermal: ReturnType<typeof thermalAnalysis>; comms: ReturnType<typeof communicationsAnalysis>; adcs: ReturnType<typeof adcsAnalysis>; propulsion: ReturnType<typeof propulsionAnalysis> }) {
   const modules = [
     { title: 'Mission geometry', icon: <Target size={17} />, status: geometry.passesWithinRequirement && geometry.revisitStatus === 'MEASURED', metrics: [['Footprint radius', `${formatNumber(geometry.footprintRadiusKm,1)} km`],['48 h revisit', `${formatNumber(geometry.revisitDays,2)} d`],['Access samples', String(geometry.accessCount)]], note: `Sampled access/revisit model. Revisit status: ${geometry.revisitStatus}.` },
     { title: 'ADCS', icon: <Activity size={17} />, status: adcs.pointingPass, metrics: [['Required torque', `${formatNumber(adcs.requiredTorqueNm,5)} Nm`],['Actuator margin', `${formatNumber(adcs.actuatorMarginNm,5)} Nm`],['Ground error', `${formatNumber(adcs.pointingGroundErrorM,1)} m`]], note: 'Pointing is evaluated consistently as ground error at the current orbit altitude.' },
