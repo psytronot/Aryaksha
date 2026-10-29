@@ -167,4 +167,24 @@ class OrbitAnalysisControllerTest {
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.error", containsString("intersects Earth")));
     }
+
+
+    @Test
+    void httpAnalysisEndpointReturnsStructuredErrorForMalformedJson() throws Exception {
+        http.perform(post("/api/v1/orbit/analysis")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"altitudeKm\":"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("Request body must be valid JSON."));
+    }
+
+    @Test
+    void httpAnalysisEndpointReturnsStructuredErrorForNullBody() throws Exception {
+        http.perform(post("/api/v1/orbit/analysis")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("null"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("Request body must be valid JSON."));
+    }
+
 }
