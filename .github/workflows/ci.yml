@@ -178,7 +178,7 @@ jobs:
         run: |
           for attempt in $(seq 1 18); do
             status=$(curl --silent --show-error --max-time 75 -o /tmp/orbit-analysis.json -w '%{http_code}' -H 'content-type: application/json' -d '{"altitudeKm":550,"inclinationDeg":97.6,"eccentricity":0.001}' "$WEB_URL/api/mission-analysis/orbit" || true)
-            if [ "$status" = "200" ] && node -e 'const p=require("/tmp/orbit-analysis.json"); if (p.valid!==true || p.engine!=="Orekit" || p.comparison?.engineAdapter!=="orekit-http" || p.comparison?.status!=="connected" || !Number.isFinite(p.orbit?.periodMinutes) || Math.abs(p.orbit.periodMinutes-95.64988)>0.02 || p.state?.frame!=="EME2000" || p.state?.timeScale!=="TAI" || p.state?.epoch!=="2000-01-01T11:59:27.816" || p.state?.positionKm?.length!==3 || p.state?.velocityKmS?.length!==3) process.exit(1);'; then
+            if [ "$status" = "200" ] && node -e 'const p=require("/tmp/orbit-analysis.json"); if (p.valid!==true || p.engine!=="Orekit" || p.fidelity!=="Orekit numerical propagation (two-body)" || p.comparison?.engineAdapter!=="orekit-http" || p.comparison?.status!=="connected" || !Number.isFinite(p.orbit?.periodMinutes) || Math.abs(p.orbit.periodMinutes-95.64988)>0.02 || p.state?.frame!=="EME2000" || p.state?.timeScale!=="TAI" || p.state?.epoch!=="2000-01-01T11:59:27.816" || p.state?.positionKm?.length!==3 || p.state?.velocityKmS?.length!==3) process.exit(1);'; then
               cat /tmp/orbit-analysis.json
               exit 0
             fi
@@ -201,6 +201,26 @@ jobs:
             process.exit(1);
           }
           console.log('Live orbit-analysis response conforms to schema v1.');
+          NODE
+
+      - name: Verify live numerical propagation advances the state vector and epoch
+        shell: bash
+        env:
+          WEB_URL: https://aryaksha-web.onrender.com
+        run: |
+          status=$(curl --silent --show-error --max-time 75 -o /tmp/orbit-analysis-600s.json -w '%{http_code}' -H 'content-type: application/json' -d '{"altitudeKm":550,"inclinationDeg":97.6,"eccentricity":0.001,"elapsedSeconds":600}' "$WEB_URL/api/mission-analysis/orbit" || true)
+          test "$status" = "200"
+          node <<'NODE'
+          const p = require('/tmp/orbit-analysis-600s.json');
+          if (p.valid !== true || p.engine !== 'Orekit' || p.fidelity !== 'Orekit numerical propagation (two-body)' ||
+              p.state?.elapsedSeconds !== 600 || p.state?.epoch !== '2000-01-01T12:09:27.816' ||
+              p.state?.timeScale !== 'TAI' || p.state?.frame !== 'EME2000' ||
+              p.state?.positionKm?.length !== 3 || p.state?.velocityKmS?.length !== 3 ||
+              ![...p.state.positionKm, ...p.state.velocityKmS].every(Number.isFinite)) {
+            console.error(JSON.stringify(p, null, 2));
+            process.exit(1);
+          }
+          console.log('Live Orekit numerical propagation advanced the state by 600 seconds.');
           NODE
 
       - name: Verify the deployed Earth-intersection guardrail
