@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+      - run: npm ci
       - name: Report dependency audit findings (non-blocking)
         shell: bash
         run: |
@@ -50,38 +50,6 @@ jobs:
       - run: npm test
       - run: npm run build
 
-
-  bootstrap-lockfile:
-    name: Bootstrap package lock for this PR
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'phase-a/lockfile-ci'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
-          persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Generate package lock
-        run: npm install
-      - name: Commit generated lockfile to feature branch
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          git add package-lock.json
-          if git diff --cached --quiet; then
-            echo "package-lock.json is already current"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "chore: add reproducible npm lockfile"
-          AUTH=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
-          git -c http.extraheader="AUTHORIZATION: basic $AUTH" push "https://github.com/$GITHUB_REPOSITORY.git" "HEAD:$GITHUB_HEAD_REF"
 
   orekit-service:
     name: Orekit service build and tests
