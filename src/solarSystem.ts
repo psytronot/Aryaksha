@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { PLANETARY_BODY_SPECS, planetaryPositionAt } from './earth3dMath';
+import { PLANETARY_BODY_SPECS, moonSynchronousYaw, planetaryPositionAt } from './earth3dMath';
 
 function makeBodyLabel(text: string, color: string) {
   const canvas = document.createElement('canvas');
@@ -156,7 +156,7 @@ export function createSpaceEnvironment(moonRadius: number, moonDistance: number)
       const phase = (safeSeconds / (27.321661 * 86400)) * Math.PI * 2;
       moon.position.set(Math.cos(phase) * moonDistance, 0, Math.sin(phase) * moonDistance);
       // Local +Z remains pointed toward Earth as the Moon advances around the x-z plane.
-      moon.rotation.y = -phase - Math.PI / 2;
+      moon.rotation.y = moonSynchronousYaw(phase);
       bodies.forEach((body) => {
         const position = planetaryPositionAt(body.name, safeSeconds);
         body.root.position.set(position.x, position.y, position.z);
