@@ -54,7 +54,8 @@ These checks must be run against the branch before merge/release. They are not c
 7. Visual check of day-side/night-side city lights and terminator at four seasonal epochs, cloud/atmosphere depth ordering, polar ice, crater relief and Saturn ring visibility.
 8. Verify camera target changes do not mutate the spacecraft state, orbit samples, telemetry or propagation method.
 9. Verify the footprint position BufferAttribute identity remains stable across frames; check scene teardown for duplicate disposal, WebGL warnings and renderer resource growth.
-10. Capture before/after screenshots and frame-time/heap measurements on desktop and mobile. Record actual evidence before updating the Notion acceptance status.
+10. The browser smoke job captures `artifacts/earth3d-desktop.png` and `artifacts/earth3d-mobile.png` and uploads them as the `earth3d-browser-evidence` workflow artifact. Inspect those captures before claiming screenshot fidelity.
+11. Capture frame-time/heap measurements on desktop and mobile. Record actual evidence before updating the Notion acceptance status.
 
 ## Release hold
 
