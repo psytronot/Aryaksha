@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'node:path';
 import * as satellite from 'satellite.js';
 
 const app = express();
@@ -119,5 +120,8 @@ app.post('/api/simulation/propagate', (req, res) => {
     return res.status(500).json({ error: err instanceof Error ? err.message : 'Simulation core failed.' });
   }
 });
+
+app.use(express.static(path.resolve('dist')));
+app.get('*', (_req, res) => res.sendFile(path.resolve('dist/index.html')));
 
 app.listen(port, '0.0.0.0', () => console.log(`Aryaksha API listening on :${port}`));
