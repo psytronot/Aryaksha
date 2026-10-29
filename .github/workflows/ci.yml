@@ -152,6 +152,26 @@ jobs:
           done
           exit 1
 
+      - name: Verify Orekit returns structured errors for malformed JSON
+        shell: bash
+        env:
+          OREKIT_URL: https://aryaksha-orekit.onrender.com
+        run: |
+          for attempt in $(seq 1 18); do
+            passed=true
+            for payload in '{"altitudeKm":' 'null'; do
+              status=$(curl --silent --show-error --max-time 20 -o /tmp/orekit-malformed.json -w '%{http_code}' -H 'content-type: application/json' -d "$payload" "$OREKIT_URL/api/v1/orbit/analysis" || true)
+              if [ "$status" != "400" ] || ! node -e 'const p=require("/tmp/orekit-malformed.json"); if (p.error !== "Request body must be valid JSON.") process.exit(1);'; then
+                passed=false
+                break
+              fi
+            done
+            if [ "$passed" = true ]; then exit 0; fi
+            echo "Orekit malformed-body contract not active yet (attempt $attempt/18)"
+            sleep 10
+          done
+          exit 1
+
       - name: Verify live backend returns Orekit numerical results
         shell: bash
         env:
