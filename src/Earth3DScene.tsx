@@ -561,6 +561,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         earthSunUniform.value.set(sunVector.x, sunVector.z, sunVector.y).normalize();
 
         const mode = cameraModeRef.current;
+        axes.visible = showAxesRef.current && mode !== 'PLANETS';
         earth.visible = mode !== 'PLANETS';
         satellite.root.visible = mode !== 'PLANETS';
         orbitGlow.visible = showOrbitRef.current && mode !== 'PLANETS';
@@ -579,13 +580,13 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         let distance = s.distance;
         if (mode === 'SATELLITE') {
           target = markerVector.clone();
-          distance = Math.min(s.distance, 6.5);
+          distance = s.distance;
         } else if (mode === 'MOON') {
           target = spaceEnvironment.moon.position.clone();
-          distance = Math.min(s.distance, 2.0);
+          distance = s.distance;
         } else if (mode === 'TRACK') {
           target = markerVector.clone().lerp(origin, 0.26);
-          distance = Math.min(s.distance, 12.5);
+          distance = s.distance;
         } else if (mode === 'SYSTEM') {
           target = origin;
           distance = s.distance;
@@ -697,10 +698,10 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         <div className="earth3d-topbar">
           <div className="earth3d-object">
             <span className="earth3d-live-dot" />
-            <div><small>TRACKING OBJECT</small><b>{name || 'MySat-1'}</b></div>
+            <div><small>MISSION OBJECT / PROPAGATED STATE</small><b>{name || 'MySat-1'}</b></div>
             <span className="earth3d-badge">{propagator}</span>
             <span className="earth3d-ist-clock">CLOCK · {formatIstDateTime(wallTime)} IST</span>
-            <span className="earth3d-data-source">{propagator === 'SGP4' ? 'TLE / SGP4 PROPAGATED' : 'SIMULATED · TWO-BODY KEPLER'}</span>
+            <span className="earth3d-data-source">{propagator === 'SGP4' ? 'SGP4 PROPAGATED · INPUT SOURCE NOT DECLARED' : 'SIMULATED · TWO-BODY KEPLER'}</span>
           </div>
           <div className="earth-camera-controls" aria-label="Camera modes">
             {(['TRACK', 'EARTH', 'SATELLITE', 'MOON', 'SYSTEM', 'PLANETS'] as CameraMode[]).map(mode => <button key={mode} type="button" className={`earth-camera-button ${cameraMode === mode ? 'active' : ''}`} onClick={() => { if (mode === 'MOON' || mode === 'SYSTEM') setShowSpaceEnvironment(true); if (mode === 'PLANETS') { setShowPlanets(true); if (selectedBody === 'Moon') setSelectedBody('Overview'); } setCameraMode(mode); }}>{mode}</button>)}
