@@ -191,64 +191,39 @@ function generateNightShadeSVG(subSolarLat: number, subSolarLon: number): string
   const xForLon = (lon: number) => ((lon + 180) / 360) * 1000;
   const yForLat = (lat: number) => ((90 - lat) / 180) * 500;
   const delta = subSolarLat * DEG;
-  const rows: number[] = [];
-  for (let lat = -90; lat <= 90; lat += 1) rows.push(lat);
-  if (rows[rows.length - 1] !== 90) rows.push(90);
 
-  // In each latitude row, the night region is the longitude interval centred
-  // on the anti-solar meridian. The interval is kept unwrapped, then clipped
-  // into 360-degree map tiles so it never draws a spike across the antimeridian.
-  const rowIntervals = rows.map(lat => {
-    const phi = lat * DEG;
-    const sinTerm = Math.sin(phi) * Math.sin(delta);
-    const cosTerm = Math.cos(phi) * Math.cos(delta);
-    let halfAngle: number;
-    if (Math.abs(cosTerm) < 1e-10) {
-      halfAngle = sinTerm < 0 ? 0 : 180;
-    } else {
-      const threshold = -sinTerm / cosTerm;
-      if (threshold >= 1) halfAngle = 0; // entire latitude row is dark
-      else if (threshold <= -1) halfAngle = 180; // no dark longitude on this row
-      else halfAngle = Math.acos(threshold) / DEG;
+  // Exact equinox: the dark hemisphere is a 180-degree longitude interval.
+  // Draw it as edge-clipped rectangles instead of a singular latitude curve.
+  if (Math.abs(subSolarLat) < 0.05) {
+    const start = ((subSolarLon + 270) % 360 + 360) % 360;
+    const end = start + 180;
+    if (end <= 360) {
+      const x1 = start / 360 * 1000;
+      const x2 = end / 360 * 1000;
+      return `M ${x1} 0 L ${x2} 0 L ${x2} 500 L ${x1} 500 Z`;
     }
-    if (halfAngle >= 180 - 1e-8) return null;
-    const left = subSolarLon + halfAngle;
-    const right = subSolarLon + 360 - halfAngle;
-    if (right - left < 1e-8) return null;
-    return { left, right };
-  });
-
-  const polygons: string[] = [];
-  for (let tile = -2; tile <= 2; tile += 1) {
-    const tileMin = -180 + 360 * tile;
-    const tileMax = 180 + 360 * tile;
-    const groups: Array<Array<{ lat: number; left: number; right: number }>> = [];
-    let group: Array<{ lat: number; left: number; right: number }> = [];
-    rows.forEach((lat, index) => {
-      const interval = rowIntervals[index];
-      if (!interval) {
-        if (group.length) groups.push(group);
-        group = [];
-        return;
-      }
-      const left = Math.max(interval.left, tileMin);
-      const right = Math.min(interval.right, tileMax);
-      if (right - left <= 1e-8) {
-        if (group.length) groups.push(group);
-        group = [];
-        return;
-      }
-      group.push({ lat, left: left - 360 * tile, right: right - 360 * tile });
-    });
-    if (group.length) groups.push(group);
-
-    for (const band of groups) {
-      const leftPath = band.map((p, index) =>
-        `${index === 0 ? 'M' : 'L'}${xForLon(p.left).toFixed(3)} ${yForLat(p.lat).toFixed(3)}`).join(' ');
-      const rightPath = [...band].reverse().map(p =>
-        `L${xForLon(p.right).toFixed(3)} ${yForLat(p.lat).toFixed(3)}`).join(' ');
-      polygons.push(`${leftPath} ${rightPath} Z`);
-    }
+    const x1 = start / 360 * 1000;
+    const x2 = (end - 360) / 360 * 1000;
+    return [
+      `M ${x1} 0 L 1000 0 L 1000 500 L ${x1} 500 Z`,
+      `M 0 0 L ${x2} 0 L ${x2} 500 L 0 500 Z`,
+    ].join(' ');
   }
-  return polygons.join(' ');
+
+  const boundary: string[] = [];
+  for (let lon = -180; lon <= 180; lon += 2) {
+    const hourAngle = (lon - subSolarLon) * DEG;
+    const lat = Math.atan(-Math.cos(hourAngle) / Math.tan(delta)) / DEG;
+    boundary.push(`${xForLon(lon).toFixed(3)} ${yForLat(lat).toFixed(3)}`);
+  }
+
+  if (subSolarLat > 0) {
+    return `M 0 500 L 1000 500 L ${boundary.slice().reverse().join(' L ')} Z`;
+  }
+  return `M 0 0 L ${boundary.join(' L ')} L 1000 0 Z`;
+}
+
+export function terminatorRing(date: Date): Array<[number, number]> {
+  const sub = solarSubpoint(date);
+  return computeDayNightBoundary(sub.lat, sub.lon).terminatorSegments.flat().map(point => [point.lat, point.lon]);
 }
