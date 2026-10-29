@@ -82,7 +82,7 @@ jobs:
 
   live-integration-smoke:
     name: Live Orekit integration smoke tests
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     needs: [web-build-and-tests, orekit-service]
     steps:
@@ -249,7 +249,7 @@ jobs:
 
   live-browser-smoke:
     name: Live deployed UI smoke tests
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     needs: [browser-e2e, live-integration-smoke]
     env:
