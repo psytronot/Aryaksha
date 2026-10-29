@@ -110,3 +110,15 @@ test('mobile mission analysis rejects an Earth-intersecting orbit without showin
   await expect(page.getByText(/Analysis completed/)).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Run analysis', exact: true })).toBeEnabled();
 });
+
+test('invalid engineering orbit inputs produce a visible FAIL in Verification', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Orbit & Maneuver', exact: true }).click();
+
+  await page.locator('.orbit-layout .field-grid label.field').filter({ hasText: 'INCLINATION' }).locator('input').fill('181');
+  await page.getByRole('button', { name: 'Verification', exact: true }).click();
+
+  const inputCheck = page.locator('.verification-row').filter({ hasText: 'Engineering inputs valid' });
+  await expect(inputCheck).toContainText('FAIL');
+  await expect(page.getByText('Engineering inputs valid')).toBeVisible();
+});
