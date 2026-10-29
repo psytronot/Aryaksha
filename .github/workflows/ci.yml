@@ -98,7 +98,7 @@ jobs:
         run: |
           for attempt in $(seq 1 18); do
             status=$(curl --silent --show-error --max-time 15 -D /tmp/security-headers.txt -o /tmp/security-health.json -w '%{http_code}' "$WEB_URL/api/v1/health" || true)
-            if [ "$status" = "200" ] && grep -qi '^x-content-type-options: nosniff' /tmp/security-headers.txt && grep -qi '^x-frame-options: DENY' /tmp/security-headers.txt && grep -qi '^referrer-policy: strict-origin-when-cross-origin' /tmp/security-headers.txt; then
+            if [ "$status" = "200" ] && grep -qi '^x-content-type-options: nosniff' /tmp/security-headers.txt && grep -qi '^x-frame-options: DENY' /tmp/security-headers.txt && grep -qi '^referrer-policy: strict-origin-when-cross-origin' /tmp/security-headers.txt && grep -qi "^content-security-policy-report-only:.*default-src 'self'" /tmp/security-headers.txt && grep -qi "connect-src 'self' https://celestrak.org" /tmp/security-headers.txt; then
               cat /tmp/security-health.json
               echo "Live API security headers are present."
               exit 0
