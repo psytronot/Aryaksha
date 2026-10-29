@@ -195,3 +195,11 @@ html,body{min-width:320px;overflow-x:clip}
   .mission-top-nav button{height:36px;padding:0 8px;font-size:9px}
   .simulation-shell .main{padding:0 6px 20px}
 }
+@media(min-width:701px){
+  .mission-control-grid .scene-wrap{min-height:clamp(560px,64vh,700px)}
+  .mission-control-grid .earth3d-workspace{min-height:clamp(560px,64vh,700px)}
+}
+@media(max-width:700px){
+  .mission-control-grid .scene-wrap{min-height:1020px}
+  .mission-control-grid .earth3d-workspace{min-height:1020px}
+}
