@@ -54,3 +54,24 @@ test('live deployed UI renders mission analysis against the versioned response c
   await expect(page.getByText('95.65 min')).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
+
+test('live deployed simulation advances the orbit ground track over time', async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
+
+  const response = await page.goto('/');
+  expect(response?.status()).toBe(200);
+  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const trackPath = page.locator('.ground-track-svg path[stroke="#51ddff"]').first();
+  await expect(trackPath).toHaveAttribute('d', /[ML]/);
+  const pathData = await trackPath.getAttribute('d');
+  expect(pathData).not.toBeNull();
+
+  const latitudes = [...(pathData ?? '').matchAll(/(?:M|L)\s*-?\d+(?:\.\d+)?\s+(-?\d+(?:\.\d+)?)/g)]
+    .map(match => Number(match[1]));
+  expect(latitudes.length).toBeGreaterThan(5);
+  expect(Math.max(...latitudes) - Math.min(...latitudes)).toBeGreaterThan(1);
+  expect(pageErrors).toEqual([]);
+});
