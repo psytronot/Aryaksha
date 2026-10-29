@@ -143,3 +143,63 @@ html,body{min-width:320px;overflow-x:clip}
   .main{width:100%;max-width:none}
   .sidebar{overscroll-behavior:auto}
 }
+/* Screenshot-matched mission dashboard: globe first, then ground track/orbit facts/mission info. */
+.simulation-grid.mission-control-grid{grid-template-columns:minmax(0,1fr)!important}
+.mission-control-grid .scene-wrap{min-width:0;min-height:820px}
+.mission-bottom-grid{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr) minmax(0,.92fr);gap:12px;margin-top:14px;align-items:stretch}
+.mission-bottom-track,.mission-bottom-card{min-width:0;min-height:100%}
+.mission-bottom-track>.card{height:100%;min-width:0}
+.mission-bottom-card{border:1px solid var(--line);border-radius:14px;background:linear-gradient(145deg,rgba(14,21,29,.96),rgba(8,12,17,.96));padding:17px;box-shadow:0 18px 50px rgba(0,0,0,.16)}
+.mission-bottom-card .panel-title{margin-bottom:8px}
+.mission-bottom-card h3{font-size:14px;margin:12px 0 8px;color:#f4fbff}
+.mission-bottom-card p{font-size:10px;line-height:1.6;color:var(--muted);margin:0 0 12px}
+.mission-bottom-card .telemetry{padding:8px 0}
+.mission-info-fact{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.055);align-items:flex-start}
+.mission-info-fact span{font:7px ui-monospace,monospace;color:rgba(255,255,255,.42);letter-spacing:.05em}
+.mission-info-fact b{font:8px ui-monospace,monospace;color:#eaf5fb;text-align:right}
+@media(max-width:1100px){
+  .mission-bottom-grid{grid-template-columns:1fr 1fr}
+  .mission-bottom-track{grid-column:1 / -1}
+}
+@media(max-width:700px){
+  .mission-control-grid .scene-wrap{min-height:1020px}
+  .mission-bottom-grid{grid-template-columns:minmax(0,1fr)}
+  .mission-bottom-track{grid-column:auto}
+  .mission-bottom-card{padding:13px}
+}
+.simulation-page>.page-header{display:none}
+.mission-strip-simulation{display:none}
+/* Mission-control-only shell replaces the sidebar with the reference screenshot's top navigation. */
+.mission-control-app .topbar{gap:14px}
+.mission-top-nav{display:flex;align-items:center;justify-content:center;gap:3px;flex:1;min-width:0}
+.mission-top-nav button{height:40px;padding:0 11px;border:0;border-radius:7px 7px 0 0;border-bottom:2px solid transparent;background:transparent;color:var(--muted);font-size:10px;white-space:nowrap}
+.mission-top-nav button:hover{color:#fff;background:rgba(255,255,255,.035)}
+.mission-top-nav button.active{color:#fff;background:rgba(81,221,255,.09);border-bottom-color:var(--cyan)}
+.shell.simulation-shell{grid-template-columns:minmax(0,1fr)!important}
+.simulation-shell .sidebar{display:none}
+.simulation-shell .main{max-width:none;padding:0 16px 36px}
+.mission-control-app .mobile-nav-panel{display:none!important}
+@media(max-width:1200px){
+  .mission-control-app .engine-status,.mission-control-app .topbar-actions{display:none}
+  .mission-top-nav{justify-content:flex-start;overflow-x:auto;scrollbar-width:none}
+  .mission-top-nav::-webkit-scrollbar{display:none}
+  .mission-top-nav button{padding:0 10px}
+}
+@media(max-width:600px){
+  .mission-control-app .topbar{height:58px;padding:0 8px;gap:6px}
+  .mission-control-app .brand{gap:6px;flex:0 0 auto}
+  .mission-control-app .brand-mark{width:30px;height:30px}
+  .mission-control-app .brand strong{font-size:10px}
+  .mission-control-app .brand small{font-size:6px}
+  .mission-top-nav{gap:2px}
+  .mission-top-nav button{height:36px;padding:0 8px;font-size:9px}
+  .simulation-shell .main{padding:0 6px 20px}
+}
+@media(min-width:701px){
+  .mission-control-grid .scene-wrap{min-height:clamp(560px,64vh,700px)}
+  .mission-control-grid .earth3d-workspace{min-height:clamp(560px,64vh,700px)}
+}
+@media(max-width:700px){
+  .mission-control-grid .scene-wrap{min-height:1020px}
+  .mission-control-grid .earth3d-workspace{min-height:1020px}
+}
