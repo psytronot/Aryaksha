@@ -167,3 +167,5 @@ html,body{min-width:320px;overflow-x:clip}
   .mission-bottom-track{grid-column:auto}
   .mission-bottom-card{padding:13px}
 }
+.simulation-page>.page-header{display:none}
+.mission-strip-simulation{display:none}
