@@ -112,6 +112,7 @@ test('mobile mission analysis rejects an Earth-intersecting orbit without showin
 });
 
 test('invalid engineering orbit inputs produce a visible FAIL in Verification', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   await page.goto('/');
   await page.getByRole('button', { name: 'Orbit & Maneuver', exact: true }).click();
 
