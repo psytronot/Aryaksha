@@ -1,0 +1,172 @@
+[
+  {
+    "name": "Complete student engineering workflow with verification",
+    "sanity": true,
+    "viewport": "desktop",
+    "covers": [
+      "mission requirements",
+      "spacecraft bus dimensions",
+      "actual Earth-to-spacecraft scale ratio and visual exaggeration disclosure",
+      "payload optics and GSD",
+      "spacecraft configuration",
+      "orbit and maneuver",
+      "simulation",
+      "engineering analysis",
+      "verification",
+      "design report"
+    ],
+    "description": "Verifies the primary engineering workflow remains connected after subsystem model hardening.",
+    "steps": [
+      "Open Orbital Lab",
+      "Inspect Payload including focal length and detector pitch",
+      "Open Spacecraft and inspect battery, thermal and communications assumptions",
+      "Open Orbit & Maneuver and inspect transfer ΔV",
+      "Open Simulation and run the scenario",
+      "Open Engineering Analysis, Verification and Design Report"
+    ],
+    "expected": "All workspaces are reachable; GSD, ADCS, power, thermal, communications and propulsion checks show explicit results and fidelity assumptions."
+  },
+  {
+    "name": "Reject invalid engineering inputs",
+    "viewport": "desktop",
+    "covers": [
+      "engineering input validation",
+      "orbit validity",
+      "payload validation"
+    ],
+    "description": "Verifies invalid engineering values do not silently become plausible results.",
+    "steps": [
+      "Open Orbit & Maneuver",
+      "Enter an invalid eccentricity or altitude",
+      "Open Verification"
+    ],
+    "expected": "The Engineering inputs valid check reports FAIL instead of silently accepting the invalid design."
+  },
+  {
+    "name": "Ground track and solar terminator seasonal calibration",
+    "viewport": "desktop",
+    "covers": [
+      "antimeridian ground-track splitting",
+      "night hemisphere overlay",
+      "solar terminator rendering",
+      "sub-solar marker",
+      "equinox pole-to-pole meridians",
+      "summer and winter polar illumination"
+    ],
+    "description": "Checks the day/night boundary and night mask render on the equirectangular ground-track map for all four seasonal calibration epochs.",
+    "steps": [
+      "Open Simulation and locate the 2D Ground Track map",
+      "Set Solar overlay epoch to Vernal equinox and confirm two pole-to-pole vertical terminator lines plus night shading on the hemisphere opposite the sub-solar point",
+      "Set Solar overlay epoch to Summer solstice and confirm the terminator reaches approximately 66.56° N and 66.56° S, with the North Pole inside the daylight region",
+      "Set Solar overlay epoch to Autumnal equinox and confirm the two vertical meridians return",
+      "Set Solar overlay epoch to Winter solstice and confirm the terminator reaches approximately 66.56° N and 66.56° S, with the South Pole inside the daylight region",
+      "Confirm the cyan ground-track line remains visible above the night shade and is still split at the antimeridian"
+    ],
+    "expected": "All four epochs display a continuous, correctly clipped terminator and night mask; equinoxes show two vertical meridians without pole-spanning spikes, solstices show the expected ±66.56° terminator limits and correct polar illumination."
+  },
+  {
+    "name": "Satellite tracking TLE validation and pass prediction",
+    "viewport": "desktop",
+    "covers": [
+      "Satellite Tracking navigation",
+      "CelesTrak TLE catalog refresh",
+      "manual TLE parsing and validation",
+      "SGP4 look-angle display",
+      "24-hour AOS/LOS pass prediction",
+      "visible error recovery"
+    ],
+    "description": "Verifies the satellite tracking workspace can use a live catalog or pasted TLE and predict station visibility windows.",
+    "steps": [
+      "Open Satellite Tracking in the RUN navigation group",
+      "Refresh the live TLE catalog or paste a complete three-line TLE",
+      "Set station coordinates and minimum elevation",
+      "Click Predict next 24 hours",
+      "Paste a malformed TLE and verify validation feedback"
+    ],
+    "expected": "A valid TLE shows SGP4 look angles and pass rows with AOS, peak elevation/time, LOS and duration; invalid inputs show a visible error without crashing."
+  },
+  {
+    "name": "Satellite Ops sky path and radio Doppler estimate",
+    "viewport": "desktop",
+    "covers": [
+      "polar sky plot",
+      "selected pass path",
+      "live look angle",
+      "range-rate estimate",
+      "radio Doppler frequency estimate",
+      "SGP4-propagated ground-track map",
+      "24-hour pass timeline visualization",
+      "ground station and current satellite markers"
+    ],
+    "description": "Checks the original tracking view visualizes a selected pass and updates the first-order Doppler estimate from the configured frequency.",
+    "steps": [
+      "Open Satellite Tracking",
+      "Load a valid satellite TLE",
+      "Enter a positive nominal radio frequency",
+      "Predict the next 24 hours",
+      "Inspect the world map with the current subsatellite point, station marker and upcoming SGP4 ground track",
+      "Inspect the 24-hour pass timeline and select a pass from its visual bar",
+      "Select a predicted pass and inspect the polar sky path",
+      "Change the nominal frequency and inspect the Doppler estimate"
+    ],
+    "expected": "The world map renders antimeridian-safe future ground-track segments plus current satellite and station markers; the 24-hour timeline displays and selects predicted passes; the polar sky plot and first-order Doppler estimate update without controlling radio hardware."
+  },
+  {
+    "name": "Catalog group selection and pass export on mobile",
+    "viewport": "mobile",
+    "covers": [
+      "mobile navigation opens only on demand",
+      "compact two-column mobile navigation",
+      "mobile navigation closes after section selection",
+      "CelesTrak catalog group selection",
+      "satellite name filtering",
+      "manual TLE fallback",
+      "pass prediction CSV export"
+    ],
+    "description": "Verifies mobile navigation behavior alongside catalog selection, filtering and pass export.",
+    "steps": [
+      "Open the mobile navigation menu and verify it is hidden before tapping the menu control",
+      "Select Satellite Tracking and verify the menu closes and the tracking workspace appears",
+      "Choose a different catalog group and wait for data status",
+      "Filter the object list by a name fragment",
+      "Run pass prediction for a valid object",
+      "Export the resulting pass table to CSV"
+    ],
+    "expected": "The mobile menu stays hidden when closed, uses a compact two-column layout when opened, and closes after Satellite Tracking is selected; the selected catalog group loads or shows a clear network error, filtering narrows the object selector, and a successful prediction enables CSV export."
+  },
+  {
+    "name": "Earth 3D space environment and mobile mission-control view",
+    "viewport": "mobile",
+    "covers": [
+      "Moon model and Earth-Moon orbit visible",
+      "planet layer visibility control",
+      "Moon camera preset",
+      "mission-control telemetry layout",
+      "mobile visualization controls"
+    ],
+    "description": "Verifies the expanded 3D view exposes the Moon preset, optional planetary layer, and responsive mission-control overlays without replacing the tracked satellite model.",
+    "steps": [
+      "Open the Earth 3D workspace",
+      "Choose the MOON camera preset and verify the view follows the Moon",
+      "Toggle the solar-system layer off and on",
+      "Return to TRACK and verify the selected spacecraft telemetry remains visible"
+    ],
+    "expected": "Moon focus and solar-system layer controls respond, then TRACK returns to the propagated spacecraft while the telemetry and mission-control overlays remain available."
+  },
+  {
+    "name": "Mission analysis backend returns validated orbital metrics",
+    "viewport": "desktop",
+    "covers": ["mission analysis navigation", "backend orbital calculation", "orbital period and apsides display", "engine adapter fidelity disclosure"],
+    "description": "Verifies the backend returns numerical metrics and explicitly identifies the two-body baseline rather than claiming a third-party engine is connected.",
+    "steps": ["Open Mission Analysis", "Use the default orbit inputs", "Click Run analysis", "Inspect the period, periapsis, apoapsis and engine integration status"],
+    "expected": "Finite orbital metrics appear, Aryaksha Kepler baseline is identified, and the page states that Orekit/GMAT/STK/FreeFlyer are not yet running as integrated engines."
+  },
+  {
+    "name": "Mission analysis rejects an Earth-intersecting orbit",
+    "viewport": "mobile",
+    "covers": ["orbit geometry guardrail", "backend error handling", "mobile mission analysis form"],
+    "description": "Verifies invalid orbital geometry is rejected with a visible message and no plausible-looking result.",
+    "steps": ["Open Mission Analysis on a mobile viewport", "Set altitude to 120 km and eccentricity to 0.99", "Click Run analysis"],
+    "expected": "A visible validation error explains that the periapsis intersects Earth and no result metrics are shown."
+  }
+]
