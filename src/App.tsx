@@ -404,38 +404,31 @@ function OrbitView({ orbit, updateOrbit, maneuverAltitude, setManeuverAltitude, 
 }
 
 function SimulationView({ model, current, seconds, duration, running, setRunning, playback, setPlayback, setSeconds, mission, payload, spacecraft, orbit, footprintAngle }: { model: any[]; current: any; seconds: number; duration: number; running: boolean; setRunning: (v:boolean)=>void; playback:number; setPlayback:(v:number)=>void; setSeconds:(v:number)=>void; mission: Mission; payload: Payload; spacecraft: Spacecraft; orbit: OrbitDesign; footprintAngle:number }) {
-  const speed = Math.hypot(...current.v);
   return <div className="page simulation-page">
     <PageHeader eyebrow="05 · SIMULATION" title="Run the spacecraft, not a picture of it." text="The animation, telemetry and engineering results read from the same propagated state. The current model is deterministic two-body Keplerian propagation; J2, drag, SRP, third-body gravity and operational effects remain outside the model." />
-    <div className="simulation-grid">
+    <div className="simulation-grid mission-control-grid">
       <div className="scene-wrap"><Earth3DScene model={model} current={current} seconds={seconds} name={mission.name} propagator="KEPLER" footprintAngleDeg={footprintAngle} busWidthM={spacecraft.busWidthM} busHeightM={spacecraft.busHeightM} busDepthM={spacecraft.busDepthM} altitudeKm={orbit.altitudeKm} eccentricity={orbit.e} inclinationDeg={orbit.i} raanDeg={orbit.raan} argumentOfPerigeeDeg={orbit.argp} trueAnomalyDeg={orbit.nu} periodMin={orbitalSummary(orbit).period / 60} panelAreaM2={spacecraft.panelAreaM2} running={running} setRunning={setRunning} playback={playback} setPlayback={setPlayback} duration={duration} setSeconds={setSeconds} /></div>
-      <div className="telemetry-panel">
-        <div className="panel-title"><Gauge size={16} /> LIVE TELEMETRY <span>STATE t</span></div>
-        <Telemetry label="TIME" value={`${seconds.toFixed(1)} s`} />
-        <Telemetry label="ALTITUDE" value={`${current.lla.alt.toFixed(2)} km`} />
-        <Telemetry label="LATITUDE" value={`${current.lla.lat.toFixed(3)}°`} />
-        <Telemetry label="LONGITUDE" value={`${current.lla.lon.toFixed(3)}°`} />
-        <Telemetry label="SPEED" value={`${speed.toFixed(4)} km/s`} />
-        <Telemetry label="ECI X" value={`${current.r[0].toFixed(3)} km`} />
-        <Telemetry label="ECI Y" value={`${current.r[1].toFixed(3)} km`} />
-        <Telemetry label="ECI Z" value={`${current.r[2].toFixed(3)} km`} />
-        <Telemetry label="VX / VY / VZ" value={current.v.map((v:number)=>v.toFixed(4)).join(' / ')} />
-        <div className="model-box"><small>MODEL FIDELITY</small><b>Two-body Keplerian</b><span>Transparent analytical model. No J2, drag, SRP or third-body gravity.</span></div>
-      </div>
     </div>
-    <div className="timeline">
-      <button onClick={() => setRunning(!running)}>{running ? <Pause size={15} /> : <Play size={15} />}{running ? 'PAUSE' : 'PLAY'}</button>
-      <button onClick={() => setSeconds(Math.max(0, seconds - 10))}>−10s</button>
-      <input aria-label="Simulation timeline" type="range" min="0" max={duration} step="1" value={seconds} onChange={e => setSeconds(Number(e.target.value))} />
-      <button onClick={() => setSeconds(Math.min(duration, seconds + 10))}>+10s</button>
-      <select value={playback} onChange={e => setPlayback(Number(e.target.value))}><option value="1">1×</option><option value="10">10×</option><option value="20">20×</option><option value="60">60×</option><option value="120">120×</option></select>
-      <span>{(duration/60).toFixed(1)} min scenario</span>
-    </div>
-    <GroundTrackMap model={model} current={current} />
-    <div className="state-sheet">
-      <div><small>PAYLOAD FOOTPRINT</small><b>{footprintAngle.toFixed(3)}° central angle</b><span>FOV {payload.fovDeg}° at {orbit.altitudeKm} km</span></div>
-      <div><small>SCENARIO EPOCH</small><b>2026-01-01T00:00:00Z</b><span>Deterministic replay</span></div>
-      <div><small>STATE SOURCE</small><b>Propagate → ECI/ECEF/WGS84</b><span>One mathematical source of truth</span></div>
+    <div className="mission-bottom-grid">
+      <div className="mission-bottom-track"><GroundTrackMap model={model} current={current} /></div>
+      <section className="mission-bottom-card">
+        <div className="panel-title"><Orbit size={16} /> ORBIT PARAMETERS</div>
+        <Telemetry label="APOGEE ALTITUDE" value={`${(orbit.a * (1 + orbit.e) - 6378.137).toFixed(2)} km`} />
+        <Telemetry label="PERIGEE ALTITUDE" value={`${(orbit.a * (1 - orbit.e) - 6378.137).toFixed(2)} km`} />
+        <Telemetry label="INCLINATION" value={`${orbit.i.toFixed(3)}°`} />
+        <Telemetry label="ECCENTRICITY" value={orbit.e.toFixed(5)} />
+        <Telemetry label="SEMI-MAJOR AXIS" value={`${orbit.a.toFixed(2)} km`} />
+        <Telemetry label="ORBITAL PERIOD" value={`${(orbitalSummary(orbit).period / 60).toFixed(2)} min`} />
+      </section>
+      <section className="mission-bottom-card">
+        <div className="panel-title"><Rocket size={16} /> MISSION INFO</div>
+        <h3>{mission.name || 'Unnamed mission'}</h3>
+        <p>Educational spacecraft simulation using the selected mission state. This view is not flight-certified and does not represent a live spacecraft command link.</p>
+        <div className="mission-info-fact"><span>PROPAGATION</span><b>Two-body Kepler</b></div>
+        <div className="mission-info-fact"><span>STATE SOURCE</span><b>ECI → ECEF → WGS84</b></div>
+        <div className="mission-info-fact"><span>PAYLOAD FOOTPRINT</span><b>{footprintAngle.toFixed(3)}° · FOV {payload.fovDeg}°</b></div>
+        <div className="mission-info-fact"><span>SCENARIO EPOCH</span><b>2026-01-01T00:00:00Z</b></div>
+      </section>
     </div>
   </div>;
 }
