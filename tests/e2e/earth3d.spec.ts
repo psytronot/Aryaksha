@@ -8,6 +8,7 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
     if (message.type() === 'error' && /shader|WebGLProgram|WebGLRenderer/i.test(message.text())) shaderErrors.push(message.text());
   });
 
+  await page.setViewportSize({ width: 1536, height: 1024 });
   await page.goto('/');
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Earth 3D' })).toBeAttached();
@@ -25,13 +26,13 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
   await expect(page.getByText(/Planetary view is a labelled schematic, not ephemeris or physical scale/)).toBeVisible();
   await page.getByRole('button', { name: 'SOLAR SYSTEM', exact: true }).click();
   await expect(target).toHaveValue('Overview');
-  await page.screenshot({ path: 'artifacts/earth3d-planets.png', fullPage: true });
+  await page.screenshot({ path: 'artifacts/earth3d-planets.png' });
   await page.getByRole('button', { name: 'EARTH + MOON', exact: true }).click();
 
   await page.locator('.earth-camera-controls').getByRole('button', { name: 'MOON', exact: true }).click();
   await expect(target).toHaveValue('Moon');
   await expect(page.getByText(/EARTH–MOON CENTRES 384,400 km/)).toHaveText(/EARTH–MOON CENTRES 384,400 km/);
-  await page.screenshot({ path: 'artifacts/earth3d-moon.png', fullPage: true });
+  await page.screenshot({ path: 'artifacts/earth3d-moon.png' });
   await page.getByRole('button', { name: 'TRACK', exact: true }).click();
   await expect(page.getByText(/SIMULATED · TWO-BODY KEPLER/)).toBeVisible();
 
@@ -62,7 +63,7 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
   const workspaceWidth = await workspace.evaluate(element => element.getBoundingClientRect().width);
   expect(workspaceWidth).toBeLessThanOrEqual(390);
   await expect(page.getByRole('button', { name: 'PLANETS', exact: true })).toBeVisible();
-  await page.screenshot({ path: 'artifacts/earth3d-mobile.png', fullPage: true });
+  await page.screenshot({ path: 'artifacts/earth3d-mobile.png' });
   expect(pageErrors).toEqual([]);
   expect(shaderErrors).toEqual([]);
 });
