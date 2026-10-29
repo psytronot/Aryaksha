@@ -135,6 +135,17 @@ app.post('/api/simulation/propagate', apiRateLimit, (req, res) => {
   }
 });
 
+app.use((err, _req, res, next) => {
+  if (res.headersSent) return next(err);
+  if (err?.type === 'entity.parse.failed' || err?.type === 'entity.verify.failed') {
+    return res.status(400).json({ error: 'Request body must be valid JSON.' });
+  }
+  if (err?.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Request body exceeds the 64 KiB limit.' });
+  }
+  return next(err);
+});
+
 app.use(express.static(path.resolve('dist')));
 app.get('*', (_req, res) => res.sendFile(path.resolve('dist/index.html')));
 
