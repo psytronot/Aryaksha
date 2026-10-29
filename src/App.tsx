@@ -169,12 +169,22 @@ function App() {
   };
 
   return (
-    <div className="app-shell">
+    <div className={view === 'simulation' ? 'app-shell mission-control-app' : 'app-shell'}>
       <header className="topbar">
         <button className="brand" onClick={() => { setView('mission'); setMobileNavOpen(false); }}>
           <span className="brand-mark"><AryakshaMark size={34} /></span>
           <span><strong>ARYAKSHA</strong><small>SPACE EXPLORATION LAB</small></span>
         </button>
+        {view === 'simulation' && <nav className="mission-top-nav" aria-label="Mission control navigation">
+          {[
+            { id: 'mission', label: 'Mission' },
+            { id: 'spacecraft', label: 'Spacecraft' },
+            { id: 'orbit', label: 'Orbits' },
+            { id: 'simulation', label: 'Earth 3D' },
+            { id: 'tracking', label: 'Ground Track' },
+            { id: 'instructions', label: 'Docs' }
+          ].map(item => <button key={item.id} type="button" aria-current={view === item.id ? 'page' : undefined} className={view === item.id ? 'active' : ''} onClick={() => { setView(item.id as View); setMobileNavOpen(false); }}>{item.label}</button>)}
+        </nav>}
         <div className="engine-status"><span /> PHYSICS ENGINE <b>READY</b></div>
         <div className="topbar-actions"><button className="mobile-menu-button" type="button" aria-label={mobileNavOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={mobileNavOpen} aria-controls="mobile-navigation" onClick={() => setMobileNavOpen(v => !v)}><Layers3 size={17} /></button><button className={coachEnabled ? "coach-setting active" : "coach-setting"} type="button" aria-pressed={coachEnabled} onClick={() => setCoachEnabled(v => !v)}><CircleHelp size={15} /><span>COACH {coachEnabled ? "ON" : "OFF"}</span></button><button className="top-help" onClick={() => { setView('instructions'); setMobileNavOpen(false); }}><BookOpen size={16} /> <span>HELP · DEFINITIONS</span></button></div>
       </header>
@@ -193,7 +203,7 @@ function App() {
         </div>
       </section>
       <section className="about-kakshiya" id="about-aryaksha"><div className="about-orbit-visual" aria-hidden="true"><div className="about-earth"><Globe2 size={82}/></div><div className="about-orbit-line"/><span className="about-mini-sat"><Satellite size={22}/></span><span className="about-visual-label">LEARN · EXPERIMENT · CREATE</span></div><div className="about-copy"><p className="welcome-kicker">ABOUT ARYAKSHA</p><h2>A Space Lab for the Next Generation</h2><p>Aryaksha brings space exploration and engineering tools into one accessible place. Explore satellite movement, investigate orbital mechanics, experiment with preliminary spacecraft mission design and understand the engineering trade-offs behind a mission.</p><p>Whether you are taking your first steps into space science or building practical aerospace skills, Aryaksha is designed to help you learn by doing.</p><div className="about-values"><span><Rocket size={19}/> Student focused</span><span><Globe2 size={19}/> Explore space data</span><span><Wrench size={19}/> Hands-on tools</span></div><small className="about-disclaimer">Some tools use public orbital data; simulations are educational models, not flight-certified systems.</small></div></section>
-      <div className="shell">
+      <div className={view === 'simulation' ? 'shell simulation-shell' : 'shell'}>
         {mobileNavOpen && <div className="mobile-nav-backdrop" onClick={() => setMobileNavOpen(false)} />}
         <aside className={mobileNavOpen ? 'sidebar mobile-open' : 'sidebar'}>
           <div className="side-title">SPACECRAFT DESIGN</div>
