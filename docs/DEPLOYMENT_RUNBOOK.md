@@ -1,6 +1,6 @@
 # Deployment and rollback runbook
 
-**Status:** Operational guidance prepared; rollback drill not yet executed.
+**Status:** Live release checks passed for main commit `aec4dc2df286bbd5fc6ac4d294eee3bc11de5a60`; rollback drill not yet executed.
 **Canonical source:** GitHub repository psytronot/Aryaksha, branch main.
 
 ## Production topology
@@ -26,13 +26,13 @@ The web service must have OREKIT_SERVICE_URL set to the Orekit service base URL.
 9. Confirm direct POSTs with malformed JSON and JSON null to the Orekit endpoint return HTTP 400 with the stable JSON error envelope.
 10. Confirm local Playwright tests pass for desktop navigation, mobile navigation, Mission Analysis success rendering and structured-error recovery.
 11. Confirm the main-only live UI smoke passes against the deployed Render URL: app shell, CSP header and Mission Analysis rendering after live API/Orekit checks.
-12. Review Render application logs for startup errors, 502 responses, rate-limit spikes and external provider failures. The nine original AppDeploy acceptance scenarios still require a separate full execution record.
+12. Review Render application logs for startup errors, 502 responses, rate-limit spikes and external provider failures. The nine acceptance definitions are covered by the current automated Playwright/unit test suite where browser-testable; AppDeploy's own QA snapshot reports zero frontend/network/backend errors. Preserve the separate distinction between definition validation, automated repository tests, and AppDeploy QA snapshots.
 
 ## Current verification baseline
 
-- Latest web deployment: dep-dbhnn8vf3r2c73dcfeeg, commit 0e4f18e1136a10445d85072377c047a8284f1627, status live. This includes the report-only CSP header and strict runtime orbit-request validation.
-- Latest Orekit deployment: dep-dbhnq7g473hc73afk210, commit ccad04e3c83941e1b124f44202bfb16da93cb7fc, status live. This adds stable JSON errors for malformed and null request bodies without changing the two-body numerical model.
-- Main CI run 40918472222 passed all five jobs: web typecheck/unit/build, Orekit Maven tests, local Playwright, live API/Orekit integration including malformed/null Orekit requests, and live deployed UI Playwright smoke.
+- Latest web deployment: `dep-dbho9fss728c73d77oc0`, commit `aec4dc2df286bbd5fc6ac4d294eee3bc11de5a60`, status live. It includes the Orekit-only mission-analysis proxy, explicit propagation-time input, state-vector rendering, and report-only CSP/security headers.
+- Latest Orekit deployment: `dep-dbho8le1egvs7383488g`, commit `aec4dc2df286bbd5fc6ac4d294eee3bc11de5a60`, status live. It runs Orekit 13.1.9 numerical two-body propagation with Dormand–Prince 8(5,3), Newtonian central gravity only, and stable JSON errors for malformed/null requests.
+- Main CI run `40922716728` passed web typecheck/unit/build, Orekit Maven tests, local Playwright, live API/Orekit integration, 600-second epoch advancement, live response/error schema checks, Earth-intersection guardrail, and live deployed UI Playwright smoke. CodeQL run `40922716740` and AppDeploy scenario-contract workflow `40922717020` also passed.
 - Previous known-good web deployment before the CSP header: dep-dbhnhrlg1s2s73ahgn5g, commit 15928bc5a5dfa5f5e2a1ff01c2c8ca6f878b2a4b, status deactivated but retained in deployment history.
 - Previous known-good Orekit deployment before the error-envelope handler: dep-dbhn311srm7s7388tu00, commit a1adf54f9bdc5b09e9ebc2f5f3e9d857a4d75f71, status deactivated. It uses the same response model and is the compatible rollback target for the current web/API contract.
 
@@ -50,11 +50,11 @@ A rollback drill has not been performed. Treat this section as a runbook, not pr
 
 ## Known limitations and cautions
 
-- The current Orekit fidelity is Keplerian/two-body. J2, drag, solar radiation pressure and third-body forces are not configured.
+- The current Orekit fidelity is numerical two-body propagation with Dormand–Prince 8(5,3) and Newtonian central gravity only. J2, drag, solar radiation pressure and third-body forces are not configured.
 - The in-memory rate limiter is per process, resets on restart and is not a distributed quota.
 - Authentication/account authorization is not implemented.
 - A `Content-Security-Policy-Report-Only` policy now covers local assets and the audited CelesTrak connection. It is diagnostic only and reports violations to browser developer tools; there is no report collection endpoint. Review representative browser sessions before switching to enforcement.
 - The Render web service configuration currently reports build command npm install && npm run build, while CI uses npm ci. Update the Render dashboard build command to npm ci && npm run build when the service settings are available; until then, production install reproducibility is not fully aligned.
 - Render metrics in the sampled 11-minute window showed roughly 51 MB web memory and 129 MB Orekit memory at the last sample, but HTTP request-count and latency series were empty. This is not a performance benchmark and does not establish latency, FPS or load budgets.
-- The Vite build warns that a JavaScript chunk exceeds 500 kB after minification. Code splitting and representative-device performance tests remain open.
+- The last verified Vite build produced a 989.94 kB JavaScript chunk (290.01 kB gzip), above the 500 kB warning threshold. A proposed vendor-chunk split is under CI verification; do not mark the performance issue resolved until the built artifact confirms no oversized chunks and representative-device/WebGL tests are recorded.
 - Free-tier cold starts can exceed one minute. The 90-second proxy timeout reduces false failures but does not eliminate first-request latency.
