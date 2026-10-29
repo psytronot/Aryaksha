@@ -19,6 +19,9 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
   await target.selectOption('Saturn');
   await expect(target).toHaveValue('Saturn');
   await expect(page.getByText(/Planetary view is a labelled schematic, not ephemeris or physical scale/)).toBeVisible();
+  await page.getByRole('button', { name: 'SOLAR SYSTEM', exact: true }).click();
+  await expect(target).toHaveValue('Overview');
+  await page.getByRole('button', { name: 'EARTH + MOON', exact: true }).click();
 
   await page.getByRole('button', { name: 'MOON', exact: true }).click();
   await expect(page.getByText(/EARTH–MOON CENTRES 384,400 km/)).toBeVisible();
