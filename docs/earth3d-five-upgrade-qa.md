@@ -30,8 +30,9 @@
 - Satellite.js/SGP4 and Kepler propagation source files are not modified by this branch.
 
 ### 5. Mission-control UI and touch
-- Adds a left mission/vehicle/crew-status panel, right operations/layer and solar/comms panel, and a bottom timeline/playback/event strip.
-- Connects the existing simulation play/pause, playback-speed and time-scrub state into the 3D view.
+- In simulation mode, replaces the sidebar with a compact top navigation and uses a full-width central globe.
+- Adds a left mission/vehicle/crew-status panel, right live telemetry/comms/orbital-facts/layer panel, and bottom Ground Track / Orbit Parameters / Mission Info cards.
+- Adds a selectable scene gallery plus timeline/playback/reset controls, and connects play/pause, playback speed and time scrubbing to the existing simulation state.
 - Supports drag orbit, wheel zoom and two-pointer pinch zoom.
 - Adds narrow viewport styling and uses deduplicated geometry/material disposal. The footprint BufferAttribute is allocated once and updated in place.
 
