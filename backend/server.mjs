@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'node:path';
 import * as satellite from 'satellite.js';
+import { createRateLimiter, securityHeaders } from './security.mjs';
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -8,11 +9,15 @@ const MU = 398600.4418;
 const EARTH_RADIUS = 6378.137;
 
 app.disable('x-powered-by');
+// Render terminates TLS and forwards requests through one trusted proxy hop.
+app.set('trust proxy', 1);
+app.use(securityHeaders);
 app.use(express.json({ limit: '64kb' }));
+const apiWriteRateLimit = createRateLimiter({ windowMs: 60_000, maxRequests: 60 });
 app.get('/api/_healthcheck', (_req, res) => res.json({ message: 'Success', service: 'aryaksha-api' }));
 app.get('/api/v1/health', (_req, res) => res.json({ status: 'ok', service: 'aryaksha-api' }));
 
-app.post('/api/mission-analysis/orbit', async (req, res) => {
+app.post('/api/mission-analysis/orbit', apiWriteRateLimit, async (req, res) => {
   const altitudeKm = Number(req.body?.altitudeKm);
   const inclinationDeg = Number(req.body?.inclinationDeg);
   const eccentricity = Number(req.body?.eccentricity);
@@ -93,7 +98,7 @@ app.get('/api/live/iss', async (_req, res) => {
   }
 });
 
-app.post('/api/simulation/propagate', (req, res) => {
+app.post('/api/simulation/propagate', apiWriteRateLimit, (req, res) => {
   const seconds = Number(req.body?.seconds ?? 0);
   if (!Number.isFinite(seconds) || seconds < 0) return res.status(400).json({ error: 'Simulation time must be finite and non-negative.' });
   const input = req.body ?? {};
