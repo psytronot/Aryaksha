@@ -13,6 +13,7 @@ import { EARTH_RADIUS, orbitalSummary, propagateState, sampleOrbit, stateToLla }
 import { getGlossaryEntries, getGlossaryEntry, GlossaryEntry } from './glossary';
 import { generateContinuousGroundTrack, SubPoint } from './tracking';
 import { computeDayNightBoundary, solarSubpoint } from './daynight';
+import './earth3d-upgrade.css';
 import {
   Mission, Payload, Spacecraft, OrbitDesign, orbitFromAltitude, missionGeometry,
   propulsionAnalysis, maneuverDeltaV, adcsAnalysis, powerAnalysis, thermalAnalysis,
