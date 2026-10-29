@@ -691,8 +691,8 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   const trueEarthToBusRatio = (earthDiameterKm * 1000) / maxBusDimensionM;
   const visualExaggeration = 1_000_000;
   return (
-    <div className="page">
-      <div className="page-header"><div><small>3D MISSION VIEW</small><h1>Earth 3D</h1><p>A local spacecraft-tracking globe with a detailed Earth surface, orbital path, vectors and mission HUD.</p><small>Scale disclosure: Earth diameter is approximately {Math.round(trueEarthToBusRatio).toLocaleString()} times the maximum bus dimension at true scale. Spacecraft geometry is enlarged by {visualExaggeration.toLocaleString()}× for visibility; dimensions are not shown to physical scale.</small></div></div>
+    <div className="page earth3d-page">
+      <h1 className="earth3d-visually-hidden">Earth 3D</h1>
       <article className="earth3d-workspace glass-panel">
         <div className="earth3d-canvas" ref={containerRef} aria-label="Interactive 3D Earth with trackable spacecraft" />
         <div className="earth3d-topbar">
