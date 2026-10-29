@@ -24,7 +24,7 @@ test('live deployed UI renders mission analysis against the versioned response c
       valid: true,
       engine: 'Orekit',
       engineVersion: '13.1.9',
-      fidelity: 'Orekit Keplerian propagation (two-body)',
+      fidelity: 'Orekit numerical propagation (two-body)',
       assumptions: ['No J2, drag, solar radiation pressure or third-body forces'],
       orbit: {
         altitudeKm: 550,
@@ -37,6 +37,14 @@ test('live deployed UI renders mission analysis against the versioned response c
         apoapsisAltitudeKm: 556.9281,
         circularVelocityKmS: 7.58509,
         specificOrbitalEnergyKm2S2: -28.76678
+      },
+      state: {
+        elapsedSeconds: 0,
+        epoch: '2000-01-01T11:59:27.816',
+        timeScale: 'TAI',
+        frame: 'EME2000',
+        positionKm: [6921.2, 0, 0],
+        velocityKmS: [0, -1.0, 7.5]
       },
       comparison: {
         engineAdapter: 'orekit-http',
@@ -52,5 +60,7 @@ test('live deployed UI renders mission analysis against the versioned response c
 
   await expect(page.getByText(/Analysis completed · Orekit/)).toBeVisible();
   await expect(page.getByText('95.65 min')).toBeVisible();
+  await expect(page.getByText(/Epoch 2000-01-01T11:59:27\.816 TAI · Frame EME2000/)).toBeVisible();
+  await expect(page.getByText('6921.200, 0.000, 0.000')).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
