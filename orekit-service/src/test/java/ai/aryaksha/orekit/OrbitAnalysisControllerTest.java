@@ -175,8 +175,7 @@ class OrbitAnalysisControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"altitudeKm\":"))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.error").isString())
-            .andExpect(jsonPath("$.error", org.hamcrest.Matchers.not(org.hamcrest.Matchers.isEmptyString())));
+            .andExpect(jsonPath("$.error").value("Request body must be valid JSON."));
     }
 
     @Test
