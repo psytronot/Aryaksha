@@ -1,0 +1,22 @@
+name: AppDeploy acceptance scenario contract
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scenario-definition-contract:
+    name: Validate AppDeploy scenario definitions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Validate canonical acceptance scenario definitions
+        run: node scripts/validate-appdeploy-scenarios.mjs
