@@ -77,3 +77,17 @@
 @media(prefers-reduced-motion:reduce){
   .earth3d-workspace *{scroll-behavior:auto}
 }
+.earth3d-scene-gallery{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:4px 0;scrollbar-width:thin}
+.earth3d-gallery-item{display:flex;align-items:center;gap:6px;flex:0 0 auto;padding:4px 7px;border:1px solid rgba(133,190,217,.22);background:rgba(8,19,30,.76);color:#a8c0cf;font:8px ui-monospace,monospace;letter-spacing:.06em;cursor:pointer}
+.earth3d-gallery-item:hover,.earth3d-gallery-item:focus-visible{border-color:rgba(104,222,241,.7);color:#e4fbff;outline:none}
+.earth3d-gallery-thumb{position:relative;display:block;flex:0 0 25px;width:25px;height:25px;border-radius:50%;border:1px solid rgba(220,240,255,.3);overflow:hidden;background:#0a1725}
+.earth3d-gallery-thumb[data-scene="earth"]{background:radial-gradient(circle at 30% 27%,#78d5f5 0,#2d80b2 32%,#1c4b7d 54%,#06101c 76%)}
+.earth3d-gallery-thumb[data-scene="earth"]::after{content:"";position:absolute;inset:4px 7px 7px 3px;border-radius:45% 35% 55% 38%;background:#6f9c65;transform:rotate(-24deg);opacity:.9}
+.earth3d-gallery-thumb[data-scene="moon"]{background:radial-gradient(circle at 34% 27%,#e1e2df 0,#9c9e9e 48%,#4a5058 80%)}
+.earth3d-gallery-thumb[data-scene="moon"]::after{content:"";position:absolute;inset:5px 4px 4px 9px;border:1px solid rgba(35,39,43,.6);border-radius:50%;box-shadow:-5px 4px 0 -2px rgba(36,40,44,.65),3px -5px 0 -2px rgba(239,240,238,.8)}
+.earth3d-gallery-thumb[data-scene="earth-moon"]{background:radial-gradient(circle at 35% 35%,#4fa4d5 0,#245a92 52%,#06101c 74%)}
+.earth3d-gallery-thumb[data-scene="earth-moon"]::after{content:"";position:absolute;width:7px;height:7px;right:1px;bottom:2px;border-radius:50%;background:#bfc2c4;box-shadow:0 0 0 2px rgba(192,198,204,.1)}
+.earth3d-gallery-thumb[data-scene="planets"]{background:radial-gradient(circle at 50% 50%,#ffca76 0 13%,transparent 15%),radial-gradient(circle at 60% 40%,#9dc8df 0 5%,transparent 7%),radial-gradient(circle at 27% 62%,#d18b61 0 7%,transparent 9%),#07111d}
+.earth3d-gallery-thumb[data-scene="planets"]::after{content:"";position:absolute;inset:5px 0;border:1px solid rgba(122,188,220,.7);border-radius:50%;transform:rotate(-25deg)}
+.earth3d-gallery-item b{font-weight:500;white-space:nowrap}
+@media(max-width:600px){.earth3d-gallery-item{gap:4px;padding:4px 5px;font-size:7px}.earth3d-gallery-thumb{flex-basis:21px;width:21px;height:21px}.earth3d-timeline{max-height:235px;overflow:hidden}}
