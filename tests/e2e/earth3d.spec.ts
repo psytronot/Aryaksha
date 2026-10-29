@@ -25,10 +25,12 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
   await expect(page.getByText(/Planetary view is a labelled schematic, not ephemeris or physical scale/)).toBeVisible();
   await page.getByRole('button', { name: 'SOLAR SYSTEM', exact: true }).click();
   await expect(target).toHaveValue('Overview');
+  await page.locator('.earth3d-workspace').screenshot({ path: 'artifacts/earth3d-planets.png' });
   await page.getByRole('button', { name: 'EARTH + MOON', exact: true }).click();
 
   await page.locator('.earth-camera-controls').getByRole('button', { name: 'MOON', exact: true }).click();
   await expect(page.getByText(/EARTH–MOON CENTRES 384,400 km/)).toBeVisible();
+  await page.locator('.earth3d-workspace').screenshot({ path: 'artifacts/earth3d-moon.png' });
   await page.getByRole('button', { name: 'TRACK', exact: true }).click();
   await expect(page.getByText(/SIMULATED · TWO-BODY KEPLER/)).toBeVisible();
 
