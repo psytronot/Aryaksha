@@ -18,11 +18,20 @@ app.get('/api/_healthcheck', (_req, res) => res.json({ message: 'Success', servi
 app.get('/api/v1/health', (_req, res) => res.json({ status: 'ok', service: 'aryaksha-api' }));
 
 app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
-  const altitudeKm = Number(req.body?.altitudeKm);
-  const inclinationDeg = Number(req.body?.inclinationDeg);
-  const eccentricity = Number(req.body?.eccentricity);
-  if (![altitudeKm, inclinationDeg, eccentricity].every(Number.isFinite)) {
-    return res.status(400).json({ error: 'Altitude, inclination and eccentricity must be finite numbers.' });
+  const body = req.body;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return res.status(400).json({ error: 'Request body must be a JSON object.' });
+  }
+
+  const requiredFields = ['altitudeKm', 'inclinationDeg', 'eccentricity'];
+  const bodyFields = Object.keys(body);
+  if (bodyFields.length !== requiredFields.length || requiredFields.some(field => !Object.prototype.hasOwnProperty.call(body, field))) {
+    return res.status(400).json({ error: 'Request must contain exactly altitudeKm, inclinationDeg, and eccentricity.' });
+  }
+
+  const { altitudeKm, inclinationDeg, eccentricity } = body;
+  if (![altitudeKm, inclinationDeg, eccentricity].every(value => typeof value === 'number' && Number.isFinite(value))) {
+    return res.status(400).json({ error: 'Altitude, inclination and eccentricity must be finite JSON numbers.' });
   }
   if (altitudeKm < 120 || altitudeKm > 100000) return res.status(400).json({ error: 'Altitude must be between 120 and 100,000 km for this preliminary model.' });
   if (inclinationDeg < 0 || inclinationDeg > 180) return res.status(400).json({ error: 'Inclination must be between 0 and 180 degrees.' });
