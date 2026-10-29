@@ -79,6 +79,9 @@ export function createSpaceEnvironment(moonRadius: number, moonDistance: number)
     map: lunarTexture,
     bumpMap: lunarTexture,
     bumpScale: moonRadius * 0.075,
+    emissive: new THREE.Color('#6a6963'),
+    emissiveMap: lunarTexture,
+    emissiveIntensity: 0.18,
     roughness: 1,
     metalness: 0
   });
