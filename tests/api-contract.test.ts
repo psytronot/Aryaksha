@@ -19,11 +19,11 @@ const validResponse = {
   valid: true,
   engine: 'Orekit',
   engineVersion: '13.1.9',
-  fidelity: 'Orekit Keplerian propagation (two-body)',
+  fidelity: 'Orekit numerical propagation (two-body)',
   assumptions: [
     'Orekit 13.1.9; Apache-2.0; Java 21',
     'Frame: EME2000; epoch: J2000; Earth gravity parameter: WGS-84',
-    'No J2, atmospheric drag, solar radiation pressure or third-body forces configured'
+    'Only Newtonian central gravity is configured; no J2, atmospheric drag, solar radiation pressure or third-body forces'
   ],
   orbit: {
     altitudeKm: 550,
@@ -61,7 +61,9 @@ describe('Orbit analysis API v1 JSON Schemas', () => {
     [{ altitudeKm: 119.99, inclinationDeg: 45, eccentricity: 0.001 }],
     [{ altitudeKm: 550, inclinationDeg: 180.01, eccentricity: 0.001 }],
     [{ altitudeKm: 550, inclinationDeg: 45, eccentricity: 1 }],
-    [{ altitudeKm: 550, inclinationDeg: 45, eccentricity: 0.001, surprise: true }]
+    [{ altitudeKm: 550, inclinationDeg: 45, eccentricity: 0.001, surprise: true }],
+    [{ altitudeKm: 550, inclinationDeg: 45, eccentricity: 0.001, elapsedSeconds: 604800.01 }],
+    [{ altitudeKm: 550, inclinationDeg: 45, eccentricity: 0.001, elapsedSeconds: -1 }]
   ])('rejects invalid or out-of-contract requests', request => {
     expect(validateRequest(request)).toBe(false);
   });
