@@ -103,7 +103,7 @@ test('mobile mission analysis rejects an Earth-intersecting orbit without showin
   await mobileNavigation.getByRole('button', { name: 'Mission Analysis', exact: true }).click();
 
   await page.getByRole('spinbutton', { name: 'Altitude above Earth in kilometres' }).fill('120');
-  await page.getByRole('spinbutton', { name: 'Orbit eccentricity' }).fill('0.02');
+  await page.getByRole('spinbutton', { name: 'Orbit eccentricity' }).fill('0.99');
   await page.getByRole('button', { name: 'Run analysis', exact: true }).click();
 
   await expect(page.getByRole('alert')).toContainText('intersects Earth');

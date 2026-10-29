@@ -156,17 +156,35 @@
   {
     "name": "Mission analysis backend returns validated orbital metrics",
     "viewport": "desktop",
-    "covers": ["mission analysis navigation", "backend orbital calculation", "orbital period and apsides display", "engine adapter fidelity disclosure"],
-    "description": "Verifies the backend returns numerical metrics and explicitly identifies the two-body baseline rather than claiming a third-party engine is connected.",
-    "steps": ["Open Mission Analysis", "Use the default orbit inputs", "Click Run analysis", "Inspect the period, periapsis, apoapsis and engine integration status"],
-    "expected": "Finite orbital metrics appear, Aryaksha Kepler baseline is identified, and the page states that Orekit/GMAT/STK/FreeFlyer are not yet running as integrated engines."
+    "covers": [
+      "mission analysis navigation",
+      "backend orbital calculation",
+      "orbital period and apsides display",
+      "engine adapter fidelity disclosure"
+    ],
+    "description": "Verifies the backend returns numerical metrics, identifies the actually configured engine adapter and discloses its fidelity; the explicit Kepler fallback must not be presented as a connected Orekit engine.",
+    "steps": [
+      "Open Mission Analysis",
+      "Use the default orbit inputs",
+      "Click Run analysis",
+      "Inspect the period, periapsis, apoapsis and engine integration status"
+    ],
+    "expected": "Finite orbital metrics appear. When the configured Orekit service is connected, the page identifies Orekit 13.1.9 and the orekit-http adapter and discloses the current two-body model. If the service is not configured, the explicit Aryaksha Kepler baseline fallback is identified rather than misrepresented as Orekit."
   },
   {
     "name": "Mission analysis rejects an Earth-intersecting orbit",
     "viewport": "mobile",
-    "covers": ["orbit geometry guardrail", "backend error handling", "mobile mission analysis form"],
+    "covers": [
+      "orbit geometry guardrail",
+      "backend error handling",
+      "mobile mission analysis form"
+    ],
     "description": "Verifies invalid orbital geometry is rejected with a visible message and no plausible-looking result.",
-    "steps": ["Open Mission Analysis on a mobile viewport", "Set altitude to 120 km and eccentricity to 0.99", "Click Run analysis"],
+    "steps": [
+      "Open Mission Analysis on a mobile viewport",
+      "Set altitude to 120 km and eccentricity to 0.99",
+      "Click Run analysis"
+    ],
     "expected": "A visible validation error explains that the periapsis intersects Earth and no result metrics are shown."
   }
 ]
