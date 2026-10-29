@@ -69,7 +69,7 @@ test('live deployed simulation advances the orbit ground track over time', async
   const pathData = await trackPath.getAttribute('d');
   expect(pathData).not.toBeNull();
 
-  const latitudes = [...(pathData ?? '').matchAll(/(?:M|L)\\s*-?\\d+(?:\\.\\d+)?\\s+(-?\\d+(?:\\.\\d+)?)/g)]
+  const latitudes = [...(pathData ?? '').matchAll(/(?:M|L)\s*-?\d+(?:\.\d+)?\s+(-?\d+(?:\.\d+)?)/g)]
     .map(match => Number(match[1]));
   expect(latitudes.length).toBeGreaterThan(5);
   expect(Math.max(...latitudes) - Math.min(...latitudes)).toBeGreaterThan(1);
