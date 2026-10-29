@@ -13,11 +13,11 @@ app.disable('x-powered-by');
 app.set('trust proxy', 1);
 app.use(securityHeaders);
 app.use(express.json({ limit: '64kb' }));
-const apiWriteRateLimit = createRateLimiter({ windowMs: 60_000, maxRequests: 60 });
+const apiRateLimit = createRateLimiter({ windowMs: 60_000, maxRequests: 60 });
 app.get('/api/_healthcheck', (_req, res) => res.json({ message: 'Success', service: 'aryaksha-api' }));
 app.get('/api/v1/health', (_req, res) => res.json({ status: 'ok', service: 'aryaksha-api' }));
 
-app.post('/api/mission-analysis/orbit', apiWriteRateLimit, async (req, res) => {
+app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
   const altitudeKm = Number(req.body?.altitudeKm);
   const inclinationDeg = Number(req.body?.inclinationDeg);
   const eccentricity = Number(req.body?.eccentricity);
@@ -83,7 +83,7 @@ app.post('/api/mission-analysis/orbit', apiWriteRateLimit, async (req, res) => {
   });
 });
 
-app.get('/api/live/iss', async (_req, res) => {
+app.get('/api/live/iss', apiRateLimit, async (_req, res) => {
   try {
     const upstream = await fetch('https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE', { headers: { accept: 'text/plain' } });
     if (!upstream.ok) return res.status(502).json({ error: `CelesTrak returned HTTP ${upstream.status}.` });
@@ -98,7 +98,7 @@ app.get('/api/live/iss', async (_req, res) => {
   }
 });
 
-app.post('/api/simulation/propagate', apiWriteRateLimit, (req, res) => {
+app.post('/api/simulation/propagate', apiRateLimit, (req, res) => {
   const seconds = Number(req.body?.seconds ?? 0);
   if (!Number.isFinite(seconds) || seconds < 0) return res.status(400).json({ error: 'Simulation time must be finite and non-negative.' });
   const input = req.body ?? {};
