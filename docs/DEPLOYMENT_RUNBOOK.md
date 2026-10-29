@@ -51,7 +51,7 @@ A rollback drill has not been performed. Treat this section as a runbook, not pr
 - The current Orekit fidelity is Keplerian/two-body. J2, drag, solar radiation pressure and third-body forces are not configured.
 - The in-memory rate limiter is per process, resets on restart and is not a distributed quota.
 - Authentication/account authorization is not implemented.
-- A strict Content-Security-Policy remains deferred until all Three.js texture, image and connection origins have been audited.
+- A `Content-Security-Policy-Report-Only` policy now covers local assets and the audited CelesTrak connection. It is diagnostic only and reports violations to browser developer tools; there is no report collection endpoint. Review representative browser sessions before switching to enforcement.
 - The Render web service configuration currently reports build command npm install && npm run build, while CI uses npm ci. Update the Render dashboard build command to npm ci && npm run build when the service settings are available; until then, production install reproducibility is not fully aligned.
 - Render metrics in the sampled 11-minute window showed roughly 51 MB web memory and 129 MB Orekit memory at the last sample, but HTTP request-count and latency series were empty. This is not a performance benchmark and does not establish latency, FPS or load budgets.
 - The Vite build warns that a JavaScript chunk exceeds 500 kB after minification. Code splitting and representative-device performance tests remain open.

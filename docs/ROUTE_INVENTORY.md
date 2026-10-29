@@ -40,5 +40,5 @@ The main React application exposes these navigation workspaces: Mission, Payload
 - Security headers and per-process in-memory rate limiting are applied by the Express host after the API-hardening change.
 - Rate limits are a best-effort abuse control, not a distributed quota: the in-memory budget resets on restart and is not shared across multiple instances.
 - The app has no authentication or account-based authorization in this version.
-- A strict Content-Security-Policy is not enabled yet because all Three.js texture, image, and connection origins have not been fully audited.
+- A `Content-Security-Policy-Report-Only` header is enabled. Source audit found local app assets plus the direct browser connection to `https://celestrak.org`; external tracking sites are links opened by the user, not fetch origins. The policy is report-only and does not collect reports server-side. Review browser console violations before considering enforcement.
 - The nine original AppDeploy scenarios are acceptance definitions; only tests explicitly run in CI or recorded manual QA count as executed.
