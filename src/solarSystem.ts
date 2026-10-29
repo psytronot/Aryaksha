@@ -48,7 +48,7 @@ export function createSpaceEnvironment(moonRadius: number, moonDistance: number)
     for (let x = 0; x < lunarCanvas.width; x += 1) {
       const u = x / lunarCanvas.width;
       const v = y / lunarCanvas.height;
-      const value = 145 + 8 * Math.sin(u * 83 + Math.sin(v * 41) * 3) + 6 * Math.sin(v * 119 - u * 27);
+      let value = 145 + 8 * Math.sin(u * 83 + Math.sin(v * 41) * 3) + 6 * Math.sin(v * 119 - u * 27);
       const i = (y * lunarCanvas.width + x) * 4;
       value = Math.max(62, Math.min(214, value));
       image.data[i] = value;
