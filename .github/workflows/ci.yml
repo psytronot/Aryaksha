@@ -19,6 +19,33 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - name: Report dependency audit findings (non-blocking)
+        shell: bash
+        run: |
+          npm audit --json > /tmp/npm-audit-all.json || true
+          npm audit --omit=dev --json > /tmp/npm-audit-production.json || true
+          node <<'NODE'
+          const fs = require('node:fs');
+          for (const [label, path] of [
+            ['all dependencies', '/tmp/npm-audit-all.json'],
+            ['production dependencies', '/tmp/npm-audit-production.json']
+          ]) {
+            let report;
+            try {
+              report = JSON.parse(fs.readFileSync(path, 'utf8'));
+            } catch {
+              console.log(`AUDIT ${label}: report could not be parsed; inspect npm output.`);
+              continue;
+            }
+            const vulnerabilities = report.vulnerabilities || {};
+            const counts = report.metadata?.vulnerabilities || {};
+            console.log(`AUDIT ${label}: total=${counts.total ?? Object.keys(vulnerabilities).length} critical=${counts.critical ?? 0} high=${counts.high ?? 0} moderate=${counts.moderate ?? 0} low=${counts.low ?? 0}`);
+            for (const [name, item] of Object.entries(vulnerabilities)) {
+              const via = (item.via || []).map(value => typeof value === 'string' ? value : `${value.name || name}: ${value.title || value.range || 'advisory'}`).join('; ');
+              console.log(`  ${item.severity} ${name} range=${item.range || 'unknown'} fixAvailable=${JSON.stringify(item.fixAvailable)} via=${via}`);
+            }
+          }
+          NODE
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
