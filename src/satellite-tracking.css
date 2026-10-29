@@ -198,3 +198,288 @@
 .sat-track-stats b,
 .sat-track-look b,
 .sat-track-doppler-grid b {
+  display: block;
+  margin-top: 5px;
+  color: #fff;
+  font: 600 11px ui-monospace, monospace;
+  overflow-wrap: anywhere;
+}
+.sat-track-warning {
+  color: var(--amber) !important;
+}
+.sat-track-warning-panel {
+  margin-top: 10px;
+  padding: 9px;
+  border: 1px solid rgba(255, 191, 90, .25);
+  border-radius: 8px;
+  background: rgba(255, 191, 90, .05);
+  color: var(--amber);
+  font-size: 10px;
+  line-height: 1.5;
+}
+.sat-track-look {
+  padding: 4px 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.sat-track-look b {
+  font-size: 15px;
+}
+.sat-track-look span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted-readable);
+  font-size: 9px;
+}
+.sat-track-visible {
+  color: var(--green) !important;
+}
+.sat-track-radio {
+  margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.sat-track-radio .card-head {
+  margin-bottom: 4px;
+}
+.sat-track-doppler-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .018);
+}
+.sat-track-doppler-grid b {
+  font-size: 12px;
+}
+.sat-track-doppler-wide {
+  grid-column: 1 / -1;
+}
+.sat-track-clock {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 13px 0;
+  color: var(--muted-readable);
+  font: 9px ui-monospace, monospace;
+  flex-wrap: wrap;
+}
+.sat-track-clock b {
+  margin-left: auto;
+  color: #fff;
+  font-weight: 600;
+}
+.sat-track-clock span {
+  width: 100%;
+  padding-left: 21px;
+}
+.sat-track-wide {
+  width: 100%;
+}
+.sat-track-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 13px 0;
+  padding: 11px;
+  border: 1px solid rgba(255, 104, 118, .35);
+  border-radius: 8px;
+  background: rgba(255, 104, 118, .06);
+  color: #ffdce0;
+  font-size: 11px;
+}
+.sat-track-pass-card,
+.sat-track-sky-card {
+  min-width: 0;
+}
+.sat-track-count {
+  margin-left: auto;
+  color: var(--muted);
+  font: 9px ui-monospace, monospace;
+  white-space: nowrap;
+}
+.sat-track-table-wrap {
+  overflow-x: auto;
+}
+.sat-track-table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+}
+.sat-track-table th {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font: 700 8px ui-monospace, monospace;
+  text-align: left;
+  white-space: nowrap;
+}
+.sat-track-table td {
+  padding: 12px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, .06);
+  color: #e3edf4;
+  font: 10px ui-monospace, monospace;
+  white-space: nowrap;
+}
+.sat-track-table tbody tr {
+  cursor: pointer;
+}
+.sat-track-table tbody tr:hover,
+.sat-track-table tbody tr.selected {
+  background: rgba(81, 221, 255, .055);
+}
+.sat-track-table td:nth-child(3) {
+  color: var(--green);
+}
+.sat-track-sky {
+  display: block;
+  width: min(100%, 320px);
+  height: auto;
+  margin: 4px auto 12px;
+  overflow: visible;
+}
+.sat-track-sky-ring {
+  fill: rgba(255, 255, 255, .012);
+  stroke: rgba(166, 190, 207, .3);
+  stroke-width: 1;
+}
+.sat-track-sky-axis {
+  stroke: rgba(166, 190, 207, .14);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+.sat-track-sky text {
+  fill: var(--muted-readable);
+  font: 9px ui-monospace, monospace;
+}
+.sat-track-sky .sat-track-sky-label {
+  fill: var(--muted);
+  font-size: 8px;
+}
+.sat-track-sky-path {
+  fill: none;
+  stroke: var(--cyan);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sat-track-sky-current {
+  fill: var(--green);
+  stroke: #08120f;
+  stroke-width: 1.5;
+}
+.sat-track-sky-empty {
+  fill: var(--muted) !important;
+  font-size: 10px !important;
+}
+.sat-track-sky-legend {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  color: var(--muted-readable);
+  font-size: 9px;
+}
+.sat-track-sky-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sat-track-sky-legend i {
+  display: inline-block;
+  width: 13px;
+  height: 3px;
+  border-radius: 2px;
+}
+.sat-track-legend-path {
+  background: var(--cyan);
+}
+.sat-track-legend-current {
+  background: var(--green);
+}
+.sat-track-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 13px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.sat-track-footer > div {
+  flex: 1;
+  min-width: 220px;
+}
+.sat-track-footer b {
+  font-size: 12px;
+}
+.sat-track-footer p {
+  margin: 5px 0 0;
+  color: var(--muted-readable);
+  font-size: 10px;
+  line-height: 1.5;
+}
+@media (max-width: 1100px) {
+  .sat-track-grid,
+  .sat-track-lower-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 700px) {
+  .sat-track-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .sat-track-source-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .sat-track-source-controls .sat-track-field {
+    margin-bottom: 0;
+  }
+  .sat-track-clock b {
+    margin-left: 0;
+  }
+  .sat-track-heading h1 {
+    font-size: 27px;
+  }
+}
+
+.sat-track-visual-card { margin-top: 14px; }
+.sat-track-world-wrap { overflow: hidden; border: 1px solid rgba(89, 177, 218, .2); border-radius: 10px; background: #07131f; }
+.sat-track-world { display: block; width: 100%; height: auto; min-height: 170px; }
+.sat-track-world-ocean { fill: url(#sat-world-ocean); }
+.sat-track-world-grid { stroke: rgba(130, 194, 222, .16); stroke-width: .8; stroke-dasharray: 3 5; }
+.sat-track-world-land path { fill: rgba(75, 119, 139, .43); stroke: rgba(143, 190, 204, .4); stroke-width: 1.1; stroke-linejoin: round; }
+.sat-track-world-track path { fill: none; stroke: url(#sat-world-track); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 4px rgba(71, 226, 228, .45)); }
+.sat-track-world-current circle:first-child { fill: rgba(124, 247, 212, .18); stroke: #7cf7d4; stroke-width: 1.4; }
+.sat-track-world-current circle:nth-child(2) { fill: #b7ffe9; }
+.sat-track-world-station circle:first-child { fill: rgba(255, 190, 94, .16); stroke: #ffbe5e; stroke-width: 1.5; }
+.sat-track-world-station circle:nth-child(2) { fill: #ffbe5e; }
+.sat-track-world-labels { fill: rgba(203, 224, 236, .68); font: 10px ui-monospace, monospace; }
+.sat-track-world-legend { display: flex; flex-wrap: wrap; gap: 14px; padding: 10px 2px 15px; color: var(--muted-readable); font-size: 10px; }
+.sat-track-world-legend span, .sat-track-visual-foot span { display: inline-flex; align-items: center; gap: 7px; }
+.sat-track-world-legend i { display: inline-block; width: 15px; height: 3px; border-radius: 4px; }
+.sat-track-world-line { background: linear-gradient(90deg, #39b8ff, #7cf7d4); }
+.sat-track-world-current-key { background: #7cf7d4; box-shadow: 0 0 8px rgba(124, 247, 212, .6); }
+.sat-track-world-station-key { background: #ffbe5e; }
+.sat-track-timeline-head { display: flex; align-items: end; justify-content: space-between; gap: 12px; padding-top: 14px; border-top: 1px solid var(--line); }
+.sat-track-timeline-head b, .sat-track-timeline-head span { display: block; }
+.sat-track-timeline-head b { color: #fff; font-size: 13px; }
+.sat-track-timeline-head span, .sat-track-timeline-head small { color: var(--muted-readable); font-size: 10px; }
+.sat-track-timeline-head small { text-align: right; }
+.sat-track-timeline { display: block; width: 100%; height: auto; margin-top: 8px; overflow: visible; }
+.sat-track-timeline-grid { stroke: rgba(170, 196, 211, .24); stroke-width: 1; stroke-dasharray: 3 4; }
+.sat-track-timeline text { fill: var(--muted-readable); font: 10px ui-monospace, monospace; }
+.sat-track-timeline-base { stroke: rgba(150, 175, 190, .25); stroke-width: 2; }
+.sat-track-timeline-pass { cursor: pointer; outline: none; }
+.sat-track-timeline-pass rect { fill: rgba(57, 184, 255, .56); stroke: rgba(124, 247, 212, .7); stroke-width: 1; }
+.sat-track-timeline-pass.selected rect { fill: rgba(124, 247, 212, .78); stroke: #b7ffe9; stroke-width: 1.5; }
+.sat-track-timeline-pass text { fill: #04131c; font-weight: 700; pointer-events: none; }
+.sat-track-timeline-pass:focus rect { stroke: #fff; stroke-width: 2; }
+.sat-track-visual-foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: var(--muted-readable); font-size: 10px; }
+.sat-track-visual-foot i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #7cf7d4; }
+@media (max-width: 700px) { .sat-track-timeline-head { align-items: flex-start; flex-direction: column; } .sat-track-timeline-head small { text-align: left; } .sat-track-world-legend { gap: 9px; font-size: 9px; } }
