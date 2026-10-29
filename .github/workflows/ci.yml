@@ -108,6 +108,33 @@ jobs:
           done
           exit 1
 
+      - name: Verify deployed API rejects out-of-contract requests
+        shell: bash
+        env:
+          WEB_URL: https://aryaksha-web.onrender.com
+        run: |
+          validated=false
+          for attempt in $(seq 1 18); do
+            status=$(curl --silent --show-error --max-time 15 -o /tmp/string-orbit.json -w '%{http_code}' -H 'content-type: application/json' -d '{"altitudeKm":"550","inclinationDeg":"97.6","eccentricity":"0.001"}' "$WEB_URL/api/mission-analysis/orbit" || true)
+            if [ "$status" = "400" ] && node -e 'const p=require("/tmp/string-orbit.json"); if (typeof p.error!=="string" || p.error.length===0) process.exit(1);'; then
+              validated=true
+              break
+            fi
+            echo "Strict JSON-number validation not active yet (attempt $attempt/18; HTTP ${status:-000})"
+            sleep 10
+          done
+          test "$validated" = true
+
+          status=$(curl --silent --show-error --max-time 15 -o /tmp/extra-orbit.json -w '%{http_code}' -H 'content-type: application/json' -d '{"altitudeKm":550,"inclinationDeg":97.6,"eccentricity":0.001,"unexpected":true}' "$WEB_URL/api/mission-analysis/orbit" || true)
+          test "$status" = "400"
+          node -e 'const p=require("/tmp/extra-orbit.json"); if (typeof p.error!=="string" || p.error.length===0) process.exit(1);'
+
+          status=$(curl --silent --show-error --max-time 15 -D /tmp/null-headers.txt -o /tmp/null-body.json -w '%{http_code}' -H 'content-type: application/json' -d 'null' "$WEB_URL/api/mission-analysis/orbit" || true)
+          test "$status" = "400"
+          grep -qi '^content-type: application/json' /tmp/null-headers.txt
+          node -e 'const p=require("/tmp/null-body.json"); if (typeof p.error!=="string" || p.error.length===0) process.exit(1);'
+          echo "Live API rejects numeric strings, unknown fields and null bodies with JSON errors."
+
       - name: Wait for the deployed Orekit service
         shell: bash
         env:
