@@ -15,6 +15,7 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
   await expect(page.getByRole('button', { name: 'Earth 3D', exact: true })).toBeVisible();
   await expect(page.locator('.earth3d-canvas canvas')).toBeVisible();
   const workspace = page.locator('.earth3d-workspace');
+  await page.evaluate(() => { const element = document.querySelector('.earth3d-workspace'); if (element) window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 64); });
   await expect(page.getByText('ORBIT PARAMETERS', { exact: true })).toBeVisible();
   await expect(page.getByText('MISSION INFO', { exact: true })).toBeVisible();
   await expect(page.getByText(/2D Ground Track/)).toBeVisible();
