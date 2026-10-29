@@ -162,7 +162,7 @@
       "orbital period and apsides display",
       "engine adapter fidelity disclosure"
     ],
-    "description": "Verifies the backend returns numerical metrics and explicitly identifies the two-body baseline rather than claiming a third-party engine is connected.",
+    "description": "Verifies the backend returns numerical metrics, identifies the actually configured engine adapter and discloses its fidelity; the explicit Kepler fallback must not be presented as a connected Orekit engine.",
     "steps": [
       "Open Mission Analysis",
       "Use the default orbit inputs",
