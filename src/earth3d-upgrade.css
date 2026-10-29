@@ -1,0 +1,27 @@
+/* Minimal Earth–Moon mission view */
+.earth3d-workspace{min-height:690px;background:#03060b;border-color:rgba(173,194,211,.18);border-radius:3px}
+.earth3d-canvas{background:radial-gradient(ellipse at 48% 46%,rgba(20,42,65,.18),transparent 62%)}
+.earth3d-topbar{top:0;left:0;right:0;padding:10px 12px;background:linear-gradient(180deg,rgba(2,5,9,.88),rgba(2,5,9,.22));align-items:flex-start}
+.earth3d-object,.earth3d-hud-card,.earth3d-bottom-bar{border-radius:2px;border-color:rgba(180,199,215,.18);background:rgba(4,7,12,.78);backdrop-filter:blur(10px)}
+.earth3d-object small,.earth3d-hud-card small{color:#d6aa70;letter-spacing:.16em}
+.earth3d-left-hud{top:76px;left:10px;max-width:178px}
+.earth3d-right-hud{top:76px;right:10px;max-width:205px}
+.earth3d-hud-card{padding:9px;line-height:1.45}
+.earth3d-hud-card b{font-size:14px;font-weight:500}
+.earth3d-badge{border-radius:2px;color:#e2c18d;border-color:rgba(226,193,141,.3)}
+.earth-camera-button{border-radius:2px;min-height:30px}
+.earth-camera-button.active{color:#fff;border-color:#d8a967;background:rgba(216,169,103,.13)}
+.earth3d-bottom-bar{left:0;right:0;bottom:0;border-left:0;border-right:0;border-bottom:0;padding:10px 12px;border-radius:0;gap:12px}
+.earth3d-hud-card label{cursor:pointer;min-height:25px}
+.earth3d-hud-card input[type=checkbox]{accent-color:#d8a967}
+.earth3d-object b{font-size:11px;letter-spacing:.04em}
+.earth3d-mission-rail{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;margin-top:8px;padding:12px 14px;background:#080b10;border:1px solid rgba(180,199,215,.16);color:#b5c0ca}
+.earth3d-mission-rail strong{display:block;color:#f1f4f6;font-size:11px;letter-spacing:.08em}
+.earth3d-mission-rail p{margin:5px 0 0;font-size:10px;line-height:1.55}
+.earth3d-mission-stages{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.earth3d-mission-stages button{padding:6px 8px;border:1px solid rgba(180,199,215,.16);background:transparent;color:#b5c0ca;font:8px ui-monospace,monospace;letter-spacing:.06em;cursor:pointer}
+.earth3d-mission-stages button.active{border-color:rgba(216,169,103,.6);color:#f0c98e;background:rgba(216,169,103,.07)}
+.earth3d-planet-select{display:flex;gap:8px;align-items:center;margin-top:7px;color:#b5c0ca;font:9px ui-monospace,monospace}
+.earth3d-planet-select select{max-width:180px;padding:6px 8px;background:#070b10;border:1px solid rgba(180,199,215,.25);color:#fff}
+@media(max-width:800px){.earth3d-workspace{min-height:760px}.earth3d-left-hud{top:142px;left:8px}.earth3d-right-hud{top:auto;bottom:74px;right:8px}.earth3d-mission-rail{grid-template-columns:1fr}.earth3d-mission-stages{gap:5px}}
+@media(max-width:500px){.earth3d-workspace{min-height:810px}.earth3d-left-hud{top:144px}.earth3d-left-hud .earth3d-hud-card{max-width:150px}.earth3d-right-hud{left:auto;right:8px;bottom:80px;max-width:calc(100% - 174px);grid-template-columns:1fr}.earth3d-hud-card{font-size:7px}.earth3d-mission-rail{padding:10px}.earth3d-mission-stages button{font-size:7px}.earth3d-planet-select{flex-wrap:wrap}}
