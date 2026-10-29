@@ -70,6 +70,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [web-build-and-tests, orekit-service]
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
       - name: Wait for the deployed Orekit service
         shell: bash
         env:
@@ -103,6 +108,22 @@ jobs:
           done
           exit 1
 
+      - name: Validate live orbit-analysis response against the v1 JSON Schema
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const Ajv = require('ajv');
+          const schema = require('./schemas/orbit-analysis-response.v1.schema.json');
+          const payload = JSON.parse(fs.readFileSync('/tmp/orbit-analysis.json', 'utf8'));
+          const validate = new Ajv({ allErrors: true, strict: true }).compile(schema);
+          if (!validate(payload)) {
+            console.error(JSON.stringify(validate.errors, null, 2));
+            process.exit(1);
+          }
+          console.log('Live orbit-analysis response conforms to schema v1.');
+          NODE
+
       - name: Verify the deployed Earth-intersection guardrail
         shell: bash
         env:
@@ -111,3 +132,18 @@ jobs:
           status=$(curl --silent --show-error --max-time 30 -o /tmp/invalid-orbit.json -w '%{http_code}' -H 'content-type: application/json' -d '{"altitudeKm":120,"inclinationDeg":45,"eccentricity":0.02}' "$WEB_URL/api/mission-analysis/orbit" || true)
           test "$status" = "400"
           node -e 'const p=require("/tmp/invalid-orbit.json"); if (typeof p.error!=="string" || !p.error.includes("intersects Earth")) process.exit(1);'
+      - name: Validate live API error envelope against the v1 JSON Schema
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const Ajv = require('ajv');
+          const schema = require('./schemas/api-error.v1.schema.json');
+          const payload = JSON.parse(fs.readFileSync('/tmp/invalid-orbit.json', 'utf8'));
+          const validate = new Ajv({ allErrors: true, strict: true }).compile(schema);
+          if (!validate(payload)) {
+            console.error(JSON.stringify(validate.errors, null, 2));
+            process.exit(1);
+          }
+          console.log('Live API error conforms to schema v1.');
+          NODE
