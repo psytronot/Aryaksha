@@ -94,3 +94,19 @@ test('mission analysis displays a structured service error and remains usable', 
   await expect(page.getByRole('heading', { name: 'Orbital Mission Analysis' })).toBeVisible();
 });
 
+test('mobile mission analysis rejects an Earth-intersecting orbit without showing metrics', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  const mobileNavigation = page.getByRole('navigation', { name: 'Mobile navigation' });
+  await mobileNavigation.getByRole('button', { name: 'Mission Analysis', exact: true }).click();
+
+  await page.getByRole('spinbutton', { name: 'Altitude above Earth in kilometres' }).fill('120');
+  await page.getByRole('spinbutton', { name: 'Orbit eccentricity' }).fill('0.02');
+  await page.getByRole('button', { name: 'Run analysis', exact: true }).click();
+
+  await expect(page.getByRole('alert')).toContainText('intersects Earth');
+  await expect(page.getByText(/Analysis completed/)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Run analysis', exact: true })).toBeEnabled();
+});
