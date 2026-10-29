@@ -342,8 +342,11 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       scene.add(velocityArrow, nadirArrow);
 
       const axes = new THREE.AxesHelper(7.1);
-      axes.material.transparent = true;
-      axes.material.opacity = 0.16;
+      const axesMaterials = Array.isArray(axes.material) ? axes.material : [axes.material];
+      axesMaterials.forEach(material => {
+        material.transparent = true;
+        material.opacity = 0.16;
+      });
       scene.add(axes);
 
       const resize = () => {
@@ -427,7 +430,6 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         satellite.root.position.copy(markerVector);
         satellite.root.quaternion.setFromRotationMatrix(basis);
         satellite.root.rotation.y += 0.008;
-        satellite.beacon.material = satellite.beacon.material as THREE.Material;
         (satellite.beacon.material as THREE.MeshBasicMaterial).opacity = 0.5 + 0.5 * (0.5 + 0.5 * Math.sin(performance.now() * 0.008));
 
         const ground = radial.clone().multiplyScalar(earthRadius * 1.012);
