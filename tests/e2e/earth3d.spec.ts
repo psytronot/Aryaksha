@@ -29,6 +29,7 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
   await page.getByRole('button', { name: 'EARTH + MOON', exact: true }).click();
 
   await page.locator('.earth-camera-controls').getByRole('button', { name: 'MOON', exact: true }).click();
+  await expect(target).toHaveValue('Moon');
   await expect(page.getByText(/EARTH–MOON CENTRES 384,400 km/)).toHaveText(/EARTH–MOON CENTRES 384,400 km/);
   await page.screenshot({ path: 'artifacts/earth3d-moon.png', fullPage: true });
   await page.getByRole('button', { name: 'TRACK', exact: true }).click();
