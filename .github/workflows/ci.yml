@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm ci
+      - run: npm install
       - name: Report dependency audit findings (non-blocking)
         shell: bash
         run: |
@@ -51,6 +51,54 @@ jobs:
       - run: npm run build
 
 
+
+
+  browser-e2e:
+    name: Browser smoke tests
+    runs-on: ubuntu-latest
+    needs: [web-build-and-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run test:e2e
+
+  bootstrap-lockfile:
+    name: Bootstrap lockfile for browser-test dependency
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'phase-a/browser-e2e'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Generate package lock
+        run: npm install
+      - name: Commit generated lockfile to feature branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          git add package-lock.json
+          if git diff --cached --quiet; then
+            echo "package-lock.json is already current"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: add Playwright to lockfile"
+          AUTH=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          git -c http.extraheader="AUTHORIZATION: basic $AUTH" push "https://github.com/$GITHUB_REPOSITORY.git" "HEAD:$GITHUB_HEAD_REF"
 
   orekit-service:
     name: Orekit service build and tests
