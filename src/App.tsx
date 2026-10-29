@@ -247,7 +247,7 @@ function App() {
           {view === 'report' && <ReportView mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} summary={summary} geometry={geometry} verification={verification} onExport={exportReport} />}
           {view === 'instructions' && <InstructionsView />}
           {view === 'tools' && <ToolsView />}
-          {coachEnabled && <ContextCoach view={view} />}
+          {coachEnabled && view !== 'simulation' && <ContextCoach view={view} />}
         </main>
       </div>
       {notice && <div className="toast"><Check size={15} /> {notice}</div>}
