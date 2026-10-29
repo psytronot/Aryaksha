@@ -7,6 +7,7 @@ Aryaksha is a student-focused aerospace engineering workstation for mission desi
 - `src/` — React + TypeScript user interface and analysis modules
 - `backend/index.ts` — original AppDeploy API adapter used by the existing hosted deployment
 - `orekit-service/` — independent Java 21 / Spring Boot / Orekit API service
+- `schemas/` and `docs/API_CONTRACT.md` — versioned orbit-analysis API contract and JSON Schemas
 - `tests/` — day/night unit tests and the nine original end-to-end scenario definitions
 - `public/` — static illustrations and site assets
 
@@ -20,6 +21,8 @@ Prerequisites: Node.js 20+ and npm.
 
 ```bash
 npm install
+npm run typecheck
+npm test
 npm run build
 npm start
 # For live UI development, use a second terminal:

@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Aryaksha Orbit Analysis Request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["altitudeKm", "inclinationDeg", "eccentricity"],
+  "properties": {
+    "altitudeKm": {
+      "type": "number",
+      "minimum": 120,
+      "maximum": 100000,
+      "description": "Altitude above the WGS-84 equatorial radius, in kilometres."
+    },
+    "inclinationDeg": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 180,
+      "description": "Orbital inclination in degrees."
+    },
+    "eccentricity": {
+      "type": "number",
+      "minimum": 0,
+      "exclusiveMaximum": 1,
+      "description": "Dimensionless eccentricity for a bound elliptical orbit."
+    }
+  }
+}
