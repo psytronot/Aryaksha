@@ -20,12 +20,14 @@ Prerequisites: Node.js 20+ and npm.
 
 ```bash
 npm install
-npm run dev
-npm test
 npm run build
+npm start
+# For live UI development, use a second terminal:
+# npm run dev
+# API routes are proxied to localhost:3000
 ```
 
-The UI was originally built with AppDeploy's runtime integration. The Git-hosted build needs a standard Node API server and frontend API adapter before it can replace the existing production deployment. Do not treat a successful source upload as a verified production migration.
+The UI has been migrated away from the AppDeploy-only frontend API client. A standalone Express API host now serves the production-built UI and exposes the mission-analysis, ISS TLE and TLE/SGP4 API routes. The AppDeploy-specific adapter in `backend/index.ts` is retained as a reference for the current live instance. Do not treat a successful source upload as a verified production migration.
 
 ## Phase 01 — Orekit service
 
