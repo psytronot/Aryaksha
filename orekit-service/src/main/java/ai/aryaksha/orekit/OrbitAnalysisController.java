@@ -82,6 +82,7 @@ public class OrbitAnalysisController {
             MIN_INTEGRATOR_STEP_SECONDS, MAX_INTEGRATOR_STEP_SECONDS,
             tolerances[0], tolerances[1]);
         NumericalPropagator propagator = new NumericalPropagator(integrator);
+        propagator.setOrbitType(OrbitType.CARTESIAN);
         propagator.setInitialState(new SpacecraftState(initialOrbit));
         propagator.addForceModel(new NewtonianAttraction(Constants.WGS84_EARTH_MU));
 
