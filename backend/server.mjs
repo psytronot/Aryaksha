@@ -31,7 +31,7 @@ app.post('/api/mission-analysis/orbit', async (req, res) => {
   if (serviceUrl) {
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 15000);
+      const timer = setTimeout(() => controller.abort(), 60000);
       let upstream;
       try {
         upstream = await fetch(`${serviceUrl}/api/v1/orbit/analysis`, {
@@ -48,7 +48,7 @@ app.post('/api/mission-analysis/orbit', async (req, res) => {
       }
       return res.json({ ...payload, comparison: { engineAdapter: 'orekit-http', status: 'connected', note: 'Results returned by the independently hosted Orekit service.' } });
     } catch (err) {
-      return res.status(502).json({ error: err?.name === 'AbortError' ? 'Orekit service timed out after 15 seconds.' : 'Orekit service is configured but unavailable. Check its deployment and logs.' });
+      return res.status(502).json({ error: err?.name === 'AbortError' ? 'Orekit service timed out after 60 seconds.' : 'Orekit service is configured but unavailable. Check its deployment and logs.' });
     }
   }
 
