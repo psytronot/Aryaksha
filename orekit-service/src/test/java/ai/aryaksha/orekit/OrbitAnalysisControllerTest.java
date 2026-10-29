@@ -49,6 +49,9 @@ class OrbitAnalysisControllerTest {
     void stateVectorIsFiniteAndConsistentWithPeriapsisAtTrueAnomalyZero() {
         var result = controller.analyze(
             new OrbitAnalysisController.AnalysisRequest(550, 97.6, 0.001));
+        assertEquals("TAI", result.state().timeScale());
+        assertEquals("EME2000", result.state().frame());
+        assertEquals("2000-01-01T11:59:27.816", result.state().epoch());
         double[] position = result.state().positionKm();
         double[] velocity = result.state().velocityKmS();
         double radiusKm = Math.sqrt(position[0] * position[0]
@@ -150,6 +153,9 @@ class OrbitAnalysisControllerTest {
             .andExpect(jsonPath("$.valid").value(true))
             .andExpect(jsonPath("$.engine").value("Orekit"))
             .andExpect(jsonPath("$.orbit.periodMinutes").isNumber())
+            .andExpect(jsonPath("$.state.timeScale").value("TAI"))
+            .andExpect(jsonPath("$.state.frame").value("EME2000"))
+            .andExpect(jsonPath("$.state.epoch").value("2000-01-01T11:59:27.816"))
             .andExpect(jsonPath("$.state.positionKm.length()").value(3));
     }
 
