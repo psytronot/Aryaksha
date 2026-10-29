@@ -1,6 +1,6 @@
 # Aryaksha Orekit Service
 
-Independent Java 21 / Spring Boot API for orbital analysis and Keplerian propagation.
+Independent Java 21 / Spring Boot API for orbital analysis and numerical two-body propagation.
 
 ## API
 - `GET /api/v1/health`
@@ -8,7 +8,7 @@ Independent Java 21 / Spring Boot API for orbital analysis and Keplerian propaga
 
 Example request:
 ```json
-{ "altitudeKm": 550, "inclinationDeg": 97.6, "eccentricity": 0.001 }
+{ "altitudeKm": 550, "inclinationDeg": 97.6, "eccentricity": 0.001, "elapsedSeconds": 600 }
 ```
 
 The response contract matches Aryaksha's Mission Analysis view and includes orbital metrics plus a state vector whose `frame` is explicitly `EME2000` and whose `timeScale` is explicitly `TAI`. The J2000 epoch is serialized in TAI as `2000-01-01T11:59:27.816`; consumers must not interpret this value as UTC or append a `Z`.

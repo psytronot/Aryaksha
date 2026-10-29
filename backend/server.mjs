@@ -5,7 +5,6 @@ import { createRateLimiter, securityHeaders } from './security.mjs';
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
-const MU = 398600.4418;
 const EARTH_RADIUS = 6378.137;
 
 app.disable('x-powered-by');
@@ -24,15 +23,18 @@ app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
   }
 
   const requiredFields = ['altitudeKm', 'inclinationDeg', 'eccentricity'];
+  const allowedFields = new Set([...requiredFields, 'elapsedSeconds']);
   const bodyFields = Object.keys(body);
-  if (bodyFields.length !== requiredFields.length || requiredFields.some(field => !Object.prototype.hasOwnProperty.call(body, field))) {
-    return res.status(400).json({ error: 'Request must contain exactly altitudeKm, inclinationDeg, and eccentricity.' });
+  if (requiredFields.some(field => !Object.prototype.hasOwnProperty.call(body, field)) || bodyFields.some(field => !allowedFields.has(field))) {
+    return res.status(400).json({ error: 'Request must contain altitudeKm, inclinationDeg, eccentricity, and optional elapsedSeconds only.' });
   }
 
   const { altitudeKm, inclinationDeg, eccentricity } = body;
-  if (![altitudeKm, inclinationDeg, eccentricity].every(value => typeof value === 'number' && Number.isFinite(value))) {
-    return res.status(400).json({ error: 'Altitude, inclination and eccentricity must be finite JSON numbers.' });
+  const elapsedSeconds = body.elapsedSeconds === undefined ? 0 : body.elapsedSeconds;
+  if (![altitudeKm, inclinationDeg, eccentricity, elapsedSeconds].every(value => typeof value === 'number' && Number.isFinite(value))) {
+    return res.status(400).json({ error: 'Orbit parameters and elapsedSeconds must be finite JSON numbers.' });
   }
+  if (elapsedSeconds < 0 || elapsedSeconds > 604800) return res.status(400).json({ error: 'Elapsed time must be between 0 and 604,800 seconds (7 days).' });
   if (altitudeKm < 120 || altitudeKm > 100000) return res.status(400).json({ error: 'Altitude must be between 120 and 100,000 km for this preliminary model.' });
   if (inclinationDeg < 0 || inclinationDeg > 180) return res.status(400).json({ error: 'Inclination must be between 0 and 180 degrees.' });
   if (eccentricity < 0 || eccentricity >= 1) return res.status(400).json({ error: 'Eccentricity must be at least zero and less than one.' });
@@ -42,54 +44,30 @@ app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
   if (rp <= EARTH_RADIUS) return res.status(400).json({ error: 'The selected orbit intersects Earth at periapsis.' });
 
   const serviceUrl = process.env.OREKIT_SERVICE_URL?.trim().replace(/\/$/, '');
-  if (serviceUrl) {
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 90000);
-      let upstream;
-      try {
-        upstream = await fetch(`${serviceUrl}/api/v1/orbit/analysis`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json', accept: 'application/json' },
-          body: JSON.stringify({ altitudeKm, inclinationDeg, eccentricity }),
-          signal: controller.signal
-        });
-      } finally { clearTimeout(timer); }
-      if (!upstream.ok) return res.status(502).json({ error: `Orekit service returned HTTP ${upstream.status}.` });
-      const payload = await upstream.json();
-      if (payload.valid !== true || typeof payload.engine !== 'string' || !payload.orbit) {
-        return res.status(502).json({ error: 'Orekit service returned an invalid analysis response.' });
-      }
-      return res.json({ ...payload, comparison: { engineAdapter: 'orekit-http', status: 'connected', note: 'Results returned by the independently hosted Orekit service.' } });
-    } catch (err) {
-      return res.status(502).json({ error: err?.name === 'AbortError' ? 'Orekit service timed out after 90 seconds.' : 'Orekit service is configured but unavailable. Check its deployment and logs.' });
-    }
+  if (!serviceUrl) {
+    return res.status(503).json({ error: 'Orekit service is not configured. Mission analysis is unavailable until OREKIT_SERVICE_URL is set.' });
   }
-
-  const periodSeconds = 2 * Math.PI * Math.sqrt(a ** 3 / MU);
-  return res.json({
-    valid: true,
-    engine: 'Aryaksha Kepler baseline',
-    engineVersion: '1.0',
-    fidelity: 'Analytical two-body orbital elements',
-    assumptions: [
-      'Earth gravitational parameter MU = 398600.4418 km³/s²',
-      'Earth equatorial radius = 6378.137 km',
-      'No J2, drag, solar radiation pressure or third-body effects'
-    ],
-    orbit: {
-      altitudeKm, semiMajorAxisKm: a, eccentricity, inclinationDeg, periodSeconds,
-      periodMinutes: periodSeconds / 60,
-      periapsisAltitudeKm: rp - EARTH_RADIUS,
-      apoapsisAltitudeKm: ra - EARTH_RADIUS,
-      circularVelocityKmS: Math.sqrt(MU / a),
-      specificOrbitalEnergyKm2S2: -MU / (2 * a)
-    },
-    comparison: {
-      engineAdapter: 'kepler-baseline', status: 'baseline',
-      note: 'Computed in the Aryaksha backend with a closed-form two-body model. No external mission-analysis engine is invoked.'
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 90000);
+    let upstream;
+    try {
+      upstream = await fetch(`${serviceUrl}/api/v1/orbit/analysis`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({ altitudeKm, inclinationDeg, eccentricity, elapsedSeconds }),
+        signal: controller.signal
+      });
+    } finally { clearTimeout(timer); }
+    if (!upstream.ok) return res.status(502).json({ error: `Orekit service returned HTTP ${upstream.status}.` });
+    const payload = await upstream.json();
+    if (payload.valid !== true || payload.engine !== 'Orekit' || payload.comparison?.engineAdapter !== 'orekit-http' || !payload.orbit || !payload.state) {
+      return res.status(502).json({ error: 'Orekit service returned an invalid analysis response.' });
     }
-  });
+    return res.json({ ...payload, comparison: { engineAdapter: 'orekit-http', status: 'connected', note: 'Results returned by the independently hosted Orekit service.' } });
+  } catch (err) {
+    return res.status(502).json({ error: err?.name === 'AbortError' ? 'Orekit service timed out after 90 seconds.' : 'Orekit service is configured but unavailable. Check its deployment and logs.' });
+  }
 });
 
 app.get('/api/live/iss', apiRateLimit, async (_req, res) => {

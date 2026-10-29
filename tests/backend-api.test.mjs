@@ -63,7 +63,7 @@ afterAll(() => {
 });
 
 describe('standalone orbit-analysis HTTP contract', () => {
-  it('returns the explicit analytical baseline when no Orekit URL is configured', async () => {
+  it('fails explicitly when Orekit is not configured instead of returning a misleading fallback', async () => {
     const response = await fetch(`${baseUrl}/api/mission-analysis/orbit`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -71,11 +71,8 @@ describe('standalone orbit-analysis HTTP contract', () => {
     });
     const payload = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(payload.valid).toBe(true);
-    expect(payload.engine).toBe('Aryaksha Kepler baseline');
-    expect(payload.comparison).toMatchObject({ engineAdapter: 'kepler-baseline', status: 'baseline' });
-    expect(payload.orbit.periodMinutes).toBeCloseTo(95.65, 1);
+    expect(response.status).toBe(503);
+    expect(payload.error).toContain('Orekit service is not configured');
   });
 
   it.each([
@@ -83,7 +80,10 @@ describe('standalone orbit-analysis HTTP contract', () => {
     ['additional fields', { altitudeKm: 550, inclinationDeg: 97.6, eccentricity: 0.001, surprise: true }],
     ['missing required field', { altitudeKm: 550, inclinationDeg: 97.6 }],
     ['null body', null],
-    ['array body', [550, 97.6, 0.001]]
+    ['array body', [550, 97.6, 0.001]],
+    ['negative propagation time', { altitudeKm: 550, inclinationDeg: 97.6, eccentricity: 0.001, elapsedSeconds: -1 }],
+    ['propagation time beyond seven days', { altitudeKm: 550, inclinationDeg: 97.6, eccentricity: 0.001, elapsedSeconds: 604800.01 }],
+    ['string propagation time', { altitudeKm: 550, inclinationDeg: 97.6, eccentricity: 0.001, elapsedSeconds: '600' }]
   ])('rejects %s in the request contract', async (_label, requestBody) => {
     const response = await fetch(`${baseUrl}/api/mission-analysis/orbit`, {
       method: 'POST',

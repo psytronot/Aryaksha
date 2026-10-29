@@ -22,6 +22,13 @@
       "minimum": 0,
       "exclusiveMaximum": 1,
       "description": "Dimensionless eccentricity for a bound elliptical orbit."
+    },
+    "elapsedSeconds": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 604800,
+      "default": 0,
+      "description": "Elapsed propagation time from the J2000 TAI epoch, in seconds. Maximum horizon is seven days."
     }
   }
 }

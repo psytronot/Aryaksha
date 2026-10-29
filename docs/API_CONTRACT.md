@@ -12,13 +12,14 @@ The request and successful response use the schemas in `schemas/`. Errors use `a
 
 ## Request
 
-All fields are required; additional fields are rejected by schema v1.
+`altitudeKm`, `inclinationDeg`, and `eccentricity` are required. `elapsedSeconds` is optional and defaults to `0`. Additional fields are rejected by schema v1.
 
 | Field | Unit | Constraint |
 |---|---|---|
 | `altitudeKm` | km above the WGS-84 equatorial radius | 120–100,000 |
 | `inclinationDeg` | degrees | 0–180 |
 | `eccentricity` | dimensionless | 0 ≤ e < 1 |
+| `elapsedSeconds` | seconds from J2000 TAI | 0–604,800 (optional; defaults to 0) |
 
 Example:
 
@@ -26,7 +27,8 @@ Example:
 {
   "altitudeKm": 550,
   "inclinationDeg": 97.6,
-  "eccentricity": 0.001
+  "eccentricity": 0.001,
+  "elapsedSeconds": 600
 }
 ```
 
@@ -35,12 +37,12 @@ The service also performs a cross-field periapsis check and rejects an orbit tha
 ## Successful response
 
 - `engine` / `engineVersion`: identify Orekit 13.1.9.
-- `fidelity`: currently `Orekit Keplerian propagation (two-body)`; this is not a full perturbation model.
+- `fidelity`: currently `Orekit numerical propagation (two-body)`; Dormand–Prince 8(5,3) with Newtonian central gravity only, not a full perturbation model.
 - `orbit`: orbital metrics, in the units expressed by their field names.
 - `state`: Cartesian position in km and velocity in km/s, in the `EME2000` frame. The `epoch` string is expressed in `TAI` and the `timeScale` field is authoritative; do not append `Z` or interpret it as UTC.
 - `comparison`: confirms the HTTP adapter and whether the external engine was connected.
 
-The current state is evaluated at the J2000 epoch with zero elapsed seconds. The model does not configure J2, atmospheric drag, solar radiation pressure or third-body forces. Do not use this output as a flight-dynamics certification result.
+The state is numerically propagated from J2000 TAI by `elapsedSeconds` (maximum seven days). The model does not configure J2, atmospheric drag, solar radiation pressure or third-body forces. Do not use this output as a flight-dynamics certification result.
 
 ## Errors and compatibility
 

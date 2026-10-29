@@ -8,7 +8,7 @@
     "valid": { "const": true },
     "engine": { "const": "Orekit" },
     "engineVersion": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
-    "fidelity": { "const": "Orekit Keplerian propagation (two-body)" },
+    "fidelity": { "const": "Orekit numerical propagation (two-body)" },
     "assumptions": {
       "type": "array",
       "minItems": 1,
@@ -36,7 +36,7 @@
       "additionalProperties": false,
       "required": ["elapsedSeconds", "epoch", "timeScale", "frame", "positionKm", "velocityKmS"],
       "properties": {
-        "elapsedSeconds": { "type": "number", "minimum": 0 },
+        "elapsedSeconds": { "type": "number", "minimum": 0, "maximum": 604800 },
         "epoch": {
           "type": "string",
           "minLength": 1,

@@ -17,14 +17,17 @@ test('live deployed UI serves the app shell and report-only CSP', async ({ page 
 test('live deployed UI renders mission analysis against the versioned response contract', async ({ page }) => {
   const pageErrors: string[] = [];
   page.on('pageerror', error => pageErrors.push(error.message));
-  await page.route('**/api/mission-analysis/orbit', route => route.fulfill({
+  const requestBodies: Array<Record<string, unknown>> = [];
+  await page.route('**/api/mission-analysis/orbit', route => {
+    requestBodies.push(route.request().postDataJSON() as Record<string, unknown>);
+    return route.fulfill({
     status: 200,
     contentType: 'application/json',
     body: JSON.stringify({
       valid: true,
       engine: 'Orekit',
       engineVersion: '13.1.9',
-      fidelity: 'Orekit Keplerian propagation (two-body)',
+      fidelity: 'Orekit numerical propagation (two-body)',
       assumptions: ['No J2, drag, solar radiation pressure or third-body forces'],
       orbit: {
         altitudeKm: 550,
@@ -38,19 +41,33 @@ test('live deployed UI renders mission analysis against the versioned response c
         circularVelocityKmS: 7.58509,
         specificOrbitalEnergyKm2S2: -28.76678
       },
+      state: {
+        elapsedSeconds: 600,
+        epoch: '2000-01-01T12:09:27.816',
+        timeScale: 'TAI',
+        frame: 'EME2000',
+        positionKm: [123.456, 456.789, 789.012],
+        velocityKmS: [1.234567, 2.345678, 3.456789]
+      },
       comparison: {
         engineAdapter: 'orekit-http',
         status: 'connected',
         note: 'Results returned by the independently hosted Orekit service.'
       }
     })
-  }));
+    });
+  });
 
   await page.goto('/');
   await page.getByRole('button', { name: 'Mission Analysis', exact: true }).click();
+  await page.getByRole('spinbutton', { name: 'Propagation time in seconds' }).fill('600');
   await page.getByRole('button', { name: 'Run analysis', exact: true }).click();
 
   await expect(page.getByText(/Analysis completed · Orekit/)).toBeVisible();
   await expect(page.getByText('95.65 min')).toBeVisible();
+  await expect(page.getByText(/Epoch 2000-01-01T12:09:27\.816 TAI · Frame EME2000/)).toBeVisible();
+  await expect(page.getByText('123.456, 456.789, 789.012')).toBeVisible();
+  expect(requestBodies).toHaveLength(1);
+  expect(requestBodies[0]).toMatchObject({ elapsedSeconds: 600 });
   expect(pageErrors).toEqual([]);
 });

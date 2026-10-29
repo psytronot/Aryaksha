@@ -36,7 +36,7 @@ class OrbitAnalysisControllerTest {
         assertTrue(result.valid());
         assertEquals("Orekit", result.engine());
         assertEquals("13.1.9", result.engineVersion());
-        assertEquals("Orekit Keplerian propagation (two-body)", result.fidelity());
+        assertEquals("Orekit numerical propagation (two-body)", result.fidelity());
         assertEquals(6928.137, result.orbit().semiMajorAxisKm(), 0.001);
         assertEquals(95.64988, result.orbit().periodMinutes(), 0.01);
         assertEquals(543.071863, result.orbit().periapsisAltitudeKm(), 0.01);
@@ -76,10 +76,35 @@ class OrbitAnalysisControllerTest {
         var result = controller.analyze(
             new OrbitAnalysisController.AnalysisRequest(550, 97.6, 0.001));
 
-        assertTrue(result.assumptions().stream().anyMatch(s -> s.contains("No J2")));
+        assertTrue(result.assumptions().stream().anyMatch(s -> s.contains("Only Newtonian central gravity")));
         assertTrue(result.assumptions().stream().anyMatch(s -> s.contains("EME2000")));
         assertEquals("orekit-http", result.comparison().get("engineAdapter"));
         assertEquals("connected", result.comparison().get("status"));
+    }
+
+    @Test
+    void numericalPropagationAdvancesStateAndEpoch() {
+        var initial = controller.analyze(
+            new OrbitAnalysisController.AnalysisRequest(550, 97.6, 0.001, 0.0));
+        var propagated = controller.analyze(
+            new OrbitAnalysisController.AnalysisRequest(550, 97.6, 0.001, 600.0));
+
+        assertEquals(600.0, propagated.state().elapsedSeconds(), 1e-9);
+        assertEquals("2000-01-01T12:09:27.816", propagated.state().epoch());
+        assertNotEquals(initial.state().positionKm()[0], propagated.state().positionKm()[0], 1e-6);
+        assertTrue(java.util.Arrays.stream(propagated.state().positionKm()).allMatch(Double::isFinite));
+        assertTrue(java.util.Arrays.stream(propagated.state().velocityKmS()).allMatch(Double::isFinite));
+        assertEquals("Orekit numerical propagation (two-body)", propagated.fidelity());
+    }
+
+    @Test
+    void rejectsPropagationOutsideSevenDayHorizon() {
+        assertThrows(IllegalArgumentException.class, () -> controller.analyze(
+            new OrbitAnalysisController.AnalysisRequest(550, 45, 0.001, -1.0)));
+        assertThrows(IllegalArgumentException.class, () -> controller.analyze(
+            new OrbitAnalysisController.AnalysisRequest(550, 45, 0.001, 604800.01)));
+        assertThrows(IllegalArgumentException.class, () -> controller.analyze(
+            new OrbitAnalysisController.AnalysisRequest(550, 45, 0.001, Double.NaN)));
     }
 
     @Test
