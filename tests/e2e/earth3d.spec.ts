@@ -50,12 +50,16 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
   await playPause.click();
   await expect(playPause).toHaveText(before === 'PLAY' ? 'PAUSE' : 'PLAY');
 
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator('.earth-camera-controls').getByRole('button', { name: 'EARTH', exact: true }).click();
   const workspace = page.locator('.earth3d-workspace');
+  await workspace.screenshot({ path: 'artifacts/earth3d-desktop.png' });
+
+  await page.setViewportSize({ width: 390, height: 844 });
   await expect(workspace).toBeVisible();
   const workspaceWidth = await workspace.evaluate(element => element.getBoundingClientRect().width);
   expect(workspaceWidth).toBeLessThanOrEqual(390);
   await expect(page.getByRole('button', { name: 'PLANETS', exact: true })).toBeVisible();
+  await workspace.screenshot({ path: 'artifacts/earth3d-mobile.png' });
   expect(pageErrors).toEqual([]);
   expect(shaderErrors).toEqual([]);
 });
