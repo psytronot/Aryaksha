@@ -108,4 +108,61 @@ describe('standalone orbit-analysis HTTP contract', () => {
     expect(response.status).toBe(400);
     expect(payload.error).toContain('intersects Earth');
   });
+
+  it('returns a structured JSON error for malformed JSON', async () => {
+    const response = await fetch(`${baseUrl}/api/mission-analysis/orbit`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{"altitudeKm":'
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get('content-type')).toContain('application/json');
+    expect(payload.error).toBe('Request body must be valid JSON.');
+  });
+
+  it('returns a structured JSON error when the request body exceeds 64 KiB', async () => {
+    const body = JSON.stringify({
+      altitudeKm: 550,
+      inclinationDeg: 97.6,
+      eccentricity: 0.001,
+      padding: 'x'.repeat(70 * 1024)
+    });
+    const response = await fetch(`${baseUrl}/api/mission-analysis/orbit`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(413);
+    expect(response.headers.get('content-type')).toContain('application/json');
+    expect(payload.error).toBe('Request body exceeds the 64 KiB limit.');
+  });
+
+  it('rejects negative simulation time with a structured JSON error', async () => {
+    const response = await fetch(`${baseUrl}/api/simulation/propagate`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ seconds: -1 })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.error).toBe('Simulation time must be finite and non-negative.');
+  });
+
+  it('rejects TLE propagation when either TLE line is missing', async () => {
+    const response = await fetch(`${baseUrl}/api/simulation/propagate`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ seconds: 0, mode: 'tle', tle: { line1: '', line2: '' } })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.error).toBe('Both TLE lines are required.');
+  });
+
 });
