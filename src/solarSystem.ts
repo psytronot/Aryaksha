@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-export function createSpaceEnvironment(earthRadius: number, moonRadius: number, moonDistance: number) {
+export function createSpaceEnvironment(moonRadius: number, moonDistance: number) {
   const group = new THREE.Group();
   const lunarCanvas = document.createElement('canvas');
   lunarCanvas.width = 512;

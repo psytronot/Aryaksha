@@ -98,8 +98,7 @@ export function thermalAnalysis(payload:Payload,spacecraft:Spacecraft){
 }
 function groundStation(target:string){const v=target.toLowerCase();if(v.includes('sriharikota'))return{lat:13.72,lon:80.23,name:'Sriharikota'};if(v.includes('bengaluru')||v.includes('bangalore'))return{lat:12.97,lon:77.59,name:'Bengaluru'};if(v.includes('chennai'))return{lat:13.08,lon:80.27,name:'Chennai'};if(v.includes('mumbai'))return{lat:19.08,lon:72.88,name:'Mumbai'};return{lat:22.5,lon:78.96,name:'India reference station'};}
 export function communicationsAnalysis(mission:Mission,payload:Payload,spacecraft:Spacecraft,orbit:OrbitDesign){
-  const v=mission.launchSite.toLowerCase();
-  const station=v.includes('sriharikota')?'Sriharikota':v.includes('bengaluru')||v.includes('bangalore')?'Bengaluru':v.includes('chennai')?'Chennai':v.includes('mumbai')?'Mumbai':'India reference station';
+  const station=groundStation(mission.launchSite).name;
   const elevation=Math.max(5,mission.minElevationDeg);
   const r=EARTH_RADIUS+Math.max(1,orbit.altitudeKm),e=elevation*Math.PI/180;
   const rangeKm=-EARTH_RADIUS*Math.sin(e)+Math.sqrt(Math.max(0,r*r-EARTH_RADIUS*EARTH_RADIUS*Math.cos(e)**2));
