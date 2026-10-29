@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { api } from '@appdeploy/client';
 import { Activity, AlertTriangle, CheckCircle2, Cpu, Orbit, RefreshCw } from 'lucide-react';
 
 type Result = {
@@ -28,8 +27,14 @@ export default function MissionAnalysisView({ initialAltitudeKm = 550, initialIn
     }
     setBusy(true);
     try {
-      const response = await api.post('/api/mission-analysis/orbit', { altitudeKm: altitude, inclinationDeg: inclination, eccentricity: ecc });
-      setResult(response.data as Result);
+      const response = await fetch('/api/mission-analysis/orbit', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({ altitudeKm: altitude, inclinationDeg: inclination, eccentricity: ecc })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || payload.message || `Mission analysis failed (HTTP ${response.status}).`);
+      setResult(payload as Result);
     } catch (cause) {
       setErrorMessage(cause instanceof Error ? cause.message : 'Mission analysis service is unavailable. Try again.');
     } finally { setBusy(false); }
