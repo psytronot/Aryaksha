@@ -48,18 +48,7 @@ export function createSpaceEnvironment(moonRadius: number, moonDistance: number)
     for (let x = 0; x < lunarCanvas.width; x += 1) {
       const u = x / lunarCanvas.width;
       const v = y / lunarCanvas.height;
-      let value = 145 + 8 * Math.sin(u * 83 + Math.sin(v * 41) * 3) + 6 * Math.sin(v * 119 - u * 27);
-      for (let c = 0; c < craters.length; c += 1) {
-        const crater = craters[c];
-        const dx = (x - crater.x) * Math.cos((crater.y / lunarCanvas.height - 0.5) * Math.PI);
-        const dy = y - crater.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance < crater.radius) {
-          const depth = 1 - distance / crater.radius;
-          value -= 26 * depth;
-          if (distance > crater.radius * 0.76) value += 15 * (1 - depth);
-        }
-      }
+      const value = 145 + 8 * Math.sin(u * 83 + Math.sin(v * 41) * 3) + 6 * Math.sin(v * 119 - u * 27);
       const i = (y * lunarCanvas.width + x) * 4;
       value = Math.max(62, Math.min(214, value));
       image.data[i] = value;
