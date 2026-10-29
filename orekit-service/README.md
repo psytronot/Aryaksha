@@ -11,7 +11,15 @@ Example request:
 { "altitudeKm": 550, "inclinationDeg": 97.6, "eccentricity": 0.001 }
 ```
 
-The response contract matches Aryaksha's Mission Analysis view and includes orbital metrics plus an EME2000 state vector. The current model is two-body Keplerian; J2, drag, SRP, third-body perturbations, manoeuvre models and covariance propagation are not enabled.
+The response contract matches Aryaksha's Mission Analysis view and includes orbital metrics plus a state vector whose `frame` is explicitly `EME2000` and whose `timeScale` is explicitly `TAI`. The J2000 epoch is serialized in TAI as `2000-01-01T11:59:27.816`; consumers must not interpret this value as UTC or append a `Z`.
+
+The state vector fields are:
+- `elapsedSeconds`: seconds elapsed from the returned epoch (zero for the current reference state).
+- `epoch`: calendar date/time in the declared `timeScale`; not a UTC timestamp.
+- `timeScale`: `TAI`.
+- `frame`: `EME2000`.
+- `positionKm`: three Cartesian components in kilometres, in the order x, y, z.
+- `velocityKmS`: three Cartesian components in kilometres per second, in the order vx, vy, vz. The current model is two-body Keplerian; J2, drag, SRP, third-body perturbations, manoeuvre models and covariance propagation are not enabled.
 
 ## Run locally
 ```sh
