@@ -32,7 +32,7 @@ The web service must have OREKIT_SERVICE_URL set to the Orekit service base URL.
 - Latest Orekit deployment: dep-dbhn311srm7s7388tu00, commit a1adf54f9bdc5b09e9ebc2f5f3e9d857a4d75f71, status live.
 - Main CI run 40913459443 passed web checks, Playwright browser smoke tests and live integration checks after the web deployment.
 - Previous web deployment before API hardening: dep-dbhn2am1egvs73807ltg, commit 189a961b2981590b266a07ae56eeaf74be340b01.
-- Previous Orekit deployment before explicit state metadata: dep-dbhn5apsrm7s7388f970 is not a verified rollback target; use Render's deployment list to select a known-good successful deployment before any rollback.
+- Previous Orekit deployment before explicit state metadata: identify the last known-good successful deployment in Render's deployment history before any rollback; a specific rollback target has not yet been verified.
 
 ## Rollback procedure
 
