@@ -122,3 +122,41 @@ test('invalid engineering orbit inputs produce a visible FAIL in Verification', 
   await expect(inputCheck).toContainText('FAIL');
   await expect(page.getByText('Engineering inputs valid')).toBeVisible();
 });
+
+test('seasonal ground-track overlay matches equinox and solstice calibration', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const epoch = page.getByLabel('Solar overlay epoch');
+  const readSubsolarLatitude = async () => {
+    const text = await page.locator('.ground-track-controls span').innerText();
+    const match = text.match(/Sub-solar:\\s*(-?\\d+(?:\\.\\d+)?)° lat/);
+    expect(match).not.toBeNull();
+    return Number(match![1]);
+  };
+  const terminator = page.locator('.ground-track-svg path[stroke="#f59e0b"]');
+  const groundTrack = page.locator('.ground-track-svg path[stroke="#51ddff"]');
+
+  await epoch.selectOption('vernal');
+  expect(Math.abs(await readSubsolarLatitude())).toBeLessThan(1);
+  await expect(terminator).toHaveCount(2);
+  await expect(groundTrack.first()).toBeVisible();
+
+  await epoch.selectOption('summer');
+  const summerLatitude = await readSubsolarLatitude();
+  expect(summerLatitude).toBeGreaterThan(23);
+  expect(summerLatitude).toBeLessThan(24);
+  await expect(terminator).toHaveCount(2);
+
+  await epoch.selectOption('autumnal');
+  expect(Math.abs(await readSubsolarLatitude())).toBeLessThan(1);
+  await expect(terminator).toHaveCount(2);
+
+  await epoch.selectOption('winter');
+  const winterLatitude = await readSubsolarLatitude();
+  expect(winterLatitude).toBeLessThan(-23);
+  expect(winterLatitude).toBeGreaterThan(-24);
+  await expect(terminator).toHaveCount(2);
+  await expect(groundTrack.first()).toBeVisible();
+});
