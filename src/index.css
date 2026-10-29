@@ -204,3 +204,4 @@ html,body{min-width:320px;overflow-x:clip}
   .mission-control-grid .earth3d-workspace{min-height:1020px}
 }
 .mission-control-app .coach-toggle{display:none!important}
+.mission-control-app .welcome-hero,.mission-control-app .about-kakshiya{display:none!important}
