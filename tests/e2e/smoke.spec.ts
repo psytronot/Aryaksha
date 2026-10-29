@@ -131,7 +131,7 @@ test('seasonal ground-track overlay matches equinox and solstice calibration', a
   const epoch = page.getByLabel('Solar overlay epoch');
   const readSubsolarLatitude = async () => {
     const text = await page.locator('.ground-track-controls span').innerText();
-    const match = text.match(/Sub-solar:\\s*(-?\\d+(?:\\.\\d+)?)° lat/);
+    const match = text.match(/Sub-solar:\s*(-?\d+(?:\.\d+)?)° lat/);
     expect(match).not.toBeNull();
     return Number(match![1]);
   };
