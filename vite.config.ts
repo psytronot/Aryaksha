@@ -12,6 +12,11 @@ export default defineConfig({
       process.env.APPDEPLOY_VITE_SOURCEMAP === 'hidden' ? 'hidden' : false,
     rollupOptions: {
       maxParallelFileOps: 128,
+      output: {
+        manualChunks(id) {
+          if (id.includes('/node_modules/three/')) return 'vendor-three';
+        },
+      },
     },
   },
 });
