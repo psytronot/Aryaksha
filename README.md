@@ -8,27 +8,25 @@ Aryaksha is a student-focused aerospace engineering workstation for mission desi
 - `backend/index.ts` — original AppDeploy API adapter used by the existing hosted deployment
 - `orekit-service/` — independent Java 21 / Spring Boot / Orekit API service
 - `schemas/` and `docs/API_CONTRACT.md` — versioned orbit-analysis API contract and JSON Schemas
+- `docs/ROUTE_INVENTORY.md` — backend routes, frontend workspaces and external dependencies
+- `docs/DEPLOYMENT_RUNBOOK.md` — release checks, live verification and rollback procedure
 - `tests/` — day/night unit tests and the nine original end-to-end scenario definitions
 - `public/` — static illustrations and site assets
 
-## Existing production deployment
+## Current deployments
 
-The existing site remains at https://orbital-lab-lq22ug.v2.appdeploy.ai/ while the Git-based workflow is prepared. This repository migration does not change that live deployment.
+- GitHub source of truth: https://github.com/psytronot/Aryaksha, branch main.
+- Render web/API service: https://aryaksha-web.onrender.com.
+- Render Orekit service: https://aryaksha-orekit.onrender.com/api/v1/health.
+- Separate AppDeploy instance: https://orbital-lab-lq22ug.v2.appdeploy.ai/. This is a separate deployment path; commits to this repository do not automatically update it.
+
+See docs/DEPLOYMENT_RUNBOOK.md before releasing or rolling back a deployment.
 
 ## Local development
 
-Prerequisites: Node.js 20+ and npm.
+Prerequisites: Node.js 22.12+ and npm.
 
-```bash
-npm install
-npm run typecheck
-npm test
-npm run build
-npm start
-# For live UI development, use a second terminal:
-# npm run dev
-# API routes are proxied to localhost:3000
-```
+Run the following commands from the repository root: **npm ci**, **npm run typecheck**, **npm test**, **npm run build**, and **npm start**. To run browser smoke tests, install Chromium with **npx playwright install chromium** and run **npm run test:e2e**. For live UI development, use **npm run dev** in a second terminal. The standalone API host listens on port 3000 by default.
 
 The UI has been migrated away from the AppDeploy-only frontend API client. A standalone Express API host now serves the production-built UI and exposes the mission-analysis, ISS TLE and TLE/SGP4 API routes. The AppDeploy-specific adapter in `backend/index.ts` is retained as a reference for the current live instance. Do not treat a successful source upload as a verified production migration.
 
@@ -56,8 +54,4 @@ Once deployed, configure `OREKIT_SERVICE_URL` on the Aryaksha API host to the se
 
 ## Verification gate
 
-The nine scenarios in `tests/tests.json` are the original QA scenario definitions; they are not evidence that nine automated tests have passed. Phase 01 is complete only when:
-1. Java service builds and tests pass.
-2. Frontend and backend build from this repository.
-3. The hosted API returns `engine: "Orekit"` through the real Orekit service URL.
-4. All nine scenarios are executed and results recorded.
+The nine scenarios in tests/tests.json are acceptance definitions, not evidence that all nine have passed. Current CI executes TypeScript checking, unit/API-schema/security tests, a production build, two Playwright browser smoke tests, Orekit Java tests, and post-deployment live checks for health, numerical orbit output, schema conformance, security headers and Earth-intersection rejection. Full nine-scenario browser acceptance, visual regression, WebGL lifecycle/performance, accessibility and a rollback drill remain open.
