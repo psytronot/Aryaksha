@@ -203,3 +203,4 @@ html,body{min-width:320px;overflow-x:clip}
   .mission-control-grid .scene-wrap{min-height:1020px}
   .mission-control-grid .earth3d-workspace{min-height:1020px}
 }
+.mission-control-app .coach-toggle{display:none!important}
