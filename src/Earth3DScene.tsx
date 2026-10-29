@@ -346,10 +346,10 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       const earthSunUniform = { value: new THREE.Vector3(1, 0, 0) };
       earthMaterial.onBeforeCompile = (shader) => {
         shader.uniforms.uEarthSunDirection = earthSunUniform;
-        shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\\nvarying vec3 vEarthWorldNormal;');
-        shader.vertexShader = shader.vertexShader.replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\\nvEarthWorldNormal = normalize(mat3(modelMatrix) * objectNormal);');
-        shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\\nuniform vec3 uEarthSunDirection;\\nvarying vec3 vEarthWorldNormal;');
-        shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\\nfloat earthDaylight = smoothstep(-0.18, 0.12, dot(normalize(vEarthWorldNormal), normalize(uEarthSunDirection)));\\ntotalEmissiveRadiance *= (1.0 - earthDaylight);');
+        shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vEarthWorldNormal;');
+        shader.vertexShader = shader.vertexShader.replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nvEarthWorldNormal = normalize(mat3(modelMatrix) * objectNormal);');
+        shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uEarthSunDirection;\nvarying vec3 vEarthWorldNormal;');
+        shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\nfloat earthDaylight = smoothstep(-0.18, 0.12, dot(normalize(vEarthWorldNormal), normalize(uEarthSunDirection)));\ntotalEmissiveRadiance *= (1.0 - earthDaylight);');
       };
       earthMaterial.customProgramCacheKey = () => 'earth-night-lights-terminator-v1';
       const sphere = new THREE.Mesh(new THREE.SphereGeometry(earthRadius, 128, 96), earthMaterial);
@@ -596,7 +596,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
           distance = s.distance;
         } else {
           target = origin;
-          distance = Math.max(s.distance, 12);
+          distance = s.distance;
         }
         const horizontal = Math.cos(s.pitch) * distance;
         camera.position.set(target.x + Math.sin(s.yaw) * horizontal, target.y + Math.sin(s.pitch) * distance, target.z + Math.cos(s.yaw) * horizontal);
