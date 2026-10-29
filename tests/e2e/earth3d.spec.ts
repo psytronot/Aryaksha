@@ -7,6 +7,7 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
   await page.goto('/');
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Earth 3D' })).toBeVisible();
+  await expect(page.locator('.earth3d-canvas canvas')).toBeVisible();
 
   await expect(page.getByRole('button', { name: 'PLANETS', exact: true })).toBeVisible();
   const target = page.getByRole('combobox', { name: 'Choose camera target' });
