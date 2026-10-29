@@ -4,15 +4,18 @@ import java.util.List;
 import java.util.Map;
 
 import org.hipparchus.geometry.euclidean.threed.Vector3D;
-import org.orekit.orbits.KeplerianOrbit;
-import org.orekit.orbits.PositionAngleType;
-import org.orekit.propagation.analytical.KeplerianPropagator;
+import org.hipparchus.ode.nonstiff.DormandPrince853Integrator;
+import org.orekit.forces.gravity.NewtonianAttraction;
 import org.orekit.frames.FramesFactory;
+import org.orekit.orbits.KeplerianOrbit;
+import org.orekit.orbits.OrbitType;
+import org.orekit.orbits.PositionAngleType;
+import org.orekit.propagation.SpacecraftState;
+import org.orekit.propagation.numerical.NumericalPropagator;
 import org.orekit.time.AbsoluteDate;
 import org.orekit.time.TimeScalesFactory;
 import org.orekit.utils.Constants;
 import org.orekit.utils.PVCoordinates;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.*;
@@ -21,12 +24,19 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1")
 public class OrbitAnalysisController {
     private static final double EARTH_RADIUS_KM = 6378.137;
-    private static final double MU_KM3_S2 = 398600.4418;
+    private static final double MAX_PROPAGATION_SECONDS = 604800.0;
+    private static final double MIN_INTEGRATOR_STEP_SECONDS = 0.001;
+    private static final double MAX_INTEGRATOR_STEP_SECONDS = 60.0;
+    private static final double POSITION_ERROR_METRES = 1.0;
 
     @Value("${ARYAKSHA_ALLOWED_ORIGIN:https://orbital-lab-lq22ug.v2.appdeploy.ai}")
     private String allowedOrigin;
 
-    public record AnalysisRequest(double altitudeKm, double inclinationDeg, double eccentricity) {}
+    public record AnalysisRequest(double altitudeKm, double inclinationDeg, double eccentricity, double elapsedSeconds) {
+        public AnalysisRequest(double altitudeKm, double inclinationDeg, double eccentricity) {
+            this(altitudeKm, inclinationDeg, eccentricity, 0.0);
+        }
+    }
     public record OrbitMetrics(
         double altitudeKm, double semiMajorAxisKm, double eccentricity, double inclinationDeg,
         double periodSeconds, double periodMinutes, double periapsisAltitudeKm,
@@ -57,12 +67,26 @@ public class OrbitAnalysisController {
         double e = input.eccentricity();
         double inclination = Math.toRadians(input.inclinationDeg());
         AbsoluteDate epoch = AbsoluteDate.J2000_EPOCH;
-        KeplerianOrbit orbit = new KeplerianOrbit(
+        KeplerianOrbit initialOrbit = new KeplerianOrbit(
             aM, e, inclination, 0.0, 0.0, 0.0, PositionAngleType.TRUE,
             FramesFactory.getEME2000(), epoch, Constants.WGS84_EARTH_MU
         );
-        KeplerianPropagator propagator = new KeplerianPropagator(orbit);
-        PVCoordinates pv = propagator.propagate(epoch.shiftedBy(0.0)).getPVCoordinates(FramesFactory.getEME2000());
+
+        // Use Orekit's numerical integrator rather than the analytical Keplerian propagator.
+        // The only force model is Newtonian central gravity; this is numerical two-body
+        // propagation, not a high-fidelity perturbed orbit model.
+        double[][] tolerances = NumericalPropagator.tolerances(
+            POSITION_ERROR_METRES, initialOrbit, OrbitType.CARTESIAN);
+        DormandPrince853Integrator integrator = new DormandPrince853Integrator(
+            MIN_INTEGRATOR_STEP_SECONDS, MAX_INTEGRATOR_STEP_SECONDS,
+            tolerances[0], tolerances[1]);
+        NumericalPropagator propagator = new NumericalPropagator(integrator);
+        propagator.setInitialState(new SpacecraftState(initialOrbit));
+        propagator.addForceModel(new NewtonianAttraction(Constants.WGS84_EARTH_MU));
+
+        AbsoluteDate targetDate = epoch.shiftedBy(input.elapsedSeconds());
+        SpacecraftState propagated = propagator.propagate(targetDate);
+        PVCoordinates pv = propagated.getPVCoordinates(FramesFactory.getEME2000());
         Vector3D position = pv.getPosition();
         Vector3D velocity = pv.getVelocity();
         double periodSeconds = 2 * Math.PI * Math.sqrt(Math.pow(aM, 3) / Constants.WGS84_EARTH_MU);
@@ -73,23 +97,27 @@ public class OrbitAnalysisController {
             input.altitudeKm(), aKm, e, input.inclinationDeg(), periodSeconds, periodSeconds / 60.0,
             rpKm - EARTH_RADIUS_KM, raKm - EARTH_RADIUS_KM, circularVelocityKmS, energyKm2S2
         );
-        StateVector state = new StateVector(0.0, epoch.toString(TimeScalesFactory.getTAI()), "TAI", "EME2000",
+        StateVector state = new StateVector(input.elapsedSeconds(),
+            targetDate.toString(TimeScalesFactory.getTAI()), "TAI", "EME2000",
             new double[] { position.getX() / 1000.0, position.getY() / 1000.0, position.getZ() / 1000.0 },
             new double[] { velocity.getX() / 1000.0, velocity.getY() / 1000.0, velocity.getZ() / 1000.0 }
         );
-        return new AnalysisResponse(true, "Orekit", "13.1.9", "Orekit Keplerian propagation (two-body)",
+        return new AnalysisResponse(true, "Orekit", "13.1.9", "Orekit numerical propagation (two-body)",
             List.of("Orekit 13.1.9; Apache-2.0; Java 21",
-                    "Frame: EME2000; epoch: J2000; Earth gravity parameter: WGS-84",
-                    "No J2, atmospheric drag, solar radiation pressure or third-body forces configured"),
+                    "Numerical integrator: Dormand-Prince 8(5,3); position tolerance: 1 m; maximum step: 60 s",
+                    "Frame: EME2000; epoch: J2000 TAI; Earth gravity parameter: WGS-84",
+                    "Only Newtonian central gravity is configured; no J2, atmospheric drag, solar radiation pressure or third-body forces",
+                    "Propagation horizon limited to seven days"),
             metrics, state,
             Map.of("engineAdapter", "orekit-http", "status", "connected",
-                   "note", "Computed by the independently hosted Orekit service."));
+                   "note", "Computed by the independently hosted Orekit service using numerical two-body propagation."));
     }
 
     private void validate(AnalysisRequest input) {
         if (input == null || !Double.isFinite(input.altitudeKm())
-                || !Double.isFinite(input.inclinationDeg()) || !Double.isFinite(input.eccentricity())) {
-            throw new IllegalArgumentException("All orbit parameters must be finite numbers.");
+                || !Double.isFinite(input.inclinationDeg()) || !Double.isFinite(input.eccentricity())
+                || !Double.isFinite(input.elapsedSeconds())) {
+            throw new IllegalArgumentException("All orbit parameters and elapsedSeconds must be finite numbers.");
         }
         if (input.altitudeKm() < 120 || input.altitudeKm() > 100000) {
             throw new IllegalArgumentException("Altitude must be between 120 and 100,000 km.");
@@ -99,6 +127,9 @@ public class OrbitAnalysisController {
         }
         if (input.eccentricity() < 0 || input.eccentricity() >= 1) {
             throw new IllegalArgumentException("Eccentricity must be at least zero and less than one.");
+        }
+        if (input.elapsedSeconds() < 0 || input.elapsedSeconds() > MAX_PROPAGATION_SECONDS) {
+            throw new IllegalArgumentException("Elapsed time must be between 0 and 604,800 seconds (7 days).");
         }
     }
 
