@@ -162,14 +162,14 @@
       "orbital period and apsides display",
       "engine adapter fidelity disclosure"
     ],
-    "description": "Verifies the backend returns numerical metrics, identifies the actually configured engine adapter and discloses its fidelity; the explicit Kepler fallback must not be presented as a connected Orekit engine.",
+    "description": "Verifies the backend returns numerical metrics from the configured Orekit engine and fails visibly rather than silently substituting a different propagation engine.",
     "steps": [
       "Open Mission Analysis",
       "Use the default orbit inputs",
       "Click Run analysis",
       "Inspect the period, periapsis, apoapsis and engine integration status"
     ],
-    "expected": "Finite orbital metrics appear. When the configured Orekit service is connected, the page identifies Orekit 13.1.9 and the orekit-http adapter and discloses the current two-body model. If the service is not configured, the explicit Aryaksha Kepler baseline fallback is identified rather than misrepresented as Orekit."
+    "expected": "Finite orbital metrics appear; the page identifies Orekit 13.1.9 and the orekit-http adapter and discloses the current numerical two-body model. If the Orekit service is not configured or is unavailable, the API returns a clear 503/502 error and never returns a fallback result mislabeled as Orekit."
   },
   {
     "name": "Mission analysis rejects an Earth-intersecting orbit",
