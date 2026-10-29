@@ -724,7 +724,13 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
           <span className="earth3d-help">DRAG TO ORBIT · WHEEL / PINCH TO ZOOM · SYSTEM FRAMES EARTH + MOON · PLANETS IS SCHEMATIC</span>
         </div>
         <div className="earth3d-timeline" aria-label="Mission timeline and playback controls">
-          <div className="earth3d-timeline-heading"><span>MISSION TIMELINE / EVENT GALLERY</span><b>T+ {Number(seconds || 0).toFixed(1)} s</b></div>
+          <div className="earth3d-timeline-heading"><span>MISSION TIMELINE / SCENE GALLERY</span><b>T+ {Number(seconds || 0).toFixed(1)} s</b></div>
+          <div className="earth3d-scene-gallery" aria-label="Scene gallery">
+            <button type="button" className="earth3d-gallery-item" onClick={() => setCameraMode('EARTH')}><span className="earth3d-gallery-thumb" data-scene="earth" /><b>EARTH</b></button>
+            <button type="button" className="earth3d-gallery-item" onClick={() => { setShowSpaceEnvironment(true); setSelectedBody('Moon'); setCameraMode('MOON'); }}><span className="earth3d-gallery-thumb" data-scene="moon" /><b>MOON</b></button>
+            <button type="button" className="earth3d-gallery-item" onClick={() => { setShowSpaceEnvironment(true); setCameraMode('SYSTEM'); }}><span className="earth3d-gallery-thumb" data-scene="earth-moon" /><b>EARTH + MOON</b></button>
+            <button type="button" className="earth3d-gallery-item" onClick={() => { setShowPlanets(true); setSelectedBody('Overview'); setCameraMode('PLANETS'); }}><span className="earth3d-gallery-thumb" data-scene="planets" /><b>SOLAR SYSTEM</b></button>
+          </div>
           <input aria-label="Simulation timeline" type="range" min={0} max={Math.max(1, duration)} step={0.1} value={Math.max(0, Math.min(duration, seconds))} onChange={event => setSeconds(Number(event.target.value))} />
           <div className="earth3d-timeline-actions"><button type="button" onClick={() => setRunning(!running)}>{running ? 'PAUSE' : 'PLAY'}</button><label>SPEED<select aria-label="Playback speed" value={playback} onChange={event => setPlayback(Number(event.target.value))}><option value={0.25}>0.25×</option><option value={0.5}>0.5×</option><option value={1}>1×</option><option value={2}>2×</option><option value={5}>5×</option><option value={10}>10×</option></select></label><span>PERIOD {periodMin.toFixed(1)} min</span><span>SUBSOLAR {dayNight.subsolarLon.toFixed(1)}°</span><span>GROUND TRACK · AVAILABLE IN SIMULATION VIEW</span></div>
         </div>
