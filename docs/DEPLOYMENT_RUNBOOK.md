@@ -22,17 +22,19 @@ The web service must have OREKIT_SERVICE_URL set to the Orekit service base URL.
 5. Confirm GET /api/v1/health on both services succeeds.
 6. Confirm POST /api/mission-analysis/orbit returns valid=true, engine Orekit, engine version 13.1.9, engineAdapter orekit-http, connected status, TAI epoch, EME2000 frame and three-component state vectors.
 7. Confirm the live success response matches schemas/orbit-analysis-response.v1.schema.json and the invalid Earth-intersecting orbit returns HTTP 400 with an error matching schemas/api-error.v1.schema.json.
-8. Confirm the live web/API response includes X-Content-Type-Options nosniff, X-Frame-Options DENY and Referrer-Policy strict-origin-when-cross-origin.
-9. Confirm browser smoke tests pass for desktop navigation and mobile navigation open/select/close. These two tests do not replace the nine original acceptance scenarios.
-10. Review Render application logs for startup errors, 502 responses, rate-limit spikes and external provider failures.
+8. Confirm the live web/API response includes X-Content-Type-Options nosniff, X-Frame-Options DENY, Referrer-Policy strict-origin-when-cross-origin and the report-only CSP with the audited CelesTrak connect-src.
+9. Confirm direct POSTs with malformed JSON and JSON null to the Orekit endpoint return HTTP 400 with the stable JSON error envelope.
+10. Confirm local Playwright tests pass for desktop navigation, mobile navigation, Mission Analysis success rendering and structured-error recovery.
+11. Confirm the main-only live UI smoke passes against the deployed Render URL: app shell, CSP header and Mission Analysis rendering after live API/Orekit checks.
+12. Review Render application logs for startup errors, 502 responses, rate-limit spikes and external provider failures. The nine original AppDeploy acceptance scenarios still require a separate full execution record.
 
 ## Current verification baseline
 
-- Latest hardened web deployment: dep-dbhncoqfngtc73c424b0, commit b7e2d0d0059ceb7279d7e1cc1b348f8ade060f00, status live.
-- Latest Orekit deployment: dep-dbhn311srm7s7388tu00, commit a1adf54f9bdc5b09e9ebc2f5f3e9d857a4d75f71, status live.
-- Main CI run 40913459443 passed web checks, Playwright browser smoke tests and live integration checks after the web deployment.
-- Previous web deployment before API hardening: dep-dbhn2am1egvs73807ltg, commit 189a961b2981590b266a07ae56eeaf74be340b01.
-- Previous Orekit deployment before explicit state metadata: identify the last known-good successful deployment in Render's deployment history before any rollback; a specific rollback target has not yet been verified.
+- Latest web deployment: dep-dbhnn8vf3r2c73dcfeeg, commit 0e4f18e1136a10445d85072377c047a8284f1627, status live. This includes the report-only CSP header and strict runtime orbit-request validation.
+- Latest Orekit deployment: dep-dbhnq7g473hc73afk210, commit ccad04e3c83941e1b124f44202bfb16da93cb7fc, status live. This adds stable JSON errors for malformed and null request bodies without changing the two-body numerical model.
+- Main CI run 40918472222 passed all five jobs: web typecheck/unit/build, Orekit Maven tests, local Playwright, live API/Orekit integration including malformed/null Orekit requests, and live deployed UI Playwright smoke.
+- Previous known-good web deployment before the CSP header: dep-dbhnhrlg1s2s73ahgn5g, commit 15928bc5a5dfa5f5e2a1ff01c2c8ca6f878b2a4b, status deactivated but retained in deployment history.
+- Previous known-good Orekit deployment before the error-envelope handler: dep-dbhn311srm7s7388tu00, commit a1adf54f9bdc5b09e9ebc2f5f3e9d857a4d75f71, status deactivated. It uses the same response model and is the compatible rollback target for the current web/API contract.
 
 ## Rollback procedure
 
@@ -43,7 +45,7 @@ A rollback drill has not been performed. Treat this section as a runbook, not pr
 3. If the web and Orekit contracts changed together, assess both services; roll back both to a compatible pair rather than assuming independent versions are compatible.
 4. If a source correction is needed, create a Git revert commit on main. Do not rewrite main history with a hard reset.
 5. Trigger the Render deployment manually if the GitHub merge does not start one. In recent runs, Render auto-deploy was configured but manual deployment was required after the GitHub API merge.
-6. Repeat all live release gates above. Keep the incident open until the live response schema, headers and Earth-intersection guardrail pass.
+6. Repeat all live release gates above, including the CSP report-only header, direct Orekit malformed/null-body contract and live UI smoke. Keep the incident open until these checks pass.
 7. Record the rollback target, deploy IDs, elapsed recovery time, checks performed and any data or configuration differences in Notion.
 
 ## Known limitations and cautions
