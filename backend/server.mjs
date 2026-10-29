@@ -12,7 +12,7 @@ app.disable('x-powered-by');
 // Render terminates TLS and forwards requests through one trusted proxy hop.
 app.set('trust proxy', 1);
 app.use(securityHeaders);
-app.use(express.json({ limit: '64kb' }));
+app.use(express.json({ limit: '64kb', strict: false }));
 const apiRateLimit = createRateLimiter({ windowMs: 60_000, maxRequests: 60 });
 app.get('/api/_healthcheck', (_req, res) => res.json({ message: 'Success', service: 'aryaksha-api' }));
 app.get('/api/v1/health', (_req, res) => res.json({ status: 'ok', service: 'aryaksha-api' }));
