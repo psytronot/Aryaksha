@@ -217,7 +217,7 @@ function App() {
 
         <main className="main">
           <nav id="mobile-navigation" aria-label="Mobile navigation" aria-hidden={!mobileNavOpen} className={mobileNavOpen ? 'mobile-nav-panel is-open' : 'mobile-nav-panel'}>{nav.map(item => <button key={item.id} aria-current={view === item.id ? 'page' : undefined} className={view === item.id ? 'nav-item active' : 'nav-item'} onClick={() => { setView(item.id); setMobileNavOpen(false); }}>{item.icon}<span>{item.label}</span></button>)}</nav>
-          <div className="mission-strip">
+          <div className={view === 'simulation' ? 'mission-strip mission-strip-simulation' : 'mission-strip'}>
             <div><small>ACTIVE MISSION</small><b>{mission.name}</b><span>{mission.type} · {mission.target}</span></div>
             <div className="mission-strip-actions">
               <button data-context-label="Reset Simulation" onClick={() => { setSeconds(0); setRunning(false); }}><RefreshCw size={14} /> RESET SIM</button>
