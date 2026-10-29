@@ -75,7 +75,7 @@ const entries:GlossaryEntry[]=[
 ];
 
 const aliases:Record<string,string>={
-REVISITREQUIREMENT:'Revisit Time',DATARATE:'OBDH',FIELDOFVIEW:'FOV',GROUNDRESOLUTION:'Ground Resolution',DUTYCYCLE:'Payload duty cycle',
+REVISITREQUIREMENT:'Revisit Time',DATARATE:'OBDH',FIELDOFVIEW:'FOV',GROUNDRESOLUTION:'Ground Resolution',
 SOLARPANELAREA:'Power Budget',SOLAREFFICIENCY:'Power Budget',BATTERY:'Battery State',BASEPOWER:'EPS',DATASTORAGE:'OBDH',
 TXPOWER:'Communications Link Budget',FREQUENCY:'Communications Link Budget',BANDWIDTH:'Bandwidth',DOWNLINKRATE:'Communications Link Budget',
 TXGAIN:'Gain',RXGAIN:'Gain',POINTINGACCURACY:'Pointing Accuracy',SETTLINGTIME:'Settling Time',INERTIAX:'Moment of Inertia',
