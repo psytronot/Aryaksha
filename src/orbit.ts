@@ -46,7 +46,7 @@ export function elementsToState(el: Elements) {
 function solveKepler(M: number, e: number) {
   let E = e < 0.8 ? M : Math.PI;
   for (let k = 0; k < 30; k++) {
-    const f = E - e * Math.sin(E),
+    const f = E - e * Math.sin(E) - M,
       d = f / (1 - e * Math.cos(E));
     E -= d;
     if (Math.abs(d) < 1e-12) break;
