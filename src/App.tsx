@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity, ArrowRight, Battery, BookOpen, Calculator, Check, CircleHelp, Cpu, Download,
   Gauge, Globe2, Info, Layers3, Orbit, Pause, Play, Radio, RefreshCw, Rocket,
   Satellite, Search, Settings2, Target, Thermometer, TriangleAlert, Wrench, Zap
 } from 'lucide-react';
-import Earth3DScene from './Earth3DScene';
+const Earth3DScene = lazy(() => import('./Earth3DScene'));
 import AryakshaMark from './AryakshaMark';
-import ScientificCalculator from './ScientificCalculator';
-import SatelliteTrackingView from './SatelliteTrackingView';
-import MissionAnalysisView from './MissionAnalysisView';
+const ScientificCalculator = lazy(() => import('./ScientificCalculator'));
+const SatelliteTrackingView = lazy(() => import('./SatelliteTrackingView'));
+const MissionAnalysisView = lazy(() => import('./MissionAnalysisView'));
 import { EARTH_RADIUS, orbitalSummary, propagateState, sampleOrbit, stateToLla } from './orbit';
 import { getGlossaryEntries, getGlossaryEntry, GlossaryEntry } from './glossary';
 import { generateContinuousGroundTrack, SubPoint } from './tracking';
@@ -225,6 +225,7 @@ function App() {
             </div>
           </div>
 
+          <Suspense fallback={<div role="status" className="page"><p>Loading workspace…</p></div>}>
           {view === 'mission' && <MissionView mission={mission} setMission={setMission} go={setView} />}
           {view === 'payload' && <PayloadView payload={payload} setPayload={setPayload} go={setView} />}
           {view === 'spacecraft' && <SpacecraftView spacecraft={spacecraft} setSpacecraft={setSpacecraft} payload={payload} mission={mission} verification={verification} />}
@@ -237,6 +238,7 @@ function App() {
           {view === 'report' && <ReportView mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} summary={summary} geometry={geometry} verification={verification} onExport={exportReport} />}
           {view === 'instructions' && <InstructionsView />}
           {view === 'tools' && <ToolsView />}
+          </Suspense>
           {coachEnabled && <ContextCoach view={view} />}
         </main>
       </div>
