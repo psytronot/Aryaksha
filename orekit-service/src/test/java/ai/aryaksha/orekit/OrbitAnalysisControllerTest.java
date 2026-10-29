@@ -167,4 +167,26 @@ class OrbitAnalysisControllerTest {
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.error", containsString("intersects Earth")));
     }
+
+
+    @Test
+    void httpAnalysisEndpointReturnsStructuredErrorForMalformedJson() throws Exception {
+        http.perform(post("/api/v1/orbit/analysis")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"altitudeKm\":"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").isString())
+            .andExpect(jsonPath("$.error", org.hamcrest.Matchers.not(org.hamcrest.Matchers.isEmptyString())));
+    }
+
+    @Test
+    void httpAnalysisEndpointReturnsStructuredErrorForNullBody() throws Exception {
+        http.perform(post("/api/v1/orbit/analysis")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("null"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").isString())
+            .andExpect(jsonPath("$.error", org.hamcrest.Matchers.not(org.hamcrest.Matchers.isEmptyString())));
+    }
+
 }
