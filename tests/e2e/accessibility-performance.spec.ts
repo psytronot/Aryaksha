@@ -8,7 +8,6 @@ declare global {
 }
 
 test('accessibility audit: critical and serious axe violations are absent in key workspaces', async ({ page }) => {
-  await page.addScriptTag({ path: `${process.cwd()}/node_modules/axe-core/axe.min.js` });
   const results: Array<{ workspace: string; violations: Array<{ id: string; impact: string; description: string; nodes: number }> }> = [];
 
   const workspaces = [
@@ -30,6 +29,7 @@ test('accessibility audit: critical and serious axe violations are absent in key
 
   for (const workspace of workspaces) {
     await workspace.open();
+    await page.addScriptTag({ path: `${process.cwd()}/node_modules/axe-core/axe.min.js` });
     const report = await page.evaluate(async () => {
       const axe = (window as Window & { axe?: { run: (context: Document, options: object) => Promise<{ violations: Array<{ id: string; impact: string; description: string; nodes: unknown[] }> }> } }).axe;
       if (!axe) throw new Error('axe-core did not load');
