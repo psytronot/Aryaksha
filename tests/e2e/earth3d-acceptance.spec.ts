@@ -73,3 +73,92 @@ test('Earth 3D camera controls are keyboard-operable and fit a mobile viewport',
   expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.viewportWidth);
   expect(pageErrors).toEqual([]);
 });
+
+
+test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to the viewport', async ({ page }) => {
+  const pageErrors: string[] = [];
+  const consoleErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  page.on('console', message => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+
+  const navigationStart = Date.now();
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
+  const canvas = page.locator('.earth3d-canvas canvas');
+  await expect(canvas).toBeVisible();
+
+  const initial = await canvas.evaluate((element: HTMLCanvasElement) => {
+    const gl = element.getContext('webgl2') ?? element.getContext('webgl');
+    return {
+      width: element.width,
+      height: element.height,
+      cssWidth: element.getBoundingClientRect().width,
+      cssHeight: element.getBoundingClientRect().height,
+      hasWebGL: Boolean(gl && gl.getContextAttributes()),
+      drawingBufferWidth: gl?.drawingBufferWidth ?? 0,
+      drawingBufferHeight: gl?.drawingBufferHeight ?? 0
+    };
+  });
+  expect(initial.hasWebGL).toBe(true);
+  expect(initial.width).toBeGreaterThan(0);
+  expect(initial.height).toBeGreaterThan(0);
+  expect(initial.drawingBufferWidth).toBeGreaterThan(0);
+  expect(initial.drawingBufferHeight).toBeGreaterThan(0);
+
+  const frameCount = await canvas.evaluate(async element => {
+    let frames = 0;
+    await new Promise<void>(resolve => {
+      const start = performance.now();
+      const sample = (now: number) => {
+        frames += 1;
+        if (now - start >= 700) resolve();
+        else requestAnimationFrame(sample);
+      };
+      requestAnimationFrame(sample);
+    });
+    return frames;
+  });
+  expect(frameCount).toBeGreaterThan(5);
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect.poll(() => canvas.evaluate(element => element.getBoundingClientRect().width)).toBeGreaterThan(initial.cssWidth);
+  const resized = await canvas.evaluate((element: HTMLCanvasElement) => ({
+    width: element.width,
+    height: element.height,
+    cssWidth: element.getBoundingClientRect().width,
+    cssHeight: element.getBoundingClientRect().height
+  }));
+  expect(resized.width).toBeGreaterThan(0);
+  expect(resized.height).toBeGreaterThan(0);
+  expect(resized.cssWidth).toBeGreaterThan(resized.cssHeight);
+
+  const startupMs = Date.now() - navigationStart;
+  test.info().annotations.push({
+    type: 'Earth 3D browser baseline',
+    description: JSON.stringify({ startupMs, frameCountIn700ms: frameCount, initial, resized })
+  });
+  expect(pageErrors).toEqual([]);
+  expect(consoleErrors.filter(message => /WebGL|THREE\.WebGLRenderer|context lost/i.test(message))).toEqual([]);
+});
+
+test('Earth 3D reports a recoverable viewport state when WebGL context is lost', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  const canvas = page.locator('.earth3d-canvas canvas');
+  await expect(canvas).toBeVisible();
+
+  const lossTriggered = await canvas.evaluate(element => {
+    const gl = (element as HTMLCanvasElement).getContext('webgl2') ??
+      (element as HTMLCanvasElement).getContext('webgl');
+    const extension = gl?.getExtension('WEBGL_lose_context');
+    if (!extension) return false;
+    extension.loseContext();
+    return true;
+  });
+  test.skip(!lossTriggered, 'WEBGL_lose_context is unavailable in this browser runtime');
+  await expect(page.getByRole('alert')).toContainText('GPU WebGL context was lost');
+  await expect(page.getByRole('button', { name: 'Retry GPU Init' })).toBeVisible();
+});
