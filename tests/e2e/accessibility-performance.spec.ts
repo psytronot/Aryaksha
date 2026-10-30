@@ -8,7 +8,7 @@ declare global {
 }
 
 test('accessibility audit: critical and serious axe violations are absent in key workspaces', async ({ page }) => {
-  await page.addScriptTag({ url: 'https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.10.3/axe.min.js' });
+  await page.addScriptTag({ path: 'node_modules/axe-core/axe.min.js' });
   const results: Array<{ workspace: string; violations: Array<{ id: string; impact: string; description: string; nodes: number }> }> = [];
 
   const workspaces = [
