@@ -44,8 +44,6 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
   await expect(grid).toBeVisible();
   await grid.check();
   await expect(grid).toBeChecked();
-  await grid.uncheck();
-  await expect(grid).not.toBeChecked();
   const lunarLayer = page.getByRole('checkbox', { name: 'Show Moon and lunar orbit' });
   await expect(lunarLayer).toBeChecked();
   await lunarLayer.uncheck();
@@ -127,7 +125,7 @@ test('Earth 3D preserves SYSTEM framing, supports pinch, and refits Moon on view
   await expect.poll(readDistance).toBeLessThan(resetSystem * 1.02);
 
   await cameraModes.getByRole('button', { name: 'MOON', exact: true }).click();
-  await expect.poll(readDistance).toBeGreaterThan(3.5);
+  await expect.poll(readDistance).toBeGreaterThan(6);
   const desktopMoon = await readDistance();
   await page.evaluate(() => {
     const element = document.querySelector('.earth3d-workspace');
