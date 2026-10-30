@@ -468,11 +468,23 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       let lastX = 0;
       let lastY = 0;
       let pinchDistance = 0;
+      let touchPinchDistance = 0;
       const activePointers = new Map<number, { x: number; y: number }>();
       const getPinchDistance = () => {
         const points = [...activePointers.values()];
         if (points.length < 2) return 0;
         return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+      };
+      const applyPinchZoom = (previousDistance: number, nextDistance: number) => {
+        if (!(previousDistance > 0) || !(nextDistance > 0)) return;
+        cameraState.current.distance = Math.max(2, Math.min(2600, cameraState.current.distance * previousDistance / nextDistance));
+        if (cameraModeRef.current === 'SYSTEM') systemZoomRatioRef.current = cameraState.current.distance / fitCameraDistance(container.clientWidth, container.clientHeight, moonDistance + moonRadius + 1);
+        if (cameraModeRef.current === 'PLANETS') {
+          const extent = selectedBodyRef.current === 'Overview' ? 55 : selectedBodyRef.current === 'Sun' ? 4 : 3;
+          planetZoomRatioRef.current = cameraState.current.distance / fitCameraDistance(container.clientWidth, container.clientHeight, extent, 42, 1.15);
+        }
+        if (cameraModeRef.current === 'MOON') moonZoomRatioRef.current = cameraState.current.distance / fitCameraDistance(container.clientWidth, container.clientHeight, moonRadius, 42, MOON_CAMERA_MARGIN);
+        syncCameraDebug();
       };
       const onPointerDown = (event: PointerEvent) => {
         event.preventDefault();
@@ -492,16 +504,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
         if (activePointers.size >= 2) {
           const nextDistance = getPinchDistance();
-          if (pinchDistance > 0 && nextDistance > 0) {
-            cameraState.current.distance = Math.max(2, Math.min(2600, cameraState.current.distance * pinchDistance / nextDistance));
-            if (cameraModeRef.current === 'SYSTEM') systemZoomRatioRef.current = cameraState.current.distance / fitCameraDistance(container.clientWidth, container.clientHeight, moonDistance + moonRadius + 1);
-            if (cameraModeRef.current === 'PLANETS') {
-              const extent = selectedBodyRef.current === 'Overview' ? 55 : selectedBodyRef.current === 'Sun' ? 4 : 3;
-              planetZoomRatioRef.current = cameraState.current.distance / fitCameraDistance(container.clientWidth, container.clientHeight, extent, 42, 1.15);
-            }
-            if (cameraModeRef.current === 'MOON') moonZoomRatioRef.current = cameraState.current.distance / fitCameraDistance(container.clientWidth, container.clientHeight, moonRadius, 42, MOON_CAMERA_MARGIN);
-            syncCameraDebug();
-          }
+          applyPinchZoom(pinchDistance, nextDistance);
           pinchDistance = nextDistance;
           return;
         }
@@ -535,10 +538,35 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         if (cameraModeRef.current === 'MOON') moonZoomRatioRef.current = cameraState.current.distance / fitCameraDistance(container.clientWidth, container.clientHeight, moonRadius, 42, MOON_CAMERA_MARGIN);
         syncCameraDebug();
       };
+      // Keep a native Touch Events fallback for embedded/mobile browsers that
+      // synthesize touch events but do not reliably deliver a second PointerEvent.
+      const onTouchStart = (event: TouchEvent) => {
+        if (event.touches.length >= 2) {
+          const first = event.touches[0];
+          const second = event.touches[1];
+          touchPinchDistance = Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
+        }
+      };
+      const onTouchMove = (event: TouchEvent) => {
+        if (event.touches.length < 2 || activePointers.size >= 2) return;
+        event.preventDefault();
+        const first = event.touches[0];
+        const second = event.touches[1];
+        const nextDistance = Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
+        applyPinchZoom(touchPinchDistance, nextDistance);
+        touchPinchDistance = nextDistance;
+      };
+      const onTouchEnd = (event: TouchEvent) => {
+        if (event.touches.length < 2) touchPinchDistance = 0;
+      };
       renderer.domElement.addEventListener('pointerdown', onPointerDown);
       renderer.domElement.addEventListener('pointermove', onPointerMove);
       renderer.domElement.addEventListener('pointerup', onPointerUp);
       renderer.domElement.addEventListener('pointercancel', onPointerUp);
+      renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: true });
+      renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: false });
+      renderer.domElement.addEventListener('touchend', onTouchEnd, { passive: true });
+      renderer.domElement.addEventListener('touchcancel', onTouchEnd, { passive: true });
       renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
 
       const updateOrbit = () => {
@@ -663,6 +691,10 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         renderer.domElement.removeEventListener('pointermove', onPointerMove);
         renderer.domElement.removeEventListener('pointerup', onPointerUp);
         renderer.domElement.removeEventListener('pointercancel', onPointerUp);
+        renderer.domElement.removeEventListener('touchstart', onTouchStart);
+        renderer.domElement.removeEventListener('touchmove', onTouchMove);
+        renderer.domElement.removeEventListener('touchend', onTouchEnd);
+        renderer.domElement.removeEventListener('touchcancel', onTouchEnd);
         renderer.domElement.removeEventListener('wheel', onWheel);
         if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
         orbitGeometry.dispose();
