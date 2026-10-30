@@ -22,8 +22,8 @@
 
 ## Defect corrections in this port
 
-- Moon camera no longer uses a fixed 2.0 scene-unit distance; it fits the lunar disc to the active viewport.
-- Moon camera fit is recalculated after resize/orientation changes while preserving the user's zoom ratio.
+- Moon camera no longer uses a fixed 2.0 scene-unit distance; it fits the lunar disc to the active viewport with a 1.7× sphere-fit margin, leaving visible limb and surrounding space.
+- Moon camera fit is recalculated after resize/orientation changes while preserving the user's zoom ratio; sphere fitting uses the sine-based angular-radius relation.
 - SYSTEM reset recomputes the Earth–Moon system fit and resets the system zoom ratio.
 - Two-pointer pinch and wheel zoom update per-mode zoom ratios so resize refits do not discard the zoom state.
 - Camera mode/distance are exposed as lightweight data attributes for deterministic interaction tests.
