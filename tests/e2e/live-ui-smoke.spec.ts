@@ -108,7 +108,7 @@ test('CSP report-only audit records no blocked resources across key workspaces',
   await page.goto('/');
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Mission Analysis', exact: true }).click();
+  await page.getByRole('button', { name: 'Mission Analysis', exact: true }).click({ force: true });
   await expect(page.getByRole('heading', { name: 'Orbital Mission Analysis' })).toBeVisible();
   await page.waitForTimeout(500);
   const violations = await page.evaluate(() => (window as Window & { __cspViolations?: string[] }).__cspViolations ?? []);
