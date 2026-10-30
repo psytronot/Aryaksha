@@ -668,7 +668,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
     if (cameraMode === 'EARTH') cameraState.current.distance = 15;
     if (cameraMode === 'TRACK') cameraState.current.distance = Math.min(cameraState.current.distance, 12);
     if (cameraMode === 'SATELLITE') cameraState.current.distance = Math.min(cameraState.current.distance, 6.5);
-    if (cameraMode === 'MOON') cameraState.current.distance = 2.0;
+    if (cameraMode === 'MOON') cameraState.current.distance = 5.2;
     if (cameraMode === 'SYSTEM') {
       const width = Math.max(1, containerRef.current?.clientWidth || 1);
       const height = Math.max(1, containerRef.current?.clientHeight || 1);
