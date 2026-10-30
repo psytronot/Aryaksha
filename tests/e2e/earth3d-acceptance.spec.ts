@@ -174,3 +174,35 @@ test('Earth 3D reports a recoverable viewport state when WebGL context is lost',
   await expect(page.getByRole('button', { name: 'Retry GPU Init' })).toBeVisible();
 });
 
+
+
+test('Earth 3D SYSTEM and MOON reset preserve fitted framing; touch pinch is handled', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page.getByRole('navigation', { name: 'Mobile navigation' })
+    .getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const modes = page.locator('[aria-label="Camera modes"]');
+  const canvas = page.locator('.earth3d-canvas canvas');
+  await modes.getByRole('button', { name: 'SYSTEM', exact: true }).click();
+  await modes.getByRole('button', { name: 'RESET', exact: true }).click();
+  await expect(modes.getByRole('button', { name: 'SYSTEM', exact: true })).toHaveClass(/active/);
+
+  await modes.getByRole('button', { name: 'MOON', exact: true }).click();
+  await modes.getByRole('button', { name: 'RESET', exact: true }).click();
+  await expect(modes.getByRole('button', { name: 'MOON', exact: true })).toHaveClass(/active/);
+
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  const x = box!.x + box!.width * 0.4;
+  const y = box!.y + box!.height * 0.5;
+  await canvas.dispatchEvent('pointerdown', { pointerId: 11, pointerType: 'touch', clientX: x, clientY: y });
+  await canvas.dispatchEvent('pointerdown', { pointerId: 12, pointerType: 'touch', clientX: x + 80, clientY: y });
+  await canvas.dispatchEvent('pointermove', { pointerId: 12, pointerType: 'touch', clientX: x + 140, clientY: y });
+  await canvas.dispatchEvent('pointerup', { pointerId: 12, pointerType: 'touch', clientX: x + 140, clientY: y });
+  await canvas.dispatchEvent('pointerup', { pointerId: 11, pointerType: 'touch', clientX: x, clientY: y });
+  expect(pageErrors).toEqual([]);
+});

@@ -28,6 +28,23 @@ type Earth3DSceneProps = {
 
 type CameraMode = 'TRACK' | 'EARTH' | 'SATELLITE' | 'MOON' | 'SYSTEM';
 
+function systemCameraDistance(width: number, height: number) {
+  const verticalFov = THREE.MathUtils.degToRad(42);
+  const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * (Math.max(1, width) / Math.max(1, height)));
+  const fitFov = Math.min(verticalFov, horizontalFov);
+  const earthRadius = 5.15;
+  const moonExtent = earthRadius * (384400 / 6378.137) + earthRadius * (1737.4 / 6378.137);
+  return Math.min(2600, (moonExtent + 1) / Math.tan(fitFov / 2) * 1.08);
+}
+
+function moonCameraDistance(width: number, height: number) {
+  const verticalFov = THREE.MathUtils.degToRad(42);
+  const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * (Math.max(1, width) / Math.max(1, height)));
+  const fitFov = Math.min(verticalFov, horizontalFov);
+  const moonRadius = 5.15 * (1737.4 / 6378.137);
+  return Math.max(2, Math.min(2600, moonRadius / Math.tan(fitFov / 2) * 1.4));
+}
+
 function fbm(x: number, y: number) {
   let value = 0;
   let amplitude = 0.5;
@@ -356,20 +373,41 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         camera.updateProjectionMatrix();
         renderer.setPixelRatio(pixelRatioForViewport());
         renderer.setSize(width, height, false);
+        if (cameraModeRef.current === 'SYSTEM') cameraState.current.distance = systemCameraDistance(width, height);
+        if (cameraModeRef.current === 'MOON') cameraState.current.distance = moonCameraDistance(width, height);
       };
       const observer = new ResizeObserver(resize);
       observer.observe(container);
 
+      const activePointers = new Map<number, { x: number; y: number }>();
       let dragging = false;
       let lastX = 0;
       let lastY = 0;
+      let lastPinchDistance = 0;
+      const pointerPairDistance = () => {
+        const points = [...activePointers.values()];
+        if (points.length < 2) return 0;
+        return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+      };
       const onPointerDown = (event: PointerEvent) => {
-        dragging = true;
+        activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        dragging = activePointers.size === 1;
         lastX = event.clientX;
         lastY = event.clientY;
-        renderer.domElement.setPointerCapture(event.pointerId);
+        lastPinchDistance = pointerPairDistance();
+        try { renderer.domElement.setPointerCapture(event.pointerId); } catch {}
       };
       const onPointerMove = (event: PointerEvent) => {
+        if (!activePointers.has(event.pointerId)) return;
+        activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (activePointers.size >= 2) {
+          const nextDistance = pointerPairDistance();
+          if (lastPinchDistance > 0 && nextDistance > 0) {
+            cameraState.current.distance = Math.max(2, Math.min(2600, cameraState.current.distance * lastPinchDistance / nextDistance));
+          }
+          lastPinchDistance = nextDistance;
+          return;
+        }
         if (!dragging) return;
         const dx = event.clientX - lastX;
         const dy = event.clientY - lastY;
@@ -379,7 +417,14 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         cameraState.current.pitch = Math.max(-1.22, Math.min(1.22, cameraState.current.pitch - dy * 0.0075));
       };
       const onPointerUp = (event: PointerEvent) => {
-        dragging = false;
+        activePointers.delete(event.pointerId);
+        dragging = activePointers.size === 1;
+        if (dragging) {
+          const remaining = [...activePointers.values()][0];
+          lastX = remaining.x;
+          lastY = remaining.y;
+        }
+        lastPinchDistance = pointerPairDistance();
         try { renderer.domElement.releasePointerCapture(event.pointerId); } catch {}
       };
       const onWheel = (event: WheelEvent) => {
@@ -389,6 +434,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       renderer.domElement.addEventListener('pointerdown', onPointerDown);
       renderer.domElement.addEventListener('pointermove', onPointerMove);
       renderer.domElement.addEventListener('pointerup', onPointerUp);
+      renderer.domElement.addEventListener('pointercancel', onPointerUp);
       renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
 
       const updateOrbit = () => {
@@ -473,7 +519,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
           distance = Math.min(s.distance, 6.5);
         } else if (mode === 'MOON') {
           target = spaceEnvironment.moon.position.clone();
-          distance = Math.min(s.distance, 2.0);
+          distance = s.distance;
         } else if (mode === 'TRACK') {
           target = markerVector.clone().lerp(origin, 0.26);
           distance = Math.min(s.distance, 12.5);
@@ -507,6 +553,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         renderer.domElement.removeEventListener('pointerdown', onPointerDown);
         renderer.domElement.removeEventListener('pointermove', onPointerMove);
         renderer.domElement.removeEventListener('pointerup', onPointerUp);
+        renderer.domElement.removeEventListener('pointercancel', onPointerUp);
         renderer.domElement.removeEventListener('wheel', onWheel);
         if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
         orbitGeometry.dispose();
@@ -557,17 +604,8 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
     if (cameraMode === 'EARTH') cameraState.current.distance = 15;
     if (cameraMode === 'TRACK') cameraState.current.distance = Math.min(cameraState.current.distance, 12);
     if (cameraMode === 'SATELLITE') cameraState.current.distance = Math.min(cameraState.current.distance, 6.5);
-    if (cameraMode === 'MOON') cameraState.current.distance = 2.0;
-    if (cameraMode === 'SYSTEM') {
-      const width = Math.max(1, containerRef.current?.clientWidth || 1);
-      const height = Math.max(1, containerRef.current?.clientHeight || 1);
-      const verticalFov = THREE.MathUtils.degToRad(42);
-      const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * (width / height));
-      const fitFov = Math.min(verticalFov, horizontalFov);
-      const earthRadius = 5.15;
-      const moonExtent = earthRadius * (384400 / 6378.137) + earthRadius * (1737.4 / 6378.137);
-      cameraState.current.distance = Math.min(2600, (moonExtent + 1) / Math.tan(fitFov / 2) * 1.08);
-    }
+    if (cameraMode === 'MOON') cameraState.current.distance = moonCameraDistance(containerRef.current?.clientWidth || 1, containerRef.current?.clientHeight || 1);
+    if (cameraMode === 'SYSTEM') cameraState.current.distance = systemCameraDistance(containerRef.current?.clientWidth || 1, containerRef.current?.clientHeight || 1);
   }, [cameraMode]);
 
   const dayNight = dayNightSnapshot(Number(current?.lla?.lat), Number(current?.lla?.lon), new Date(current?.time || Date.now()));
@@ -590,7 +628,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
           </div>
           <div className="earth-camera-controls" aria-label="Camera modes">
             {(['TRACK', 'EARTH', 'SATELLITE', 'MOON', 'SYSTEM'] as CameraMode[]).map(mode => <button key={mode} type="button" className={`earth-camera-button ${cameraMode === mode ? 'active' : ''}`} onClick={() => { if (mode === 'MOON') setShowSpaceEnvironment(true); setCameraMode(mode); }}>{mode}</button>)}
-            <button type="button" className="earth-camera-button" onClick={() => { cameraState.current = { yaw: 0.65, pitch: 0.26, distance: cameraMode === 'SATELLITE' ? 5.8 : cameraMode === 'EARTH' ? 15 : 11 }; }}>RESET</button>
+            <button type="button" className="earth-camera-button" onClick={() => { const width = containerRef.current?.clientWidth || 1; const height = containerRef.current?.clientHeight || 1; const distance = cameraMode === 'SATELLITE' ? 5.8 : cameraMode === 'EARTH' ? 15 : cameraMode === 'MOON' ? moonCameraDistance(width, height) : cameraMode === 'SYSTEM' ? systemCameraDistance(width, height) : 11; cameraState.current = { yaw: 0.65, pitch: 0.26, distance }; }}>RESET</button>
           </div>
         </div>
         <div className="earth3d-left-hud">
