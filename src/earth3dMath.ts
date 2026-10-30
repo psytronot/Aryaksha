@@ -43,6 +43,8 @@ export function moonSynchronousYaw(phase: number): number {
   return -phase - Math.PI / 2;
 }
 
+export const MOON_CAMERA_MARGIN = 1.7;
+
 export function fitCameraDistance(width: number, height: number, extent: number, fovDegrees = 42, margin = 1.08): number {
   const safeWidth = Math.max(1, Number.isFinite(width) ? width : 1);
   const safeHeight = Math.max(1, Number.isFinite(height) ? height : 1);
@@ -50,5 +52,6 @@ export function fitCameraDistance(width: number, height: number, extent: number,
   const verticalFov = fovDegrees * Math.PI / 180;
   const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * (safeWidth / safeHeight));
   const limitingFov = Math.min(verticalFov, horizontalFov);
-  return (safeExtent * Math.max(1, margin)) / Math.tan(limitingFov / 2);
+  // Sphere fit: the tangent fit is for a flat plane; use sine for the sphere's angular radius.
+  return (safeExtent * Math.max(1, margin)) / Math.sin(limitingFov / 2);
 }
