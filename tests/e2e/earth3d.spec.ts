@@ -55,10 +55,10 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
   await speed.selectOption('2');
   await expect(speed).toHaveValue('2');
 
-  const playPause = page.locator('.earth3d-timeline-actions button').first();
-  const before = (await playPause.innerText()).trim();
+  const playPause = page.getByRole('button', { name: /^(PLAY|PAUSE)$/ });
+  await expect(playPause).toBeVisible();
   await playPause.click();
-  await expect(playPause).toHaveText(before === 'PLAY' ? 'PAUSE' : 'PLAY');
+  await expect(playPause).toHaveText('PAUSE');
 
   await page.locator('.earth-camera-controls').getByRole('button', { name: 'EARTH', exact: true }).click();
   await page.evaluate(() => { const element = document.querySelector('.earth3d-workspace'); if (element) window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 64); });
