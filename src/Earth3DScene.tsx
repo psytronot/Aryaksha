@@ -406,11 +406,13 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       footprintGeometry.setAttribute('position', footprintPosition);
       footprintGeometry.setDrawRange(0, footprintSegments + 1);
       const footprintUnitCircle = new Float32Array((footprintSegments + 1) * 2);
-      for (let i = 0; i <= footprintSegments; i += 1) {
+      for (let i = 0; i < footprintSegments; i += 1) {
         const angle = (i / footprintSegments) * Math.PI * 2;
         footprintUnitCircle[i * 2] = Math.cos(angle);
         footprintUnitCircle[i * 2 + 1] = Math.sin(angle);
       }
+      footprintUnitCircle[footprintSegments * 2] = footprintUnitCircle[0];
+      footprintUnitCircle[footprintSegments * 2 + 1] = footprintUnitCircle[1];
       const footprintTangent = new THREE.Vector3();
       const footprintBitangent = new THREE.Vector3();
       const footprint = new THREE.LineLoop(footprintGeometry, new THREE.LineBasicMaterial({ color: 0xffbf5a, transparent: true, opacity: 0.86 }));

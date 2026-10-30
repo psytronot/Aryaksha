@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { PLANETARY_BODY_SPECS, moonSynchronousYaw, planetaryPositionAt } from './earth3dMath';
+import { PLANETARY_BODY_SPECS, moonSynchronousYaw } from './earth3dMath';
 
 function makeBodyLabel(text: string, color: string) {
   const canvas = document.createElement('canvas');

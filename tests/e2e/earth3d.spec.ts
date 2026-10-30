@@ -14,6 +14,13 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
   await expect(page.getByRole('heading', { name: 'Earth 3D' })).toBeAttached();
   await expect(page.locator('.earth3d-workspace')).toBeVisible();
   await expect(page.locator('.earth3d-canvas canvas')).toBeVisible();
+  const playPause = page.locator('.earth3d-timeline-actions > button').first();
+  await expect(playPause).toHaveText('PLAY');
+  await playPause.focus();
+  await page.keyboard.press('Enter');
+  await expect(playPause).toHaveText('PAUSE');
+  await page.keyboard.press('Enter');
+  await expect(playPause).toHaveText('PLAY');
   const workspace = page.locator('.earth3d-workspace');
   await page.evaluate(() => { const element = document.querySelector('.earth3d-workspace'); if (element) window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 64); });
   await expect(page.getByText('ORBIT PARAMETERS', { exact: true })).toBeVisible();
@@ -52,13 +59,6 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
   const speed = page.locator('.earth3d-timeline select[aria-label="Playback speed"]');
   await speed.selectOption('2', { force: true });
   await expect(speed).toHaveValue('2');
-
-  const playPause = page.locator('.earth3d-timeline-actions > button').first();
-  await expect(playPause).toBeVisible();
-  await playPause.click({ force: true });
-  await expect(playPause).toHaveText('PAUSE');
-  await playPause.click({ force: true });
-  await expect(playPause).toHaveText('PLAY');
 
   await page.locator('.earth-camera-controls').getByRole('button', { name: 'EARTH', exact: true }).click();
   await page.evaluate(() => { const element = document.querySelector('.earth3d-workspace'); if (element) window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 64); });

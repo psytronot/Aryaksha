@@ -31,11 +31,13 @@ describe('Earth 3D dynamic footprint buffer', () => {
     const positions = new Float32Array((segments + 1) * 3);
     const attribute = new THREE.BufferAttribute(positions, 3);
     const unitCircle = new Float32Array((segments + 1) * 2);
-    for (let i = 0; i <= segments; i += 1) {
+    for (let i = 0; i < segments; i += 1) {
       const angle = (i / segments) * Math.PI * 2;
       unitCircle[i * 2] = Math.cos(angle);
       unitCircle[i * 2 + 1] = Math.sin(angle);
     }
+    unitCircle[segments * 2] = unitCircle[0];
+    unitCircle[segments * 2 + 1] = unitCircle[1];
     const tangent = new THREE.Vector3();
     const bitangent = new THREE.Vector3();
     const firstRadial = new THREE.Vector3(1, 0, 0);
