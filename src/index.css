@@ -144,3 +144,8 @@ html,body{min-width:320px;overflow-x:clip}
   .main{width:100%;max-width:none}
   .sidebar{overscroll-behavior:auto}
 }
+
+
+/* Keep the floating Context Coach from intercepting workspace navigation. */
+.context-coach.is-open{pointer-events:none!important}
+.context-coach.is-open button{pointer-events:auto!important}
