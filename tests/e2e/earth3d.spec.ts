@@ -125,6 +125,11 @@ test('Earth 3D preserves SYSTEM framing, responds to two-pointer touch pinch, an
       canvasElement.dispatchEvent(new TouchEvent('touchend', { bubbles: true, cancelable: true, touches: [], targetTouches: [], changedTouches: movedTouches }));
     }, { startX: centerX, endX: centerX, y: centerY });
 
+    // Fail at the event boundary with useful evidence before asserting camera response.
+    await expect.poll(() => container.getAttribute('data-touch-start-count')).toBe('1');
+    await expect.poll(() => container.getAttribute('data-touch-move-count')).toBe('1');
+    await expect(container).toHaveAttribute('data-touch-move-touches', '2');
+
     await expect.poll(readDistance).toBeLessThan(portraitSystemFit - 1);
     const pinchedSystemDistance = await readDistance();
     await page.getByRole('button', { name: 'Reset camera framing' }).click();
