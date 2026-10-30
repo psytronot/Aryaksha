@@ -108,7 +108,7 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   expect(initial.drawingBufferWidth).toBeGreaterThan(0);
   expect(initial.drawingBufferHeight).toBeGreaterThan(0);
 
-  const frameCount = await canvas.evaluate(async element => {
+  const frameCount = await canvas.evaluate(async () => {
     let frames = 0;
     await new Promise<void>(resolve => {
       const start = performance.now();
