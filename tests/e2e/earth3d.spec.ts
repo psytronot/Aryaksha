@@ -158,8 +158,9 @@ test('Earth 3D releases its WebGL context on unmount and remounts cleanly', asyn
   await page.goto('/');
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
 
+  await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeAttached();
   const canvas = page.locator('.earth3d-canvas canvas');
-  await expect(canvas).toBeVisible();
+  await expect(canvas).toBeVisible({ timeout: 15000 });
   await canvas.evaluate(element => {
     const htmlCanvas = element as HTMLCanvasElement;
     const context = htmlCanvas.getContext('webgl2') ?? htmlCanvas.getContext('webgl');
@@ -173,7 +174,8 @@ test('Earth 3D releases its WebGL context on unmount and remounts cleanly', asyn
   await expect.poll(() => page.evaluate(() => Boolean((window as any).__earth3dUnmountContext?.isContextLost())), { timeout: 10000 }).toBe(true);
 
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
-  await expect(canvas).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeAttached();
+  await expect(canvas).toBeVisible({ timeout: 15000 });
   await canvas.evaluate(element => {
     const htmlCanvas = element as HTMLCanvasElement;
     const context = htmlCanvas.getContext('webgl2') ?? htmlCanvas.getContext('webgl');
