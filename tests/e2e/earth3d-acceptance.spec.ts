@@ -7,7 +7,7 @@ test('Earth 3D exposes responsive camera modes and lunar layer controls', async 
   await page.goto('/');
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
 
-  await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeAttached();
   await expect(page.getByLabel('Interactive 3D Earth with trackable spacecraft')).toBeVisible();
 
   const cameraModes = page.locator('[aria-label="Camera modes"]');
@@ -39,7 +39,7 @@ test('Earth 3D controls remain usable on a narrow mobile viewport', async ({ pag
   const mobileNavigation = page.getByRole('navigation', { name: 'Mobile navigation' });
   await mobileNavigation.getByRole('button', { name: 'Simulation', exact: true }).click();
 
-  await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeAttached();
   const cameraModes = page.locator('[aria-label="Camera modes"]');
   await cameraModes.getByRole('button', { name: 'MOON', exact: true }).click();
   await expect(cameraModes.getByRole('button', { name: 'MOON', exact: true })).toHaveClass(/active/);

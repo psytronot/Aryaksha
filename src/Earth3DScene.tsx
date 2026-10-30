@@ -4,6 +4,7 @@ import { dayNightSnapshot, solarEciDirection } from './daynight';
 import { makeNightLightsTexture } from './earthVisuals';
 import { formatIstDateTime } from './time';
 import { createSpaceEnvironment } from './solarSystem';
+import { fitCameraDistance } from './earth3dMath';
 import './earth3d-upgrade.css';
 
 type Earth3DSceneProps = {
@@ -24,9 +25,15 @@ type Earth3DSceneProps = {
   trueAnomalyDeg?: number;
   periodMin?: number;
   panelAreaM2?: number;
+  running: boolean;
+  setRunning: (value: boolean) => void;
+  playback: number;
+  setPlayback: (value: number) => void;
+  duration: number;
+  setSeconds: (value: number) => void;
 };
 
-type CameraMode = 'TRACK' | 'EARTH' | 'SATELLITE' | 'MOON' | 'SYSTEM';
+type CameraMode = 'TRACK' | 'EARTH' | 'SATELLITE' | 'MOON' | 'SYSTEM' | 'PLANETS';
 
 function fbm(x: number, y: number) {
   let value = 0;
@@ -66,7 +73,13 @@ function makeEarthTexture() {
       const polar = Math.abs(latNorm) > 0.82;
       const continent = !polar && landField > 0.16 + Math.abs(latNorm) * 0.06;
       const i = (y * width + x) * 4;
-      if (continent) {
+      if (polar) {
+        const ice = Math.max(0, Math.min(1, (Math.abs(latNorm) - 0.82) / 0.18));
+        const variation = Math.max(0, Math.min(1, 0.5 + detail * 0.4));
+        data[i] = Math.round(168 + 65 * ice + 8 * variation);
+        data[i + 1] = Math.round(202 + 47 * ice + 5 * variation);
+        data[i + 2] = Math.round(218 + 35 * ice);
+      } else if (continent) {
         const moisture = Math.max(0, Math.min(1, 0.55 + fbm(lon * 3.2 - 1.5, lat * 3.1 + 2.7) * 0.7));
         const elevation = Math.max(0, Math.min(1, 0.55 + detail));
         data[i] = Math.round(46 + 50 * elevation);
@@ -174,42 +187,73 @@ function scenePosition(r: number[], scale: number) {
 
 function updateFootprint(geometry: THREE.BufferGeometry, radial: THREE.Vector3, radius: number, angleDeg: number) {
   const points = 64;
+  const existing = geometry.getAttribute('position') as THREE.BufferAttribute | undefined;
+  const ring = existing ? existing.array as Float32Array : new Float32Array((points + 1) * 3);
   const tangent = Math.abs(radial.y) < 0.85 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
-  tangent.sub(radial.clone().multiplyScalar(tangent.dot(radial))).normalize();
+  tangent.addScaledVector(radial, -tangent.dot(radial)).normalize();
   const bitangent = new THREE.Vector3().crossVectors(radial, tangent).normalize();
   const angular = THREE.MathUtils.degToRad(angleDeg);
-  const ring = new Float32Array((points + 1) * 3);
+  const radialFactor = radius * Math.cos(angular);
+  const ringFactor = radius * Math.sin(angular);
   for (let i = 0; i <= points; i += 1) {
     const a = (i / points) * Math.PI * 2;
-    const local = tangent.clone().multiplyScalar(Math.cos(a)).add(bitangent.clone().multiplyScalar(Math.sin(a)));
-    const p = radial.clone().multiplyScalar(radius * Math.cos(angular)).add(local.multiplyScalar(radius * Math.sin(angular)));
-    ring[i * 3] = p.x;
-    ring[i * 3 + 1] = p.y;
-    ring[i * 3 + 2] = p.z;
+    const tangentFactor = ringFactor * Math.cos(a);
+    const bitangentFactor = ringFactor * Math.sin(a);
+    const offset = i * 3;
+    ring[offset] = radial.x * radialFactor + tangent.x * tangentFactor + bitangent.x * bitangentFactor;
+    ring[offset + 1] = radial.y * radialFactor + tangent.y * tangentFactor + bitangent.y * bitangentFactor;
+    ring[offset + 2] = radial.z * radialFactor + tangent.z * tangentFactor + bitangent.z * bitangentFactor;
   }
-  geometry.setAttribute('position', new THREE.BufferAttribute(ring, 3));
-  geometry.attributes.position.needsUpdate = true;
+  if (!existing) geometry.setAttribute('position', new THREE.BufferAttribute(ring, 3));
+  else existing.needsUpdate = true;
+  geometry.setDrawRange(0, points + 1);
 }
 
-export default function Earth3DScene({ model, current, seconds, name, propagator, footprintAngleDeg = 0.52, busWidthM = 0.1, busHeightM = 0.2, busDepthM = 0.1, altitudeKm = 550, eccentricity = 0, inclinationDeg = 0, raanDeg = 0, argumentOfPerigeeDeg = 0, trueAnomalyDeg = 0, periodMin = 95, panelAreaM2 = 0.6 }: Earth3DSceneProps) {
+function disposeObjectResources(root: THREE.Object3D) {
+  const geometries = new Set<THREE.BufferGeometry>();
+  const materials = new Set<THREE.Material>();
+  root.traverse((object) => {
+    if (object instanceof THREE.Mesh || object instanceof THREE.Line || object instanceof THREE.Points) geometries.add(object.geometry);
+    if (object instanceof THREE.Sprite) materials.add(object.material);
+    if (object instanceof THREE.Mesh || object instanceof THREE.Line || object instanceof THREE.Points) {
+      const objectMaterials = Array.isArray(object.material) ? object.material : [object.material];
+      objectMaterials.forEach(material => materials.add(material));
+    }
+  });
+  geometries.forEach(geometry => geometry.dispose());
+  materials.forEach(material => material.dispose());
+}
+
+export default function Earth3DScene({ model, current, seconds, name, propagator, footprintAngleDeg = 0.52, busWidthM = 0.1, busHeightM = 0.2, busDepthM = 0.1, altitudeKm = 550, eccentricity = 0, inclinationDeg = 0, raanDeg = 0, argumentOfPerigeeDeg = 0, trueAnomalyDeg = 0, periodMin = 95, panelAreaM2 = 0.6, running, setRunning, playback, setPlayback, duration, setSeconds }: Earth3DSceneProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const modelRef = useRef(model);
   const currentRef = useRef(current);
   const designRef = useRef({ busWidthM, busHeightM, busDepthM, panelAreaM2 });
   const secondsRef = useRef(seconds);
-  const cameraModeRef = useRef<CameraMode>('TRACK');  const showFootprintRef = useRef(true);
+  const cameraModeRef = useRef<CameraMode>('TRACK');
+  const showFootprintRef = useRef(true);
   const showVectorsRef = useRef(true);
   const showAxesRef = useRef(false);
+  const showGridRef = useRef(false);
+  const showOrbitRef = useRef(true);
   const showSpaceEnvironmentRef = useRef(true);
+  const showPlanetsRef = useRef(true);
   const selectedSatelliteRef = useRef('design');
+  const selectedBodyRef = useRef('Overview');
+  const systemZoomRatioRef = useRef(1);
+  const planetZoomRatioRef = useRef(1);
   const footprintAngleRef = useRef(footprintAngleDeg);
   const frameRef = useRef<number | null>(null);
   const [cameraMode, setCameraMode] = useState<CameraMode>('TRACK');
   const [showFootprint, setShowFootprint] = useState(true);
   const [showVectors, setShowVectors] = useState(true);
   const [showAxes, setShowAxes] = useState(false);
+  const [showGrid, setShowGrid] = useState(false);
+  const [showOrbit, setShowOrbit] = useState(true);
   const [showSpaceEnvironment, setShowSpaceEnvironment] = useState(true);
+  const [showPlanets, setShowPlanets] = useState(true);
   const [selectedSatellite, setSelectedSatellite] = useState('design');
+  const [selectedBody, setSelectedBody] = useState('Overview');
   const [errorState, setErrorState] = useState('');
   const [wallTime, setWallTime] = useState(() => new Date());
   const cameraState = useRef({ yaw: 0.65, pitch: 0.26, distance: 11 });
@@ -227,8 +271,12 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   showFootprintRef.current = showFootprint;
   showVectorsRef.current = showVectors;
   showAxesRef.current = showAxes;
+  showGridRef.current = showGrid;
+  showOrbitRef.current = showOrbit;
   showSpaceEnvironmentRef.current = showSpaceEnvironment;
+  showPlanetsRef.current = showPlanets;
   selectedSatelliteRef.current = selectedSatellite;
+  selectedBodyRef.current = selectedBody;
   footprintAngleRef.current = footprintAngleDeg;
 
   useEffect(() => {
@@ -295,6 +343,15 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       const nightTexture = makeNightLightsTexture();
       const cloudTexture = makeCloudTexture();
       const earthMaterial = new THREE.MeshPhongMaterial({ map: earthTexture, emissive: 0x03070d, emissiveMap: nightTexture, emissiveIntensity: 1.65, specular: 0x5d889c, shininess: 22 });
+      const earthSunUniform = { value: new THREE.Vector3(1, 0, 0) };
+      earthMaterial.onBeforeCompile = (shader) => {
+        shader.uniforms.uEarthSunDirection = earthSunUniform;
+        shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vEarthWorldNormal;');
+        shader.vertexShader = shader.vertexShader.replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nvEarthWorldNormal = normalize(mat3(modelMatrix) * objectNormal);');
+        shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uEarthSunDirection;\nvarying vec3 vEarthWorldNormal;');
+        shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\nfloat earthDaylight = smoothstep(-0.18, 0.12, dot(normalize(vEarthWorldNormal), normalize(uEarthSunDirection)));\ntotalEmissiveRadiance *= (1.0 - earthDaylight);');
+      };
+      earthMaterial.customProgramCacheKey = () => 'earth-night-lights-terminator-v1';
       const sphere = new THREE.Mesh(new THREE.SphereGeometry(earthRadius, 128, 96), earthMaterial);
       earth.add(sphere);
       const cloudMaterial = new THREE.MeshPhongMaterial({ map: cloudTexture, transparent: true, opacity: 0.52, depthWrite: false, side: THREE.DoubleSide });
@@ -311,7 +368,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       // The Moon and planet layer use a deliberately compressed display scale;
       // they are illustrative context, not ephemeris-grade planetary positions.
       const spaceEnvironment = createSpaceEnvironment(moonRadius, moonDistance);
-      scene.add(spaceEnvironment.group);
+      scene.add(spaceEnvironment.group, spaceEnvironment.planetaryGroup);
 
       const orbitGeometry = new THREE.BufferGeometry();
       const orbitGlow = new THREE.Line(orbitGeometry, new THREE.LineBasicMaterial({ color: 0x1c97bc, transparent: true, opacity: 0.24 }));
@@ -356,6 +413,11 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         camera.updateProjectionMatrix();
         renderer.setPixelRatio(pixelRatioForViewport());
         renderer.setSize(width, height, false);
+        if (cameraModeRef.current === 'SYSTEM') cameraState.current.distance = Math.max(2, Math.min(2600, fitCameraDistance(width, height, moonDistance + moonRadius + 1) * systemZoomRatioRef.current));
+        if (cameraModeRef.current === 'PLANETS') {
+          const extent = selectedBodyRef.current === 'Overview' ? 55 : selectedBodyRef.current === 'Sun' ? 4 : 3;
+          cameraState.current.distance = Math.max(2, Math.min(2600, fitCameraDistance(width, height, extent, 42, 1.15) * planetZoomRatioRef.current));
+        }
       };
       const observer = new ResizeObserver(resize);
       observer.observe(container);
@@ -363,13 +425,42 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       let dragging = false;
       let lastX = 0;
       let lastY = 0;
+      let pinchDistance = 0;
+      const activePointers = new Map<number, { x: number; y: number }>();
+      const getPinchDistance = () => {
+        const points = [...activePointers.values()];
+        if (points.length < 2) return 0;
+        return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+      };
       const onPointerDown = (event: PointerEvent) => {
-        dragging = true;
-        lastX = event.clientX;
-        lastY = event.clientY;
-        renderer.domElement.setPointerCapture(event.pointerId);
+        event.preventDefault();
+        activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        try { renderer.domElement.setPointerCapture(event.pointerId); } catch {}
+        if (activePointers.size === 1) {
+          dragging = true;
+          lastX = event.clientX;
+          lastY = event.clientY;
+        } else {
+          dragging = false;
+          pinchDistance = getPinchDistance();
+        }
       };
       const onPointerMove = (event: PointerEvent) => {
+        if (!activePointers.has(event.pointerId)) return;
+        activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (activePointers.size >= 2) {
+          const nextDistance = getPinchDistance();
+          if (pinchDistance > 0 && nextDistance > 0) {
+            cameraState.current.distance = Math.max(2, Math.min(2600, cameraState.current.distance * pinchDistance / nextDistance));
+            if (cameraModeRef.current === 'SYSTEM') systemZoomRatioRef.current = cameraState.current.distance / fitCameraDistance(container.clientWidth, container.clientHeight, moonDistance + moonRadius + 1);
+            if (cameraModeRef.current === 'PLANETS') {
+              const extent = selectedBodyRef.current === 'Overview' ? 55 : selectedBodyRef.current === 'Sun' ? 4 : 3;
+              planetZoomRatioRef.current = cameraState.current.distance / fitCameraDistance(container.clientWidth, container.clientHeight, extent, 42, 1.15);
+            }
+          }
+          pinchDistance = nextDistance;
+          return;
+        }
         if (!dragging) return;
         const dx = event.clientX - lastX;
         const dy = event.clientY - lastY;
@@ -379,16 +470,29 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         cameraState.current.pitch = Math.max(-1.22, Math.min(1.22, cameraState.current.pitch - dy * 0.0075));
       };
       const onPointerUp = (event: PointerEvent) => {
-        dragging = false;
+        activePointers.delete(event.pointerId);
+        dragging = activePointers.size === 1;
+        pinchDistance = 0;
+        if (dragging) {
+          const remaining = [...activePointers.values()][0];
+          lastX = remaining.x;
+          lastY = remaining.y;
+        }
         try { renderer.domElement.releasePointerCapture(event.pointerId); } catch {}
       };
       const onWheel = (event: WheelEvent) => {
         event.preventDefault();
         cameraState.current.distance = Math.max(2, Math.min(2600, cameraState.current.distance + event.deltaY * Math.max(0.012, cameraState.current.distance * 0.0012)));
+        if (cameraModeRef.current === 'SYSTEM') systemZoomRatioRef.current = cameraState.current.distance / fitCameraDistance(container.clientWidth, container.clientHeight, moonDistance + moonRadius + 1);
+        if (cameraModeRef.current === 'PLANETS') {
+          const extent = selectedBodyRef.current === 'Overview' ? 55 : selectedBodyRef.current === 'Sun' ? 4 : 3;
+          planetZoomRatioRef.current = cameraState.current.distance / fitCameraDistance(container.clientWidth, container.clientHeight, extent, 42, 1.15);
+        }
       };
       renderer.domElement.addEventListener('pointerdown', onPointerDown);
       renderer.domElement.addEventListener('pointermove', onPointerMove);
       renderer.domElement.addEventListener('pointerup', onPointerUp);
+      renderer.domElement.addEventListener('pointercancel', onPointerUp);
       renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
 
       const updateOrbit = () => {
@@ -416,12 +520,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
             iss: [73, 20, 109, 2500]
           };
           const dims = dimensions[preset] || dimensions.design;
-          for (const child of satellite.root.children) {
-            const mesh = child as THREE.Mesh;
-            mesh.geometry?.dispose?.();
-            const material = mesh.material;
-            if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose?.();
-          }
+          disposeObjectResources(satellite.root);
           scene.remove(satellite.root);
           satellite = buildSatellite(...dims);
           scene.add(satellite.root);
@@ -429,7 +528,6 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         }
         satellite.root.position.copy(markerVector);
         satellite.root.quaternion.setFromRotationMatrix(basis);
-        satellite.root.rotation.y += 0.008;
         (satellite.beacon.material as THREE.MeshBasicMaterial).opacity = 0.5 + 0.5 * (0.5 + 0.5 * Math.sin(performance.now() * 0.008));
 
         const ground = radial.clone().multiplyScalar(earthRadius * 1.012);
@@ -460,29 +558,45 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         sun.position.set(sunVector.x * 30, sunVector.z * 30, sunVector.y * 30);
         rim.position.set(-sunVector.x * 14, -sunVector.z * 14, -sunVector.y * 14);
         spaceEnvironment.update(simSeconds);
-        spaceEnvironment.group.visible = showSpaceEnvironmentRef.current;
+        earthSunUniform.value.set(sunVector.x, sunVector.z, sunVector.y).normalize();
 
         const mode = cameraModeRef.current;
-        scene.fog = mode === 'SYSTEM' ? null : sceneFog;
+        axes.visible = showAxesRef.current && mode !== 'PLANETS';
+        earth.visible = mode !== 'PLANETS';
+        satellite.root.visible = mode !== 'PLANETS';
+        orbitGlow.visible = showOrbitRef.current && mode !== 'PLANETS';
+        orbitLine.visible = showOrbitRef.current && mode !== 'PLANETS';
+        grid.visible = showGridRef.current && mode !== 'PLANETS';
+        footprint.visible = showFootprintRef.current && mode !== 'PLANETS';
+        groundPoint.visible = mode !== 'PLANETS';
+        velocityArrow.visible = showVectorsRef.current && mode !== 'PLANETS';
+        nadirArrow.visible = showVectorsRef.current && mode !== 'PLANETS';
+        spaceEnvironment.group.visible = showSpaceEnvironmentRef.current && mode !== 'PLANETS';
+        spaceEnvironment.planetaryGroup.visible = showPlanetsRef.current && mode === 'PLANETS';
+        scene.fog = mode === 'SYSTEM' || mode === 'PLANETS' ? null : sceneFog;
         const s = cameraState.current;
         const origin = new THREE.Vector3();
         let target = origin;
         let distance = s.distance;
         if (mode === 'SATELLITE') {
           target = markerVector.clone();
-          distance = Math.min(s.distance, 6.5);
+          distance = s.distance;
         } else if (mode === 'MOON') {
           target = spaceEnvironment.moon.position.clone();
-          distance = Math.min(s.distance, 2.0);
+          distance = s.distance;
         } else if (mode === 'TRACK') {
           target = markerVector.clone().lerp(origin, 0.26);
-          distance = Math.min(s.distance, 12.5);
+          distance = s.distance;
         } else if (mode === 'SYSTEM') {
           target = origin;
           distance = s.distance;
+        } else if (mode === 'PLANETS') {
+          const body = spaceEnvironment.bodies.find(item => item.name === selectedBodyRef.current);
+          target = selectedBodyRef.current === 'Overview' || !body ? origin : body.root.position;
+          distance = s.distance;
         } else {
           target = origin;
-          distance = Math.max(s.distance, 12);
+          distance = s.distance;
         }
         const horizontal = Math.cos(s.pitch) * distance;
         camera.position.set(target.x + Math.sin(s.yaw) * horizontal, target.y + Math.sin(s.pitch) * distance, target.z + Math.cos(s.yaw) * horizontal);
@@ -507,6 +621,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         renderer.domElement.removeEventListener('pointerdown', onPointerDown);
         renderer.domElement.removeEventListener('pointermove', onPointerMove);
         renderer.domElement.removeEventListener('pointerup', onPointerUp);
+        renderer.domElement.removeEventListener('pointercancel', onPointerUp);
         renderer.domElement.removeEventListener('wheel', onWheel);
         if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
         orbitGeometry.dispose();
@@ -528,18 +643,14 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         (nadirArrow.cone.material as THREE.Material).dispose();
         axes.geometry.dispose();
         (axes.material as THREE.Material).dispose();
+        disposeObjectResources(earth);
+        disposeObjectResources(satellite.root);
         earthTexture.dispose();
         nightTexture.dispose();
         cloudTexture.dispose();
         spaceEnvironment.dispose();
         starGeometry.dispose();
         starMaterial.dispose();
-        for (const child of satellite.root.children) {
-          const mesh = child as THREE.Mesh;
-          mesh.geometry?.dispose?.();
-          const material = mesh.material;
-          if (Array.isArray(material)) material.forEach(item => item.dispose()); else material?.dispose?.();
-        }
         scene.clear();
         renderer.dispose();
       };
@@ -557,56 +668,67 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
     if (cameraMode === 'EARTH') cameraState.current.distance = 15;
     if (cameraMode === 'TRACK') cameraState.current.distance = Math.min(cameraState.current.distance, 12);
     if (cameraMode === 'SATELLITE') cameraState.current.distance = Math.min(cameraState.current.distance, 6.5);
-    if (cameraMode === 'MOON') cameraState.current.distance = 2.0;
+    if (cameraMode === 'MOON') cameraState.current.distance = 5.2;
     if (cameraMode === 'SYSTEM') {
       const width = Math.max(1, containerRef.current?.clientWidth || 1);
       const height = Math.max(1, containerRef.current?.clientHeight || 1);
-      const verticalFov = THREE.MathUtils.degToRad(42);
-      const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * (width / height));
-      const fitFov = Math.min(verticalFov, horizontalFov);
-      const earthRadius = 5.15;
-      const moonExtent = earthRadius * (384400 / 6378.137) + earthRadius * (1737.4 / 6378.137);
-      cameraState.current.distance = Math.min(2600, (moonExtent + 1) / Math.tan(fitFov / 2) * 1.08);
+      systemZoomRatioRef.current = 1;
+      cameraState.current.distance = Math.min(2600, fitCameraDistance(width, height, 5.15 * (384400 / 6378.137) + 5.15 * (1737.4 / 6378.137) + 1));
     }
-  }, [cameraMode]);
+    if (cameraMode === 'PLANETS') {
+      const width = Math.max(1, containerRef.current?.clientWidth || 1);
+      const height = Math.max(1, containerRef.current?.clientHeight || 1);
+      const extent = selectedBody === 'Overview' ? 55 : selectedBody === 'Sun' ? 4 : 3;
+      planetZoomRatioRef.current = 1;
+      cameraState.current.distance = Math.min(2600, fitCameraDistance(width, height, extent, 42, 1.15));
+    }
+  }, [cameraMode, selectedBody]);
 
   const dayNight = dayNightSnapshot(Number(current?.lla?.lat), Number(current?.lla?.lon), new Date(current?.time || Date.now()));
   const speed = Math.hypot(...(current?.v || [0, 0, 0]));
-  const maxBusDimensionM = Math.max(0.01, busWidthM, busHeightM, busDepthM);
-  const earthDiameterKm = 2 * 6378.137;
-  const trueEarthToBusRatio = (earthDiameterKm * 1000) / maxBusDimensionM;
-  const visualExaggeration = 1_000_000;
   return (
-    <div className="page">
-      <div className="page-header"><div><small>3D MISSION VIEW</small><h1>Earth 3D</h1><p>A local spacecraft-tracking globe with a detailed Earth surface, orbital path, vectors and mission HUD.</p><small>Scale disclosure: Earth diameter is approximately {Math.round(trueEarthToBusRatio).toLocaleString()} times the maximum bus dimension at true scale. Spacecraft geometry is enlarged by {visualExaggeration.toLocaleString()}× for visibility; dimensions are not shown to physical scale.</small></div></div>
+    <div className="page earth3d-page">
+      <h1 className="earth3d-visually-hidden">Earth 3D</h1>
       <article className="earth3d-workspace glass-panel">
         <div className="earth3d-canvas" ref={containerRef} aria-label="Interactive 3D Earth with trackable spacecraft" />
         <div className="earth3d-topbar">
           <div className="earth3d-object">
             <span className="earth3d-live-dot" />
-            <div><small>TRACKING OBJECT</small><b>{name || 'MySat-1'}</b></div>
+            <div><small>MISSION OBJECT / PROPAGATED STATE</small><b>{name || 'MySat-1'}</b></div>
             <span className="earth3d-badge">{propagator}</span>
-            <span className="earth3d-ist-clock">REAL TIME · {formatIstDateTime(wallTime)} IST</span>
+            <span className="earth3d-ist-clock">CLOCK · {formatIstDateTime(wallTime)} IST</span>
+            <span className="earth3d-data-source">{propagator === 'SGP4' ? 'SGP4 PROPAGATED · INPUT SOURCE NOT DECLARED' : 'SIMULATED · TWO-BODY KEPLER'}</span>
           </div>
           <div className="earth-camera-controls" aria-label="Camera modes">
-            {(['TRACK', 'EARTH', 'SATELLITE', 'MOON', 'SYSTEM'] as CameraMode[]).map(mode => <button key={mode} type="button" className={`earth-camera-button ${cameraMode === mode ? 'active' : ''}`} onClick={() => { if (mode === 'MOON') setShowSpaceEnvironment(true); setCameraMode(mode); }}>{mode}</button>)}
-            <button type="button" className="earth-camera-button" onClick={() => { cameraState.current = { yaw: 0.65, pitch: 0.26, distance: cameraMode === 'SATELLITE' ? 5.8 : cameraMode === 'EARTH' ? 15 : 11 }; }}>RESET</button>
+            {(['TRACK', 'EARTH', 'SATELLITE', 'MOON', 'SYSTEM', 'PLANETS'] as CameraMode[]).map(mode => <button key={mode} type="button" className={`earth-camera-button ${cameraMode === mode ? 'active' : ''}`} onClick={() => { if (mode === 'MOON') { setShowSpaceEnvironment(true); setSelectedBody('Moon'); } if (mode === 'SYSTEM') { setShowSpaceEnvironment(true); setSelectedBody('Overview'); } if (mode === 'PLANETS') { setShowPlanets(true); setSelectedBody('Overview'); } if (mode === 'EARTH') setSelectedBody('Earth'); setCameraMode(mode); }}>{mode}</button>)}
+            <button type="button" className="earth-camera-button" onClick={() => { const width = Math.max(1, containerRef.current?.clientWidth || 1); const height = Math.max(1, containerRef.current?.clientHeight || 1); systemZoomRatioRef.current = 1; planetZoomRatioRef.current = 1; cameraState.current = { yaw: 0.65, pitch: 0.26, distance: cameraMode === 'SATELLITE' ? 5.8 : cameraMode === 'EARTH' ? 15 : cameraMode === 'MOON' ? 2 : cameraMode === 'SYSTEM' ? fitCameraDistance(width, height, 5.15 * (384400 / 6378.137) + 5.15 * (1737.4 / 6378.137) + 1) : cameraMode === 'PLANETS' ? fitCameraDistance(width, height, selectedBody === 'Overview' ? 55 : selectedBody === 'Sun' ? 4 : 3, 42, 1.15) : 11 }; }}>RESET</button>
           </div>
         </div>
         <div className="earth3d-left-hud">
-          <div className="earth3d-hud-card"><small>POSITION / WGS84</small><b>{Number(current?.lla?.lat || 0).toFixed(3)}°</b><b>{Number(current?.lla?.lon || 0).toFixed(3)}°</b><span>ALT {Number(current?.lla?.alt || 0).toFixed(1)} km</span></div>
-          <div className="earth3d-hud-card"><small>FLIGHT STATE</small><span>t+ {Number(seconds || 0).toFixed(1)} s</span><span>V {speed.toFixed(3)} km/s</span><span>{dayNight.isDay ? 'DAY SIDE' : 'NIGHT SIDE'} · {dayNight.localSolar}</span></div>
+          <div className="earth3d-hud-card"><small>MISSION SETUP · VEHICLE / CREW</small><b>{name || 'Mission spacecraft'}</b><label className="earth3d-select-label">VEHICLE MODEL<select aria-label="Choose spacecraft model" value={selectedSatellite} onChange={e => setSelectedSatellite(e.target.value)}><option value="design">Current mission design</option><option value="cubesat1u">CubeSat 1U · 10 cm</option><option value="cubesat3u">CubeSat 3U · 34 cm</option><option value="cubesat6u">CubeSat 6U</option><option value="microsat">Microsatellite · reference</option><option value="iss">ISS · reference silhouette</option></select></label><span>CREW STATUS · UNCREWED / NO CREW DATA</span><span>PROPAGATOR · {propagator}</span></div>
           <div className="earth3d-hud-card"><small>PHYSICAL SCALE · REFERENCE VALUES</small><span>EARTH RADIUS 6,378.137 km (WGS-84 equatorial)</span><span>MOON RADIUS 1,737.4 km · 0.2727 R⊕</span><span>EARTH–MOON CENTRES 384,400 km · 60.3 R⊕ mean</span><span>SUN RADIUS 695,700 km · 109.2 R⊕</span><span>SUN DISTANCE 149.6 million km · 1 AU mean</span><span>SPACECRAFT SIZE IS EXAGGERATED FOR VISIBILITY</span><span>ORBIT {inclinationDeg.toFixed(2)}° inc · e {eccentricity.toFixed(4)}</span></div>
-          <div className="earth3d-hud-card"><small>ORBITAL ELEMENTS</small><span>RAAN {raanDeg.toFixed(2)}°</span><span>ARG PERIAPSIS {argumentOfPerigeeDeg.toFixed(2)}°</span><span>TRUE ANOMALY {trueAnomalyDeg.toFixed(2)}°</span><span>PERIOD {periodMin.toFixed(2)} min</span><span>RANGE FROM EARTH CENTRE {(6378.137 + Number(current?.lla?.alt ?? altitudeKm)).toFixed(2)} km</span></div>
         </div>
         <div className="earth3d-right-hud">
-          <div className="earth3d-hud-card"><small>VISUAL LAYERS</small><label><input type="checkbox" checked={showFootprint} onChange={e => setShowFootprint(e.target.checked)} /> <span>Ground footprint</span></label><label><input type="checkbox" checked={showVectors} onChange={e => setShowVectors(e.target.checked)} /> <span>Velocity / nadir vectors</span></label><label><input type="checkbox" checked={showAxes} onChange={e => setShowAxes(e.target.checked)} /> <span>ECI axes</span></label></div>
-          <div className="earth3d-hud-card"><small>EARTH–MOON SYSTEM</small><label><input type="checkbox" checked={showSpaceEnvironment} onChange={e => setShowSpaceEnvironment(e.target.checked)} /> <span>Show Moon and lunar orbit</span></label><div className="earth3d-planet-select"><span>SPACECRAFT MODEL</span><select aria-label="Choose spacecraft model" value={selectedSatellite} onChange={e => setSelectedSatellite(e.target.value)}><option value="design">Current mission design</option><option value="cubesat1u">CubeSat 1U · 10 cm</option><option value="cubesat3u">CubeSat 3U · 34 cm</option><option value="cubesat6u">CubeSat 6U</option><option value="microsat">Microsatellite · reference</option><option value="iss">ISS · reference silhouette</option></select></div><span>Model choice changes the 3D silhouette only; orbit and telemetry remain the selected mission state.</span></div>
-          <div className="earth3d-hud-card"><small>SOLAR GEOMETRY</small><span>SUBSOLAR {dayNight.subsolarLat.toFixed(1)}°, {dayNight.subsolarLon.toFixed(1)}°</span><span>{dayNight.timeZone}</span></div>
+          <div className="earth3d-hud-card"><small>LIVE TELEMETRY · WGS84</small><b>{Number(current?.lla?.lat || 0).toFixed(3)}° LAT</b><b>{Number(current?.lla?.lon || 0).toFixed(3)}° LON</b><span>ALT {Number(current?.lla?.alt || 0).toFixed(1)} km</span><span>MISSION TIME · T+ {Number(seconds || 0).toFixed(1)} s</span><span>SPEED · {speed.toFixed(3)} km/s</span><span>{dayNight.isDay ? 'DAY SIDE' : 'NIGHT SIDE'} · {dayNight.localSolar}</span></div>
+          <div className="earth3d-hud-card"><small>ORBITAL OPERATIONS LAYERS</small><label><input type="checkbox" checked={showOrbit} onChange={e => setShowOrbit(e.target.checked)} /> <span>Spacecraft orbit path</span></label><label><input type="checkbox" checked={showFootprint} onChange={e => setShowFootprint(e.target.checked)} /> <span>Ground footprint</span></label><label><input type="checkbox" checked={showVectors} onChange={e => setShowVectors(e.target.checked)} /> <span>Velocity / nadir vectors</span></label><label><input type="checkbox" checked={showAxes} onChange={e => setShowAxes(e.target.checked)} /> <span>ECI axes</span></label><label><input type="checkbox" checked={showGrid} onChange={e => setShowGrid(e.target.checked)} /> <span>Earth grid / coordinate frame</span></label></div>
+          <div className="earth3d-hud-card"><small>EARTH–MOON / PLANETARY SYSTEM</small><label><input type="checkbox" checked={showSpaceEnvironment} onChange={e => setShowSpaceEnvironment(e.target.checked)} /> <span>Show Moon and lunar orbit</span></label><label><input type="checkbox" checked={showPlanets} onChange={e => { setShowPlanets(e.target.checked); if (e.target.checked) setCameraMode('PLANETS'); else if (cameraMode === 'PLANETS') setCameraMode('EARTH'); }} /> <span>Enable schematic solar system</span></label><label className="earth3d-select-label">CAMERA TARGET<select aria-label="Choose camera target" value={selectedBody} onChange={e => { const body = e.target.value; setSelectedBody(body); if (body === 'Moon') { setShowSpaceEnvironment(true); setCameraMode('MOON'); } else { setShowPlanets(true); setCameraMode('PLANETS'); } }}><option value="Overview">Solar system overview</option><option value="Sun">Sun</option><option value="Mercury">Mercury</option><option value="Venus">Venus</option><option value="Earth">Earth · schematic</option><option value="Moon">Moon · Earth–Moon scale</option><option value="Mars">Mars</option><option value="Jupiter">Jupiter</option><option value="Saturn">Saturn + rings</option><option value="Uranus">Uranus</option><option value="Neptune">Neptune</option></select></label><span>Planetary view is a labelled schematic, not ephemeris or physical scale. Earth–Moon view retains the mean centre-separation ratio.</span></div>
+          <div className="earth3d-hud-card"><small>SOLAR GEOMETRY / COMMS</small><span>SUBSOLAR {dayNight.subsolarLat.toFixed(1)}°, {dayNight.subsolarLon.toFixed(1)}°</span><span>{dayNight.timeZone}</span><span>LINK STATE · NOT MODELLED</span><span>RF TELEMETRY · NOT CONNECTED</span></div>
+          <div className="earth3d-hud-card"><small>ORBITAL FACTS</small><span>RAAN {raanDeg.toFixed(2)}°</span><span>ARG PERIAPSIS {argumentOfPerigeeDeg.toFixed(2)}°</span><span>TRUE ANOMALY {trueAnomalyDeg.toFixed(2)}°</span><span>PERIOD {periodMin.toFixed(2)} min</span><span>RANGE FROM EARTH CENTRE {(6378.137 + Number(current?.lla?.alt ?? altitudeKm)).toFixed(2)} km</span></div>
         </div>
         <div className="earth3d-bottom-bar">
           <span><i className="legend-spacecraft" /> SPACECRAFT</span><span><i className="legend-orbit" /> ORBIT</span><span><i className="legend-footprint" /> FOOTPRINT · FOV GEOMETRY</span><span><i className="legend-vector" /> VECTORS</span>
-          <span className="earth3d-help">DRAG TO ORBIT · WHEEL TO ZOOM · SYSTEM FRAMES EARTH + MOON · TRACK FOLLOWS SATELLITE</span>
+          <span className="earth3d-help">DRAG TO ORBIT · WHEEL / PINCH TO ZOOM · SYSTEM FRAMES EARTH + MOON · PLANETS IS SCHEMATIC</span>
+        </div>
+        <div className="earth3d-timeline" aria-label="Mission timeline and playback controls">
+          <div className="earth3d-timeline-heading"><span>MISSION TIMELINE / SCENE GALLERY</span><b>T+ {Number(seconds || 0).toFixed(1)} s</b></div>
+          <div className="earth3d-scene-gallery" aria-label="Scene gallery">
+            <button type="button" className="earth3d-gallery-item" onClick={() => { setSelectedBody('Earth'); setCameraMode('EARTH'); }}><span className="earth3d-gallery-thumb" data-scene="earth" /><b>EARTH</b></button>
+            <button type="button" className="earth3d-gallery-item" onClick={() => { setShowSpaceEnvironment(true); setSelectedBody('Moon'); setCameraMode('MOON'); }}><span className="earth3d-gallery-thumb" data-scene="moon" /><b>MOON</b></button>
+            <button type="button" className="earth3d-gallery-item" onClick={() => { setShowSpaceEnvironment(true); setCameraMode('SYSTEM'); }}><span className="earth3d-gallery-thumb" data-scene="earth-moon" /><b>EARTH + MOON</b></button>
+            <button type="button" className="earth3d-gallery-item" onClick={() => { setShowPlanets(true); setSelectedBody('Overview'); setCameraMode('PLANETS'); }}><span className="earth3d-gallery-thumb" data-scene="planets" /><b>SOLAR SYSTEM</b></button>
+          </div>
+          <input aria-label="Simulation timeline" type="range" min={0} max={Math.max(1, duration)} step={0.1} value={Math.max(0, Math.min(duration, seconds))} onChange={event => setSeconds(Number(event.target.value))} />
+          <div className="earth3d-timeline-actions"><button type="button" onClick={() => setRunning(!running)}>{running ? 'PAUSE' : 'PLAY'}</button><button type="button" onClick={() => { setSeconds(0); setRunning(false); }}>RESET TIME</button><label>SPEED<select aria-label="Playback speed" value={playback} onChange={event => setPlayback(Number(event.target.value))}><option value={0.25}>0.25×</option><option value={0.5}>0.5×</option><option value={1}>1×</option><option value={2}>2×</option><option value={5}>5×</option><option value={10}>10×</option></select></label><span>PERIOD {periodMin.toFixed(1)} min</span><span>SUBSOLAR {dayNight.subsolarLon.toFixed(1)}°</span><span>GROUND TRACK · AVAILABLE IN SIMULATION VIEW</span></div>
         </div>
         {errorState && (
           <div className="earth-error" role="alert">
