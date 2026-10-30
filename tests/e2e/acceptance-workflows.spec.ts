@@ -85,6 +85,14 @@ test('mobile tracking supports catalogue groups, name filtering and pass CSV exp
   await page.getByRole('button', { name: 'Predict next 24 hours' }).click();
   await expect(page.locator('.sat-track-pass-card .sat-track-count')).not.toHaveText('0 passes · 24 h', { timeout: 15000 });
 
+  await expect(page.getByRole('img', { name: '24-hour timeline of predicted satellite passes' })).toBeVisible();
+  await expect(page.locator('.sat-track-world-current')).toBeVisible();
+  await expect(page.locator('.sat-track-world-station')).toBeVisible();
+  const firstTimelinePass = page.getByRole('button', { name: 'Select pass 1' });
+  await expect(firstTimelinePass).toBeVisible();
+  await firstTimelinePass.click();
+  await expect(firstTimelinePass).toHaveClass(/selected/);
+
   await expect(page.getByRole('img', { name: 'Polar sky plot with north at the top and elevation rings' })).toBeVisible();
   await expect(page.locator('.sat-track-sky-path')).toBeVisible();
 
