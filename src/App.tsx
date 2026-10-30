@@ -430,7 +430,7 @@ function SimulationView({ model, current, seconds, duration, running, setRunning
       <button onClick={() => setSeconds(Math.max(0, seconds - 10))}>−10s</button>
       <input aria-label="Simulation timeline" type="range" min="0" max={duration} step="1" value={seconds} onChange={e => setSeconds(Number(e.target.value))} />
       <button onClick={() => setSeconds(Math.min(duration, seconds + 10))}>+10s</button>
-      <select value={playback} onChange={e => setPlayback(Number(e.target.value))}><option value="1">1×</option><option value="10">10×</option><option value="20">20×</option><option value="60">60×</option><option value="120">120×</option></select>
+      <select aria-label="Simulation playback speed" value={playback} onChange={e => setPlayback(Number(e.target.value))}><option value="1">1×</option><option value="10">10×</option><option value="20">20×</option><option value="60">60×</option><option value="120">120×</option></select>
       <span>{(duration/60).toFixed(1)} min scenario</span>
     </div>
     <GroundTrackMap model={model} current={current} />

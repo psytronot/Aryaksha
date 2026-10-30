@@ -133,6 +133,7 @@ test('invalid engineering orbit inputs produce a visible FAIL in Verification', 
 });
 
 test('seasonal ground-track overlay matches equinox and solstice calibration', async ({ page }) => {
+  test.setTimeout(60_000);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();

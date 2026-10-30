@@ -94,3 +94,46 @@ test('live deployed UI loads the lazy simulation, tracking and calculator worksp
   await expect.poll(() => loadedAssets.some(url => /ScientificCalculator-[^/]+\.js/.test(url))).toBe(true);
   expect(pageErrors).toEqual([]);
 });
+
+
+test('CSP report-only audit records no blocked resources across key workspaces', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
+  await page.addInitScript(() => {
+    const target = window as Window & { __cspViolations?: string[] };
+    target.__cspViolations = [];
+    window.addEventListener('securitypolicyviolation', event => {
+      target.__cspViolations?.push(`${event.violatedDirective}: ${event.blockedURI}`);
+    });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Mission Analysis', exact: true }).click({ force: true });
+  await expect(page.getByRole('heading', { name: 'Orbital Mission Analysis' })).toBeVisible();
+  await page.waitForTimeout(500);
+  const violations = await page.evaluate(() => (window as Window & { __cspViolations?: string[] }).__cspViolations ?? []);
+  expect(violations).toEqual([]);
+});
+
+test('Earth 3D visible controls expose accessible names and labelled inputs', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
+
+  const audit = await page.evaluate(() => {
+    const visible = (element: Element) => {
+      const style = window.getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return style.visibility !== 'hidden' && style.display !== 'none' && rect.width > 0 && rect.height > 0;
+    };
+    const unnamedButtons = [...document.querySelectorAll('button')].filter(button =>
+      visible(button) && !(button.getAttribute('aria-label') || button.getAttribute('title') || button.textContent?.trim())
+    ).map(button => button.outerHTML.slice(0, 160));
+    const unlabeledInputs = [...document.querySelectorAll('input:not([type="hidden"]), select, textarea')].filter(input =>
+      visible(input) && !(input.getAttribute('aria-label') || input.getAttribute('aria-labelledby') || (input as HTMLInputElement).labels?.length)
+    ).map(input => input.outerHTML.slice(0, 160));
+    const imagesWithoutAlt = [...document.querySelectorAll('img')].filter(image => visible(image) && !image.hasAttribute('alt')).map(image => image.src);
+    return { unnamedButtons, unlabeledInputs, imagesWithoutAlt };
+  });
+  expect(audit).toEqual({ unnamedButtons: [], unlabeledInputs: [], imagesWithoutAlt: [] });
+});
