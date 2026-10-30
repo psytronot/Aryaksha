@@ -76,70 +76,110 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
 });
 
 
-test('Earth 3D preserves SYSTEM framing, supports pinch, and refits Moon on viewport changes', async ({ page }) => {
-  await page.setViewportSize({ width: 1536, height: 1024 });
+test('Earth 3D preserves SYSTEM framing, responds to two-pointer touch pinch, and refits after orientation changes', async ({ browser }) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 1,
+    isMobile: true,
+    hasTouch: true
+  });
+  const page = await context.newPage();
+  try {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Open navigation' }).click();
+    await page.getByRole('navigation', { name: 'Mobile navigation' })
+      .getByRole('button', { name: 'Simulation', exact: true }).click();
+
+    const container = page.locator('.earth3d-canvas');
+    const canvas = page.locator('.earth3d-canvas canvas');
+    const cameraModes = page.locator('.earth-camera-controls');
+    const readDistance = async () => Number(await container.getAttribute('data-camera-distance'));
+    await expect(canvas).toBeVisible();
+
+    await cameraModes.getByRole('button', { name: 'SYSTEM', exact: true }).click();
+    await expect.poll(readDistance).toBeGreaterThan(500);
+    const portraitSystemFit = await readDistance();
+
+    const bounds = await canvas.boundingBox();
+    if (!bounds) throw new Error('Earth 3D canvas has no touchable viewport bounds.');
+    const centerX = bounds.x + bounds.width / 2;
+    const centerY = bounds.y + bounds.height / 2;
+    const session = await context.newCDPSession(page);
+    try {
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [
+          { x: centerX - 35, y: centerY, id: 1 },
+          { x: centerX + 35, y: centerY, id: 2 }
+        ]
+      });
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [
+          { x: centerX - 65, y: centerY, id: 1 },
+          { x: centerX + 65, y: centerY, id: 2 }
+        ]
+      });
+      await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    } finally {
+      await session.detach();
+    }
+
+    await expect.poll(readDistance).toBeLessThan(portraitSystemFit - 1);
+    const pinchedSystemDistance = await readDistance();
+    await page.getByRole('button', { name: 'Reset camera framing' }).click();
+    await expect.poll(readDistance).toBeGreaterThan(pinchedSystemDistance + 1);
+    const resetPortraitSystem = await readDistance();
+    expect(Math.abs(resetPortraitSystem - portraitSystemFit)).toBeLessThan(1);
+
+    await page.setViewportSize({ width: 844, height: 390 });
+    await expect.poll(readDistance).toBeLessThan(resetPortraitSystem);
+    const landscapeSystemFit = await readDistance();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect.poll(readDistance).toBeGreaterThan(landscapeSystemFit);
+
+    await cameraModes.getByRole('button', { name: 'MOON', exact: true }).click();
+    await expect.poll(readDistance).toBeGreaterThan(6);
+    const portraitMoonFit = await readDistance();
+    await page.setViewportSize({ width: 844, height: 390 });
+    await expect.poll(readDistance).toBeLessThan(portraitMoonFit);
+    await page.getByRole('button', { name: 'Reset camera framing' }).click();
+    const resetLandscapeMoon = await readDistance();
+    expect(resetLandscapeMoon).toBeGreaterThan(2.5);
+    expect(resetLandscapeMoon).toBeLessThan(portraitMoonFit);
+  } finally {
+    await context.close();
+  }
+});
+
+test('Earth 3D releases its WebGL context on unmount and remounts cleanly', async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/');
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
 
-  const container = page.locator('.earth3d-canvas');
   const canvas = page.locator('.earth3d-canvas canvas');
-  const cameraModes = page.locator('.earth-camera-controls');
-  const readDistance = async () => Number(await container.getAttribute('data-camera-distance'));
   await expect(canvas).toBeVisible();
-
-  await cameraModes.getByRole('button', { name: 'SYSTEM', exact: true }).click();
-  await expect.poll(readDistance).toBeGreaterThan(500);
-  const systemFit = await readDistance();
-
-  await canvas.evaluate((element) => {
-    const dispatch = (type: string, pointerId: number, clientX: number, clientY: number) => {
-      element.dispatchEvent(new PointerEvent(type, {
-        bubbles: true, cancelable: true, pointerId, pointerType: 'touch', clientX, clientY
-      }));
-    };
-    dispatch('pointerdown', 11, 100, 100);
-    dispatch('pointerdown', 12, 200, 100);
-    dispatch('pointermove', 12, 250, 100);
-    dispatch('pointerup', 12, 250, 100);
-    dispatch('pointerup', 11, 100, 100);
+  await canvas.evaluate(element => {
+    const htmlCanvas = element as HTMLCanvasElement;
+    const context = htmlCanvas.getContext('webgl2') ?? htmlCanvas.getContext('webgl');
+    if (!context) throw new Error('WebGL context is unavailable for lifecycle verification.');
+    (window as any).__earth3dUnmountContext = context;
   });
-  await expect.poll(readDistance).toBeLessThan(systemFit - 1);
 
-  await page.getByRole('button', { name: 'Reset camera framing' }).click();
-  const resetSystem = await readDistance();
-  expect(Math.abs(resetSystem - systemFit)).toBeLessThan(1);
+  await page.locator('.mission-top-nav')
+    .getByRole('button', { name: 'Mission', exact: true }).click();
+  await expect(canvas).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => Boolean((window as any).__earth3dUnmountContext?.isContextLost())), { timeout: 10000 }).toBe(true);
 
-  await page.setViewportSize({ width: 390, height: 844 });
-  await expect.poll(readDistance).toBeGreaterThan(resetSystem * 1.5);
-  const portraitSystem = await readDistance();
-
-  await page.setViewportSize({ width: 844, height: 390 });
-  await expect.poll(readDistance).toBeLessThan(portraitSystem);
-  await page.setViewportSize({ width: 1536, height: 1024 });
-  await expect.poll(readDistance).toBeGreaterThan(resetSystem * 0.98);
-  await expect.poll(readDistance).toBeLessThan(resetSystem * 1.02);
-
-  await cameraModes.getByRole('button', { name: 'MOON', exact: true }).click();
-  await expect.poll(readDistance).toBeGreaterThan(6);
-  const desktopMoon = await readDistance();
-  await page.evaluate(() => {
-    const element = document.querySelector('.earth3d-workspace');
-    if (element) window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 64);
-  });
-  await page.screenshot({ path: 'artifacts/earth3d-moon-desktop-fit.png' });
-
-  await page.setViewportSize({ width: 390, height: 844 });
-  await expect.poll(readDistance).toBeGreaterThan(desktopMoon * 1.5);
-  const portraitMoon = await readDistance();
-  await page.setViewportSize({ width: 844, height: 390 });
-  await expect.poll(readDistance).toBeLessThan(portraitMoon);
-  await page.getByRole('button', { name: 'Reset camera framing' }).click();
-  const resetMoon = await readDistance();
-  expect(resetMoon).toBeGreaterThan(2.5);
-  expect(resetMoon).toBeLessThan(portraitMoon);
-
-  await page.getByRole('button', { name: 'Mission', exact: true }).click();
-  await expect(page.locator('.earth3d-canvas canvas')).toHaveCount(0);
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
-  await expect(page.locator('.earth3d-canvas canvas')).toBeVisible();
+  await expect(canvas).toBeVisible();
+  await canvas.evaluate(element => {
+    const htmlCanvas = element as HTMLCanvasElement;
+    const context = htmlCanvas.getContext('webgl2') ?? htmlCanvas.getContext('webgl');
+    if (!context) throw new Error('WebGL context did not reinitialize after remount.');
+    (window as any).__earth3dRemountContext = context;
+  });
+  await expect.poll(() => page.evaluate(() => Boolean((window as any).__earth3dRemountContext && !(window as any).__earth3dRemountContext.isContextLost())), { timeout: 10000 }).toBe(true);
+  expect(pageErrors).toEqual([]);
 });
