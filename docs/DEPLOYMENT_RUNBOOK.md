@@ -1,6 +1,6 @@
 # Deployment and rollback runbook
 
-**Status:** Live release checks passed for main commit `dff880ff026cf0489e9b1f1877ddc2e7a861d8c8`; rollback drill not yet executed.
+**Status:** Main commit `4ba079e27801d5e78377e3328a6e7b9074139612` passed source CI and live checks. Render web deployment `dep-dbi7p24s728c73cj84gg` for that commit is live. Its build succeeded with Node 22.12.0; the dashboard build command is still `npm install && npm run build`, not `npm ci`. The live smoke workflow completed before this deployment, so post-deploy API/UI smoke on this exact deployment remains a follow-up. Rollback drill not yet executed.
 **Canonical source:** GitHub repository psytronot/Aryaksha, branch main.
 
 ## Production topology
@@ -30,11 +30,21 @@ The web service must have OREKIT_SERVICE_URL set to the Orekit service base URL.
 
 ## Current verification baseline
 
-- Latest web deployment: `dep-dbhpi44s728c73d9ujt0`, commit `dff880ff026cf0489e9b1f1877ddc2e7a861d8c8`, status live. It includes the Orekit-only mission-analysis proxy, explicit propagation-time input, state-vector rendering, report-only CSP/security headers, and vendor chunk splitting.
-- Latest Orekit deployment: `dep-dbho8le1egvs7383488g`, commit `aec4dc2df286bbd5fc6ac4d294eee3bc11de5a60`, status live. It runs Orekit 13.1.9 numerical two-body propagation with Dormand–Prince 8(5,3), Newtonian central gravity only, and stable JSON errors for malformed/null requests. No Orekit service code changed in Phase C.
-- Main CI run `40936849936` passed web typecheck/unit/build, Orekit Maven tests, local Playwright, live API/Orekit integration, 600-second epoch advancement, live response/error schema checks, Earth-intersection guardrail, and live deployed UI Playwright smoke. CodeQL run `40936850260` and AppDeploy scenario-contract workflow `40936849799` also passed.
-- Previous known-good web deployment before the CSP header: dep-dbhnhrlg1s2s73ahgn5g, commit 15928bc5a5dfa5f5e2a1ff01c2c8ca6f878b2a4b, status deactivated but retained in deployment history.
-- Previous known-good Orekit deployment before the error-envelope handler: dep-dbhn311srm7s7388tu00, commit a1adf54f9bdc5b09e9ebc2f5f3e9d857a4d75f71, status deactivated. It uses the same response model and is the compatible rollback target for the current web/API contract.
+- Canonical source: `psytronot/Aryaksha`, branch `main`, commit `4ba079e27801d5e78377e3328a6e7b9074139612` (Node/npm toolchain metadata follow-up).
+- Latest web deployment: `dep-dbi7p24s728c73cj84gg`, commit `4ba079e27801d5e78377e3328a6e7b9074139612`, status live. Render logs confirm Node.js `22.12.0` via `.nvmrc`, `npm install && npm run build`, `npm audit` reported 0 vulnerabilities, Vite production build succeeded, `npm start` started the API, and Render reported the service live.
+- Latest Orekit deployment: `dep-dbhok7qfngtc73c6tlp0`, commit `d29e517a7e10775814f284b622b5cdda9286b446`, status live. Service is Orekit 13.1.9 numerical two-body propagation with Dormand–Prince 8(5,3) and Newtonian central gravity only. J2, drag, solar radiation pressure and third-body forces are not configured.
+- Main CI run [41046383907](https://github.com/psytronot/Aryaksha/actions/runs/41046383907) completed successfully on `4ba079e`: `npm ci`, typecheck, 37 Vitest tests, production build, Playwright browser smoke, Orekit Maven tests, live Orekit integration and live deployed UI smoke all passed. Dependency audit reported zero vulnerabilities for all and production dependencies. CodeQL run [41046383756](https://github.com/psytronot/Aryaksha/actions/runs/41046383756) and AppDeploy scenario-definition validation [41046383894](https://github.com/psytronot/Aryaksha/actions/runs/41046383894) passed.
+- **Evidence timing:** The main live Orekit/UI checks completed before the web deployment `dep-dbi7p24s728c73cj84gg` was promoted. The new web deployment contains no application runtime changes; nevertheless, a fresh post-deploy live API/UI smoke has not been run against this exact deployment. Render logs verify build and process startup, not every endpoint contract.
+- Known-good web/Orekit pair immediately before the latest web deploy: web `dep-dbi43odg1s2s73duij2g` (commit `6d8c6490aea794036ae45b85e2ae2dc15f08224a`) and Orekit `dep-dbhok7qfngtc73c6tlp0` (commit `d29e517a7e10775814f284b622b5cdda9286b446`). The previous web deployment remains in Render history and is the conservative web rollback target; keep Orekit at its known-good live version unless a contract-level incident requires a paired rollback.
+- AppDeploy remains a separate deployment path: `orbital-lab-lq22ug`. GitHub/Render changes do not automatically update it; no AppDeploy deployment was triggered.
+
+## Release-gate status and known external actions
+
+- Render web service ID: `srv-dbhm5nks728c73d2f73g`; current Build Command remains `npm install && npm run build`, while CI uses `npm ci`. Node is pinned to `22.12.0` by `.nvmrc`, and Render confirmed it used that version. Update the dashboard Build Command to `npm ci && npm run build` and verify a subsequent deployment before marking install-command parity PASS. The connected Render interface exposes inspection/deploy/logs but not build-command mutation.
+- GitHub rulesets query returned an empty list; direct branch-protection read was denied to the connected integration (HTTP 403). Required-check branch protection has not been established or verified. Repository owner/admin UI access is required to configure it.
+- Rollback runbook exists but a rollback drill has not been executed. Do not rehearse against production; first provide an approved staging/non-production target or schedule an explicit maintenance-window exercise.
+- A separate stacked accessibility PR [#74](https://github.com/psytronot/Aryaksha/pull/74) is not merge-ready: axe reported serious color-contrast violations in Home, Simulation/Earth 3D, Satellite Tracking and Mission Analysis, plus one serious prohibited-ARIA-attribute violation in Simulation/Earth 3D. Keep the audit threshold; resolve these defects before merging that stack.
+- Physical-device WebGL frame time, memory, resize/context-loss, thermal and touch validation remain open. GitHub Actions Chromium results are not physical-device evidence.
 
 ## Rollback procedure
 
@@ -54,7 +64,7 @@ A rollback drill has not been performed. Treat this section as a runbook, not pr
 - The in-memory rate limiter is per process, resets on restart and is not a distributed quota.
 - Authentication/account authorization is not implemented.
 - A `Content-Security-Policy-Report-Only` policy now covers local assets and the audited CelesTrak connection. It is diagnostic only and reports violations to browser developer tools; there is no report collection endpoint. Review representative browser sessions before switching to enforcement.
-- The Render web service configuration currently reports build command npm install && npm run build, while CI uses npm ci. Update the Render dashboard build command to npm ci && npm run build when the service settings are available; until then, production install reproducibility is not fully aligned.
+- The Render web service is pinned to Node.js 22.12.0 through `.nvmrc`, but its dashboard build command remains `npm install && npm run build` while CI uses `npm ci`. Production install-command parity remains PARTIAL until the dashboard is updated and verified.
 - Render metrics in the sampled 11-minute window showed roughly 51 MB web memory and 129 MB Orekit memory at the last sample, but HTTP request-count and latency series were empty. This is not a performance benchmark and does not establish latency, FPS or load budgets.
 - The deployed Vite build now splits the former 989.94 kB JavaScript chunk: largest emitted chunk is `vendor-three` at 483.88 kB (120.82 kB gzip); `vendor-react` is 223.19 kB, and the application entry is 183.28 kB. CI and Render build logs showed no >500 kB chunk warning. Representative-device/WebGL frame-rate, memory, resize/context-loss, and accessibility testing remains open.
 - Free-tier cold starts can exceed one minute. The 90-second proxy timeout reduces false failures but does not eliminate first-request latency.
