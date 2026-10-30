@@ -46,9 +46,9 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
   await expect(grid).toBeChecked();
   const lunarLayer = page.getByRole('checkbox', { name: 'Show Moon and lunar orbit' });
   await expect(lunarLayer).toBeChecked();
-  await lunarLayer.uncheck();
+  await lunarLayer.uncheck({ force: true });
   await expect(lunarLayer).not.toBeChecked();
-  await lunarLayer.check();
+  await lunarLayer.check({ force: true });
   await expect(lunarLayer).toBeChecked();
 
   const timeline = page.getByRole('slider', { name: 'Simulation timeline' });
