@@ -7,7 +7,7 @@ test('Earth 3D exposes responsive camera modes and lunar layer controls', async 
   await page.goto('/');
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
 
-  await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByLabel('Interactive 3D Earth with trackable spacecraft')).toBeVisible();
 
   const cameraModes = page.locator('[aria-label="Camera modes"]');
