@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   PLANETARY_BODY_SPECS,
   fitCameraDistance,
+  MOON_CAMERA_MARGIN,
   moonSynchronousYaw,
   nightLightFactor,
   planetaryPositionAt
@@ -55,9 +56,15 @@ describe('Earth 3D mission-control math', () => {
 describe('Moon camera framing', () => {
   it('fits the lunar disc on desktop and portrait viewports', () => {
     const moonRadius = 5.15 * (1737.4 / 6378.137);
-    const desktop = fitCameraDistance(1536, 1024, moonRadius, 42, 1.15);
-    const portrait = fitCameraDistance(390, 844, moonRadius, 42, 1.15);
-    expect(desktop).toBeGreaterThan(moonRadius * 2);
+    const desktop = fitCameraDistance(1536, 1024, moonRadius, 42, MOON_CAMERA_MARGIN);
+    const portrait = fitCameraDistance(390, 844, moonRadius, 42, MOON_CAMERA_MARGIN);
+    const desktopFov = 42 * Math.PI / 180;
+    const portraitFov = 2 * Math.atan(Math.tan(desktopFov / 2) * (390 / 844));
+    const desktopAngularDiameter = 2 * Math.asin(moonRadius / desktop);
+    const portraitAngularDiameter = 2 * Math.asin(moonRadius / portrait);
+    expect(desktop).toBeGreaterThan(6);
     expect(portrait).toBeGreaterThan(desktop);
+    expect(desktopAngularDiameter / desktopFov).toBeLessThanOrEqual(0.6);
+    expect(portraitAngularDiameter / portraitFov).toBeLessThanOrEqual(0.6);
   });
 });
