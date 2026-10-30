@@ -31,7 +31,7 @@ jobs:
           grep -qi '^x-frame-options: DENY' "$headers"
           grep -qi '^referrer-policy: strict-origin-when-cross-origin' "$headers"
           grep -qi "^content-security-policy-report-only:.*default-src 'self'" "$headers"
-          node -e 'const p=require(process.argv[1]); if (!p || typeof p !== "object") process.exit(1);' "$body"
+          node -e 'const fs=require("node:fs"); const p=JSON.parse(fs.readFileSync(process.argv[1], "utf8")); if (!p || typeof p !== "object" || Array.isArray(p)) process.exit(1);' "$body"
           cat "$body"
       - name: Check Orekit health and engine version
         shell: bash
@@ -40,7 +40,7 @@ jobs:
           body="$(mktemp)"
           status="$(curl --silent --show-error --max-time 75 -o "$body" -w '%{http_code}' https://aryaksha-orekit.onrender.com/api/v1/health)"
           test "$status" = "200"
-          node -e 'const p=require(process.argv[1]); if (p.status!=="ok" || p.engine!=="Orekit" || p.version!=="13.1.9") process.exit(1);' "$body"
+          node -e 'const fs=require("node:fs"); const p=JSON.parse(fs.readFileSync(process.argv[1], "utf8")); if (p.status!=="ok" || p.engine!=="Orekit" || p.version!=="13.1.9") process.exit(1);' "$body"
           cat "$body"
       - name: Report deployment provenance requirement
         run: |
