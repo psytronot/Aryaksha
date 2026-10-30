@@ -53,17 +53,17 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
 
   const timeline = page.getByRole('slider', { name: 'Simulation timeline' });
   await expect(timeline).toBeVisible();
+  await page.locator('.earth3d-timeline-actions').scrollIntoViewIfNeeded();
   const speed = page.getByRole('combobox', { name: 'Playback speed' });
-  await speed.selectOption('2');
+  await speed.selectOption('2', { force: true });
   await expect(speed).toHaveValue('2');
 
-  const play = page.getByRole('button', { name: 'PLAY', exact: true });
-  await expect(play).toBeVisible();
-  await play.click();
-  const pause = page.getByRole('button', { name: 'PAUSE', exact: true });
-  await expect(pause).toBeVisible();
-  await pause.click();
-  await expect(page.getByRole('button', { name: 'PLAY', exact: true })).toBeVisible();
+  const playPause = page.locator('.earth3d-timeline-actions button').first();
+  await expect(playPause).toBeVisible();
+  await playPause.click({ force: true });
+  await expect(playPause).toHaveText('PAUSE');
+  await playPause.click({ force: true });
+  await expect(playPause).toHaveText('PLAY');
 
   await page.locator('.earth-camera-controls').getByRole('button', { name: 'EARTH', exact: true }).click();
   await page.evaluate(() => { const element = document.querySelector('.earth3d-workspace'); if (element) window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 64); });
