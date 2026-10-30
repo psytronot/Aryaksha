@@ -135,7 +135,7 @@
     "expected": "The mobile menu stays hidden when closed, uses a compact two-column layout when opened, and closes after Satellite Tracking is selected; the selected catalog group loads or shows a clear network error, filtering narrows the object selector, and a successful prediction enables CSV export."
   },
   {
-    "name": "Earth 3D space environment and mobile mission-control view",
+    "name": "Earth 3D five-upgrade assets and responsive mission-control acceptance",
     "viewport": "mobile",
     "covers": [
       "Moon model and Earth-Moon orbit visible",
@@ -144,14 +144,19 @@
       "mission-control telemetry layout",
       "mobile visualization controls"
     ],
-    "description": "Verifies the expanded 3D view exposes the Moon preset, optional planetary layer, and responsive mission-control overlays without replacing the tracked satellite model.",
+    "description": "Validates Earth 2.0 day/night and polar presentation, cratered Moon and scale disclosure, selectable schematic solar system, operations layers and provenance, plus mission-control controls at desktop and mobile sizes.",
     "steps": [
-      "Open the Earth 3D workspace",
-      "Choose the MOON camera preset and verify the view follows the Moon",
-      "Toggle the solar-system layer off and on",
-      "Return to TRACK and verify the selected spacecraft telemetry remains visible"
+      "Open the Earth 3D workspace at desktop width and verify the procedural surface, polar ice, cloud layer and atmosphere are visible",
+      "Verify the Sun-driven terminator moves with simulation time and city lights remain visible on the night hemisphere but fade on the day hemisphere",
+      "Choose the MOON camera preset and verify crater relief, the Earth–Moon path and the explicit physical-scale disclosure",
+      "Choose PLANETS and verify labels/orbits for the Sun, Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus and Neptune; inspect Saturn's rings and the schematic/not-to-scale disclosure",
+      "Use the camera-target selector for the Sun, a planet and Moon; return to TRACK and confirm the propagated spacecraft state and telemetry are unchanged",
+      "Toggle spacecraft orbit, ground footprint, velocity/nadir vectors, ECI axes, Earth grid, Moon path and schematic planetary layer",
+      "Verify the provenance badge distinguishes two-body Kepler simulation from SGP4 propagation and that communications are explicitly marked not connected",
+      "Scrub the mission timeline, pause/play, change playback speed, drag to orbit, zoom with the wheel, and test two-finger pinch on a touch viewport",
+      "Repeat on a narrow mobile viewport and verify the left mission/vehicle panel, central globe, right telemetry/layer panel and bottom timeline remain usable"
     ],
-    "expected": "Moon focus and solar-system layer controls respond, then TRACK returns to the propagated spacecraft while the telemetry and mission-control overlays remain available."
+    "expected": "Earth 2.0 retains night lights and presents a coherent Sun-driven terminator and polar ice; Moon relief/path/scale are visible; the selectable schematic planetary view labels all nine bodies and Saturn rings without claiming ephemeris accuracy; operations layers toggle independently; source provenance is explicit; timeline/camera controls work on desktop and touch layouts; switching visual models does not change the underlying propagated orbit or telemetry. SGP4/Kepler calculations remain unchanged."
   },
   {
     "name": "Mission analysis backend returns validated orbital metrics",
