@@ -24,7 +24,7 @@ See docs/DEPLOYMENT_RUNBOOK.md before releasing or rolling back a deployment.
 
 ## Local development
 
-Prerequisites: Node.js 22.12+ and npm.
+Prerequisites: Node.js 22.12.x and npm 10.9.0. The exact Node runtime is recorded in `.nvmrc`; `package.json` declares the supported Node range and npm package manager, and `.npmrc` enforces the engine range. Use a Node version manager such as nvm (`nvm install && nvm use`) before running npm commands. `package-lock.json` is committed; use `npm ci` rather than `npm install` for reproducible installs.
 
 Run the following commands from the repository root: **npm ci**, **npm run typecheck**, **npm test**, **npm run build**, and **npm start**. To run browser smoke tests, install Chromium with **npx playwright install chromium** and run **npm run test:e2e**. For live UI development, use **npm run dev** in a second terminal. The standalone API host listens on port 3000 by default.
 
