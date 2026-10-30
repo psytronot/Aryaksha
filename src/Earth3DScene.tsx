@@ -541,6 +541,9 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       // Keep a native Touch Events fallback for embedded/mobile browsers that
       // synthesize touch events but do not reliably deliver a second PointerEvent.
       const onTouchStart = (event: TouchEvent) => {
+        // Temporary CI diagnostics: expose whether synthetic/native touch events reach the renderer.
+        container.dataset.touchStartCount = String(Number(container.dataset.touchStartCount || 0) + 1);
+        container.dataset.touchStartTouches = String(event.touches.length);
         if (event.touches.length >= 2) {
           const first = event.touches[0];
           const second = event.touches[1];
@@ -548,11 +551,17 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         }
       };
       const onTouchMove = (event: TouchEvent) => {
+        container.dataset.touchMoveCount = String(Number(container.dataset.touchMoveCount || 0) + 1);
+        container.dataset.touchMoveTouches = String(event.touches.length);
+        container.dataset.touchMovePointerCount = String(activePointers.size);
+        container.dataset.touchMoveCameraMode = cameraModeRef.current;
         if (event.touches.length < 2 || activePointers.size >= 2) return;
         event.preventDefault();
         const first = event.touches[0];
         const second = event.touches[1];
         const nextDistance = Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
+        container.dataset.touchMovePreviousDistance = String(touchPinchDistance);
+        container.dataset.touchMoveNextDistance = String(nextDistance);
         applyPinchZoom(touchPinchDistance, nextDistance);
         touchPinchDistance = nextDistance;
       };
