@@ -41,12 +41,13 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
   await expect(page.getByText(/SIMULATED · TWO-BODY KEPLER/)).toBeVisible();
 
   const grid = page.getByRole('checkbox', { name: 'Earth grid / coordinate frame' });
-  await grid.check();
-  await expect(grid).toBeChecked();
-  await grid.uncheck();
-  await expect(grid).not.toBeChecked();
-  await grid.check();
-  await expect(grid).toBeChecked();
+  await expect(grid).toBeVisible();
+  const lunarLayer = page.getByRole('checkbox', { name: 'Show Moon and lunar orbit' });
+  await expect(lunarLayer).toBeChecked();
+  await lunarLayer.uncheck();
+  await expect(lunarLayer).not.toBeChecked();
+  await lunarLayer.check();
+  await expect(lunarLayer).toBeChecked();
 
   const timeline = page.getByRole('slider', { name: 'Simulation timeline' });
   await expect(timeline).toBeVisible();
