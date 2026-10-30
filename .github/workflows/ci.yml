@@ -63,6 +63,8 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - name: Install pinned axe-core for accessibility audits
+        run: npm install --no-save --package-lock=false axe-core@4.10.3
       - name: Install Chromium for Playwright
         run: npx playwright install --with-deps chromium
       - run: npm run build
