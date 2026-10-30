@@ -8,7 +8,7 @@ declare global {
 }
 
 test('accessibility audit: critical and serious axe violations are absent in key workspaces', async ({ page }) => {
-  const results: Array<{ workspace: string; violations: Array<{ id: string; impact: string; description: string; nodes: number }> }> = [];
+  const results: Array<{ workspace: string; violations: Array<{ id: string; impact: string; description: string; nodes: Array<{ target: string[]; failureSummary: string }> }> }> = [];
 
   const workspaces = [
     { name: 'Home', open: async () => { await page.goto('/'); } },
@@ -31,7 +31,7 @@ test('accessibility audit: critical and serious axe violations are absent in key
     await workspace.open();
     await page.addScriptTag({ path: `${process.cwd()}/node_modules/axe-core/axe.min.js` });
     const report = await page.evaluate(async () => {
-      const axe = (window as Window & { axe?: { run: (context: Document, options: object) => Promise<{ violations: Array<{ id: string; impact: string; description: string; nodes: unknown[] }> }> } }).axe;
+      const axe = (window as Window & { axe?: { run: (context: Document, options: object) => Promise<{ violations: Array<{ id: string; impact: string; description: string; nodes: Array<{ target: string[]; failureSummary?: string }> }> }> } }).axe;
       if (!axe) throw new Error('axe-core did not load');
       return axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'] } });
     });
@@ -39,7 +39,7 @@ test('accessibility audit: critical and serious axe violations are absent in key
       workspace: workspace.name,
       violations: report.violations
         .filter(item => item.impact === 'critical' || item.impact === 'serious')
-        .map(item => ({ id: item.id, impact: item.impact, description: item.description, nodes: item.nodes.length }))
+        .map(item => ({ id: item.id, impact: item.impact, description: item.description, nodes: item.nodes.map(node => ({ target: node.target, failureSummary: node.failureSummary ?? '' })) }))
     });
   }
 
