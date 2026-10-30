@@ -29,6 +29,7 @@
 - Camera mode/distance are exposed as lightweight data attributes for deterministic interaction tests.
 - The responsive camera-control row is layered above HUD cards; the left HUD now follows the measured topbar height so mobile wrapping cannot intercept camera-button input.
 - Resource disposal helper is exported for a unit test that verifies shared geometries/materials are disposed once.
+- Spacecraft geometry uses a deterministic display exaggeration that targets a 0.5 scene-unit maximum bus dimension; the HUD shows both the true Earth-diameter/bus ratio and the display exaggeration factor.
 
 ## Automated validation
 
@@ -38,7 +39,7 @@ The WebGL browser rAF sample is explicitly not a renderer FPS benchmark. No FPS 
 
 ## Visual acceptance still required
 
-Inspect the uploaded screenshots at desktop and mobile sizes before acceptance. Confirm the Moon disc is framed rather than filling the canvas as a blurred surface, all panels remain readable without horizontal overflow, the planetary overview is legible, and no WebGL/shader errors are logged.
+Inspect the uploaded screenshots at desktop and mobile sizes before acceptance. Confirm the Moon disc is framed rather than filling the canvas as a blurred surface, all panels remain readable without horizontal overflow, the planetary overview is legible, and no WebGL/shader errors are logged. The current Earth texture has polar ice treatment and Sun-driven illumination, but no separate auroral emission layer; keep dedicated aurora/polar glow acceptance open until that visual treatment is added or explicitly excluded.
 
 ## Release hold
 
@@ -53,3 +54,8 @@ Do not merge or deploy from this branch automatically. Require green CI/CodeQL/A
 - Added topbar-height observation and HUD stacking correction after PR #61 browser evidence showed `.earth3d-left-hud` intercepting SYSTEM/EARTH camera-button pointer input.
 - Added failure trace/error-context artifact upload for subsequent Playwright triage.
 - This is a source-only rebase candidate. No merge, AppDeploy source write or deployment was performed.
+
+
+## Visual-scale disclosure
+
+The spacecraft model's display scale is computed from the largest configured bus dimension and a 0.5 scene-unit target extent. `spacecraftVisualExaggeration` and `trueEarthDiameterToBusRatio` are pure helpers with unit coverage; the HUD reports the computed linear exaggeration and the true-scale Earth-diameter-to-bus ratio. The 3D geometry remains explicitly not to physical scale.
