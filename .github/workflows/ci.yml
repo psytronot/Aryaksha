@@ -66,7 +66,26 @@ jobs:
       - name: Install Chromium for Playwright
         run: npx playwright install --with-deps chromium
       - run: npm run build
-      - run: npm run test:e2e
+      - name: Run serial Playwright E2E suite
+        run: npm run test:e2e -- --workers=1
+      - name: Upload Earth 3D browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: earth3d-browser-evidence
+          path: artifacts/earth3d-*.png
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload Playwright failure traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: earth3d-playwright-failure-traces
+          path: |
+            test-results/**/trace.zip
+            test-results/**/error-context.md
+          if-no-files-found: ignore
+          retention-days: 14
 
   orekit-service:
     name: Orekit service build and tests
