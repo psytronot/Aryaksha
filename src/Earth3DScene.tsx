@@ -4,7 +4,7 @@ import { dayNightSnapshot, solarEciDirection } from './daynight';
 import { makeNightLightsTexture } from './earthVisuals';
 import { formatIstDateTime } from './time';
 import { createSpaceEnvironment } from './solarSystem';
-import { fitCameraDistance, MOON_CAMERA_MARGIN } from './earth3dMath';
+import { fitCameraDistance, MOON_CAMERA_MARGIN, spacecraftVisualExaggeration, trueEarthDiameterToBusRatio } from './earth3dMath';
 import './earth3d-upgrade.css';
 
 type Earth3DSceneProps = {
@@ -138,10 +138,12 @@ function makeCloudTexture() {
 }
 
 function buildSatellite(busWidthM: number, busHeightM: number, busDepthM: number, panelAreaM2: number) {
-  // The display uses a declared 1,000,000x linear visual exaggeration. All parts
-  // use the same conversion so user-entered dimensions preserve their proportions.
+  // Keep the maximum bus dimension at a declared 0.5 scene-unit display extent.
+  // This is a visual exaggeration; the HUD reports the factor and true-scale ratio.
   const root = new THREE.Group();
-  const displayUnitsPerMetre = (5.15 / 6378.137 / 1000) * 1_000_000;
+  const maxBusDimensionM = Math.max(0.01, busWidthM, busHeightM, busDepthM);
+  const visualExaggeration = spacecraftVisualExaggeration(maxBusDimensionM);
+  const displayUnitsPerMetre = (5.15 / 6378.137 / 1000) * visualExaggeration;
   const w = Math.max(0.01, busWidthM) * displayUnitsPerMetre;
   const h = Math.max(0.01, busHeightM) * displayUnitsPerMetre;
   const d = Math.max(0.01, busDepthM) * displayUnitsPerMetre;
@@ -258,6 +260,9 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   const [errorState, setErrorState] = useState('');
   const [wallTime, setWallTime] = useState(() => new Date());
   const cameraState = useRef({ yaw: 0.65, pitch: 0.26, distance: 11 });
+  const maxBusDimensionM = Math.max(0.01, busWidthM, busHeightM, busDepthM);
+  const visualExaggeration = spacecraftVisualExaggeration(maxBusDimensionM);
+  const trueEarthToBusRatio = trueEarthDiameterToBusRatio(maxBusDimensionM);
   const syncCameraDebug = () => {
     const element = containerRef.current;
     if (!element) return;
@@ -750,7 +755,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         </div>
         <div className="earth3d-left-hud">
           <div className="earth3d-hud-card"><small>MISSION SETUP · VEHICLE / CREW</small><b>{name || 'Mission spacecraft'}</b><label className="earth3d-select-label">VEHICLE MODEL<select aria-label="Choose spacecraft model" value={selectedSatellite} onChange={e => setSelectedSatellite(e.target.value)}><option value="design">Current mission design</option><option value="cubesat1u">CubeSat 1U · 10 cm</option><option value="cubesat3u">CubeSat 3U · 34 cm</option><option value="cubesat6u">CubeSat 6U</option><option value="microsat">Microsatellite · reference</option><option value="iss">ISS · reference silhouette</option></select></label><span>CREW STATUS · UNCREWED / NO CREW DATA</span><span>PROPAGATOR · {propagator}</span></div>
-          <div className="earth3d-hud-card"><small>PHYSICAL SCALE · REFERENCE VALUES</small><span>EARTH RADIUS 6,378.137 km (WGS-84 equatorial)</span><span>MOON RADIUS 1,737.4 km · 0.2727 R⊕</span><span>EARTH–MOON CENTRES 384,400 km · 60.3 R⊕ mean</span><span>SUN RADIUS 695,700 km · 109.2 R⊕</span><span>SUN DISTANCE 149.6 million km · 1 AU mean</span><span>SPACECRAFT SIZE IS EXAGGERATED FOR VISIBILITY</span><span>ORBIT {inclinationDeg.toFixed(2)}° inc · e {eccentricity.toFixed(4)}</span></div>
+          <div className="earth3d-hud-card"><small>PHYSICAL SCALE · REFERENCE VALUES</small><span>EARTH RADIUS 6,378.137 km (WGS-84 equatorial)</span><span>MOON RADIUS 1,737.4 km · 0.2727 R⊕</span><span>EARTH–MOON CENTRES 384,400 km · 60.3 R⊕ mean</span><span>SUN RADIUS 695,700 km · 109.2 R⊕</span><span>SUN DISTANCE 149.6 million km · 1 AU mean</span><span>MAX BUS DIMENSION {maxBusDimensionM.toFixed(2)} m</span><span>TRUE-SCALE EARTH DIAMETER / BUS ≈ {trueEarthToBusRatio.toLocaleString('en-US')}×</span><span>SPACECRAFT DISPLAY EXAGGERATION ≈ {visualExaggeration.toLocaleString('en-US')}×</span><span>ORBIT {inclinationDeg.toFixed(2)}° inc · e {eccentricity.toFixed(4)}</span></div>
         </div>
         <div className="earth3d-right-hud">
           <div className="earth3d-hud-card"><small>LIVE TELEMETRY · WGS84</small><b>{Number(current?.lla?.lat || 0).toFixed(3)}° LAT</b><b>{Number(current?.lla?.lon || 0).toFixed(3)}° LON</b><span>ALT {Number(current?.lla?.alt || 0).toFixed(1)} km</span><span>MISSION TIME · T+ {Number(seconds || 0).toFixed(1)} s</span><span>SPEED · {speed.toFixed(3)} km/s</span><span>{dayNight.isDay ? 'DAY SIDE' : 'NIGHT SIDE'} · {dayNight.localSolar}</span></div>
