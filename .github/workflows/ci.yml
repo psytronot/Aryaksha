@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version-file: .nvmrc
       - run: npm ci
       - name: Report dependency audit findings (non-blocking)
         shell: bash
@@ -61,7 +61,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version-file: .nvmrc
       - run: npm ci
       - name: Install Chromium for Playwright
         run: npx playwright install --with-deps chromium
@@ -89,7 +89,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version-file: .nvmrc
       - run: npm ci
       - name: Verify deployed API security headers
         shell: bash
@@ -258,7 +258,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version-file: .nvmrc
       - run: npm ci
       - name: Install Chromium for Playwright
         run: npx playwright install --with-deps chromium
