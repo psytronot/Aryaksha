@@ -25,3 +25,11 @@
 .earth3d-planet-select select{max-width:180px;padding:6px 8px;background:#070b10;border:1px solid rgba(180,199,215,.25);color:#fff}
 @media(max-width:800px){.earth3d-workspace{min-height:760px}.earth3d-left-hud{top:142px;left:8px}.earth3d-right-hud{top:auto;bottom:74px;right:8px}.earth3d-mission-rail{grid-template-columns:1fr}.earth3d-mission-stages{gap:5px}}
 @media(max-width:500px){.earth3d-workspace{min-height:810px}.earth3d-left-hud{top:144px}.earth3d-left-hud .earth3d-hud-card{max-width:150px}.earth3d-right-hud{left:auto;right:8px;bottom:80px;max-width:calc(100% - 174px);grid-template-columns:1fr}.earth3d-hud-card{font-size:7px}.earth3d-mission-rail{padding:10px}.earth3d-mission-stages button{font-size:7px}.earth3d-planet-select{flex-wrap:wrap}}
+
+
+/* Keep the responsive camera row above HUD cards and reserve its measured height. */
+.earth3d-topbar{z-index:8;flex-wrap:wrap;row-gap:8px}
+.earth-camera-controls{position:relative;z-index:9;pointer-events:auto;flex-wrap:wrap;max-width:100%}
+.earth3d-left-hud{top:calc(var(--earth3d-topbar-height,72px) + 12px);max-height:calc(100% - var(--earth3d-topbar-height,72px) - 120px);overflow:auto}
+@media(min-width:801px){.earth3d-right-hud{top:calc(var(--earth3d-topbar-height,72px) + 12px)}}
+@media(max-width:800px){.earth3d-left-hud{top:calc(var(--earth3d-topbar-height,142px) + 10px);max-height:calc(100% - var(--earth3d-topbar-height,142px) - 90px)}}
