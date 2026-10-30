@@ -55,3 +55,15 @@ export function fitCameraDistance(width: number, height: number, extent: number,
   // Sphere fit: the tangent fit is for a flat plane; use sine for the sphere's angular radius.
   return (safeExtent * Math.max(1, margin)) / Math.sin(limitingFov / 2);
 }
+
+
+export function spacecraftVisualExaggeration(maxBusDimensionM: number, targetDisplayExtent = 0.5): number {
+  const safeBusDimensionM = Math.max(0.01, Number.isFinite(maxBusDimensionM) ? maxBusDimensionM : 0.01);
+  const safeDisplayExtent = Math.max(0.01, Number.isFinite(targetDisplayExtent) ? targetDisplayExtent : 0.5);
+  return Math.max(1, Math.round((safeDisplayExtent * 6378.137 / 5.15 * 1000) / safeBusDimensionM));
+}
+
+export function trueEarthDiameterToBusRatio(maxBusDimensionM: number): number {
+  const safeBusDimensionM = Math.max(0.01, Number.isFinite(maxBusDimensionM) ? maxBusDimensionM : 0.01);
+  return Math.round((2 * 6378.137 * 1000) / safeBusDimensionM);
+}
