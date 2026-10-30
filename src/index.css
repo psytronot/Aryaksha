@@ -143,3 +143,41 @@ html,body{min-width:320px;overflow-x:clip}
   .main{width:100%;max-width:none}
   .sidebar{overscroll-behavior:auto}
 }
+
+/* Mission-control-only shell replaces the sidebar with the reference screenshot's top navigation. */
+.mission-control-app .topbar{gap:14px}
+.mission-control-app .engine-status{display:none}
+.mission-top-nav{display:flex;align-items:center;justify-content:center;gap:3px;flex:1;min-width:0}
+.mission-top-nav button{height:40px;padding:0 11px;border:0;border-radius:7px 7px 0 0;border-bottom:2px solid transparent;background:transparent;color:var(--muted);font-size:10px;white-space:nowrap}
+.mission-top-nav button:hover{color:#fff;background:rgba(255,255,255,.035)}
+.mission-top-nav button.active{color:#fff;background:rgba(81,221,255,.09);border-bottom-color:var(--cyan)}
+.shell.simulation-shell{grid-template-columns:minmax(0,1fr)!important}
+.simulation-shell .sidebar{display:none}
+.simulation-shell .main{max-width:none;padding:0 16px 36px}
+.mission-control-app .mobile-nav-panel{display:none!important}
+@media(max-width:1200px){
+  .mission-control-app .engine-status,.mission-control-app .topbar-actions{display:none}
+  .mission-top-nav{justify-content:flex-start;overflow-x:auto;scrollbar-width:none}
+  .mission-top-nav::-webkit-scrollbar{display:none}
+  .mission-top-nav button{padding:0 10px}
+}
+@media(max-width:600px){
+  .mission-control-app .topbar{height:58px;padding:0 8px;gap:6px}
+  .mission-control-app .brand{gap:6px;flex:0 0 auto}
+  .mission-control-app .brand-mark{width:30px;height:30px}
+  .mission-control-app .brand strong{font-size:10px}
+  .mission-control-app .brand small{font-size:6px}
+  .mission-top-nav{gap:2px}
+  .mission-top-nav button{height:36px;padding:0 8px;font-size:9px}
+  .simulation-shell .main{padding:0 6px 20px}
+}
+@media(min-width:701px){
+  .mission-control-grid .scene-wrap{min-height:clamp(560px,64vh,700px)}
+  .mission-control-grid .earth3d-workspace{min-height:clamp(560px,64vh,700px)}
+}
+@media(max-width:700px){
+  .mission-control-grid .scene-wrap{min-height:1020px}
+  .mission-control-grid .earth3d-workspace{min-height:1020px}
+}
+.mission-control-app .coach-toggle{display:none!important}
+.mission-control-app .welcome-hero,.mission-control-app .about-kakshiya{display:none!important}
