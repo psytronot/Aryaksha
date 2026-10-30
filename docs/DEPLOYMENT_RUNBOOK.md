@@ -1,6 +1,6 @@
 # Deployment and rollback runbook
 
-**Status:** Live release checks passed for main commit `aec4dc2df286bbd5fc6ac4d294eee3bc11de5a60`; rollback drill not yet executed.
+**Status:** Live release checks passed for main commit `dff880ff026cf0489e9b1f1877ddc2e7a861d8c8`; rollback drill not yet executed.
 **Canonical source:** GitHub repository psytronot/Aryaksha, branch main.
 
 ## Production topology
@@ -30,9 +30,9 @@ The web service must have OREKIT_SERVICE_URL set to the Orekit service base URL.
 
 ## Current verification baseline
 
-- Latest web deployment: `dep-dbho9fss728c73d77oc0`, commit `aec4dc2df286bbd5fc6ac4d294eee3bc11de5a60`, status live. It includes the Orekit-only mission-analysis proxy, explicit propagation-time input, state-vector rendering, and report-only CSP/security headers.
-- Latest Orekit deployment: `dep-dbho8le1egvs7383488g`, commit `aec4dc2df286bbd5fc6ac4d294eee3bc11de5a60`, status live. It runs Orekit 13.1.9 numerical two-body propagation with Dormand–Prince 8(5,3), Newtonian central gravity only, and stable JSON errors for malformed/null requests.
-- Main CI run `40922716728` passed web typecheck/unit/build, Orekit Maven tests, local Playwright, live API/Orekit integration, 600-second epoch advancement, live response/error schema checks, Earth-intersection guardrail, and live deployed UI Playwright smoke. CodeQL run `40922716740` and AppDeploy scenario-contract workflow `40922717020` also passed.
+- Latest web deployment: `dep-dbhpi44s728c73d9ujt0`, commit `dff880ff026cf0489e9b1f1877ddc2e7a861d8c8`, status live. It includes the Orekit-only mission-analysis proxy, explicit propagation-time input, state-vector rendering, report-only CSP/security headers, and vendor chunk splitting.
+- Latest Orekit deployment: `dep-dbho8le1egvs7383488g`, commit `aec4dc2df286bbd5fc6ac4d294eee3bc11de5a60`, status live. It runs Orekit 13.1.9 numerical two-body propagation with Dormand–Prince 8(5,3), Newtonian central gravity only, and stable JSON errors for malformed/null requests. No Orekit service code changed in Phase C.
+- Main CI run `40936849936` passed web typecheck/unit/build, Orekit Maven tests, local Playwright, live API/Orekit integration, 600-second epoch advancement, live response/error schema checks, Earth-intersection guardrail, and live deployed UI Playwright smoke. CodeQL run `40936850260` and AppDeploy scenario-contract workflow `40936849799` also passed.
 - Previous known-good web deployment before the CSP header: dep-dbhnhrlg1s2s73ahgn5g, commit 15928bc5a5dfa5f5e2a1ff01c2c8ca6f878b2a4b, status deactivated but retained in deployment history.
 - Previous known-good Orekit deployment before the error-envelope handler: dep-dbhn311srm7s7388tu00, commit a1adf54f9bdc5b09e9ebc2f5f3e9d857a4d75f71, status deactivated. It uses the same response model and is the compatible rollback target for the current web/API contract.
 
@@ -56,5 +56,5 @@ A rollback drill has not been performed. Treat this section as a runbook, not pr
 - A `Content-Security-Policy-Report-Only` policy now covers local assets and the audited CelesTrak connection. It is diagnostic only and reports violations to browser developer tools; there is no report collection endpoint. Review representative browser sessions before switching to enforcement.
 - The Render web service configuration currently reports build command npm install && npm run build, while CI uses npm ci. Update the Render dashboard build command to npm ci && npm run build when the service settings are available; until then, production install reproducibility is not fully aligned.
 - Render metrics in the sampled 11-minute window showed roughly 51 MB web memory and 129 MB Orekit memory at the last sample, but HTTP request-count and latency series were empty. This is not a performance benchmark and does not establish latency, FPS or load budgets.
-- The last verified Vite build produced a 989.94 kB JavaScript chunk (290.01 kB gzip), above the 500 kB warning threshold. A proposed vendor-chunk split is under CI verification; do not mark the performance issue resolved until the built artifact confirms no oversized chunks and representative-device/WebGL tests are recorded.
+- The deployed Vite build now splits the former 989.94 kB JavaScript chunk: largest emitted chunk is `vendor-three` at 483.88 kB (120.82 kB gzip); `vendor-react` is 223.19 kB, and the application entry is 183.28 kB. CI and Render build logs showed no >500 kB chunk warning. Representative-device/WebGL frame-rate, memory, resize/context-loss, and accessibility testing remains open.
 - Free-tier cold starts can exceed one minute. The 90-second proxy timeout reduces false failures but does not eliminate first-request latency.
