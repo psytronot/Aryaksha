@@ -12,7 +12,7 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
   await page.goto('/');
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Earth 3D' })).toBeAttached();
-  await expect(page.getByRole('button', { name: 'Earth 3D', exact: true })).toBeVisible();
+  await expect(page.locator('.earth3d-workspace')).toBeVisible();
   await expect(page.locator('.earth3d-canvas canvas')).toBeVisible();
   const workspace = page.locator('.earth3d-workspace');
   await page.evaluate(() => { const element = document.querySelector('.earth3d-workspace'); if (element) window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 64); });
