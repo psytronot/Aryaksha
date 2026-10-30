@@ -1,0 +1,47 @@
+name: Scheduled production health
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 09:00 Asia/Kolkata daily
+    - cron: '30 3 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-health
+  cancel-in-progress: false
+
+jobs:
+  render-health:
+    name: Verify live Render services
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check web API health and security headers
+        shell: bash
+        run: |
+          set -euo pipefail
+          headers="$(mktemp)"
+          body="$(mktemp)"
+          status="$(curl --silent --show-error --max-time 30 -D "$headers" -o "$body" -w '%{http_code}' https://aryaksha-web.onrender.com/api/v1/health)"
+          test "$status" = "200"
+          grep -qi '^x-content-type-options: nosniff' "$headers"
+          grep -qi '^x-frame-options: DENY' "$headers"
+          grep -qi '^referrer-policy: strict-origin-when-cross-origin' "$headers"
+          grep -qi "^content-security-policy-report-only:.*default-src 'self'" "$headers"
+          node -e 'const p=require(process.argv[1]); if (!p || typeof p !== "object") process.exit(1);' "$body"
+          cat "$body"
+      - name: Check Orekit health and engine version
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$(mktemp)"
+          status="$(curl --silent --show-error --max-time 75 -o "$body" -w '%{http_code}' https://aryaksha-orekit.onrender.com/api/v1/health)"
+          test "$status" = "200"
+          node -e 'const p=require(process.argv[1]); if (p.status!=="ok" || p.engine!=="Orekit" || p.version!=="13.1.9") process.exit(1);' "$body"
+          cat "$body"
+      - name: Report deployment provenance requirement
+        run: |
+          echo "Health checks passed. Confirm exact deployed commit SHA in Render before any release."
