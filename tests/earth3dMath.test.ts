@@ -5,7 +5,9 @@ import {
   MOON_CAMERA_MARGIN,
   moonSynchronousYaw,
   nightLightFactor,
-  planetaryPositionAt
+  planetaryPositionAt,
+  spacecraftVisualExaggeration,
+  trueEarthDiameterToBusRatio
 } from '../src/earth3dMath';
 
 describe('Earth 3D mission-control math', () => {
@@ -40,6 +42,14 @@ describe('Earth 3D mission-control math', () => {
       const earthDirection = { x: -Math.cos(phase), z: -Math.sin(phase) };
       expect(facing.x * earthDirection.x + facing.z * earthDirection.z).toBeCloseTo(1, 8);
     }
+  });
+
+  it('declares a consistent spacecraft display exaggeration and true-scale ratio', () => {
+    const maxBusDimensionM = 0.2;
+    const exaggeration = spacecraftVisualExaggeration(maxBusDimensionM);
+    expect(exaggeration).toBeGreaterThan(1);
+    expect((5.15 / 6378.137 / 1000) * exaggeration).toBeCloseTo(0.5 / maxBusDimensionM, 5);
+    expect(trueEarthDiameterToBusRatio(maxBusDimensionM)).toBe(Math.round((2 * 6378.137 * 1000) / maxBusDimensionM));
   });
 
   it('fits larger and narrower viewports without returning invalid distances', () => {
