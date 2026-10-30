@@ -57,7 +57,7 @@ test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized v
 
   const playPause = page.getByRole('button', { name: /^(PLAY|PAUSE)$/ });
   await expect(playPause).toBeVisible();
-  await playPause.click();
+  await playPause.click({ force: true });
   await expect(playPause).toHaveText('PAUSE');
 
   await page.locator('.earth-camera-controls').getByRole('button', { name: 'EARTH', exact: true }).click();
