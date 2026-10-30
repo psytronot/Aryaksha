@@ -4,7 +4,7 @@ import { dayNightSnapshot, solarEciDirection } from './daynight';
 import { makeNightLightsTexture } from './earthVisuals';
 import { formatIstDateTime } from './time';
 import { createSpaceEnvironment } from './solarSystem';
-import { fitCameraDistance } from './earth3dMath';
+import { fitCameraDistance, MOON_CAMERA_MARGIN } from './earth3dMath';
 import './earth3d-upgrade.css';
 
 type Earth3DSceneProps = {
@@ -420,7 +420,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         camera.updateProjectionMatrix();
         renderer.setPixelRatio(pixelRatioForViewport());
         renderer.setSize(width, height, false);
-        if (cameraModeRef.current === 'MOON') cameraState.current.distance = Math.max(2, Math.min(2600, fitCameraDistance(width, height, moonRadius, 42, 1.15) * moonZoomRatioRef.current));
+        if (cameraModeRef.current === 'MOON') cameraState.current.distance = Math.max(2, Math.min(2600, fitCameraDistance(width, height, moonRadius, 42, MOON_CAMERA_MARGIN) * moonZoomRatioRef.current));
         if (cameraModeRef.current === 'SYSTEM') cameraState.current.distance = Math.max(2, Math.min(2600, fitCameraDistance(width, height, moonDistance + moonRadius + 1) * systemZoomRatioRef.current));
         if (cameraModeRef.current === 'PLANETS') {
           const extent = selectedBodyRef.current === 'Overview' ? 55 : selectedBodyRef.current === 'Sun' ? 4 : 3;
@@ -466,7 +466,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
               const extent = selectedBodyRef.current === 'Overview' ? 55 : selectedBodyRef.current === 'Sun' ? 4 : 3;
               planetZoomRatioRef.current = cameraState.current.distance / fitCameraDistance(container.clientWidth, container.clientHeight, extent, 42, 1.15);
             }
-            if (cameraModeRef.current === 'MOON') moonZoomRatioRef.current = cameraState.current.distance / fitCameraDistance(container.clientWidth, container.clientHeight, moonRadius, 42, 1.15);
+            if (cameraModeRef.current === 'MOON') moonZoomRatioRef.current = cameraState.current.distance / fitCameraDistance(container.clientWidth, container.clientHeight, moonRadius, 42, MOON_CAMERA_MARGIN);
             syncCameraDebug();
           }
           pinchDistance = nextDistance;
@@ -499,7 +499,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
           const extent = selectedBodyRef.current === 'Overview' ? 55 : selectedBodyRef.current === 'Sun' ? 4 : 3;
           planetZoomRatioRef.current = cameraState.current.distance / fitCameraDistance(container.clientWidth, container.clientHeight, extent, 42, 1.15);
         }
-        if (cameraModeRef.current === 'MOON') moonZoomRatioRef.current = cameraState.current.distance / fitCameraDistance(container.clientWidth, container.clientHeight, moonRadius, 42, 1.15);
+        if (cameraModeRef.current === 'MOON') moonZoomRatioRef.current = cameraState.current.distance / fitCameraDistance(container.clientWidth, container.clientHeight, moonRadius, 42, MOON_CAMERA_MARGIN);
         syncCameraDebug();
       };
       renderer.domElement.addEventListener('pointerdown', onPointerDown);
@@ -685,7 +685,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       const width = Math.max(1, containerRef.current?.clientWidth || 1);
       const height = Math.max(1, containerRef.current?.clientHeight || 1);
       moonZoomRatioRef.current = 1;
-      cameraState.current.distance = Math.max(2, Math.min(2600, fitCameraDistance(width, height, 5.15 * (1737.4 / 6378.137), 42, 1.15)));
+      cameraState.current.distance = Math.max(2, Math.min(2600, fitCameraDistance(width, height, 5.15 * (1737.4 / 6378.137), 42, MOON_CAMERA_MARGIN)));
     }
     if (cameraMode === 'SYSTEM') {
       const width = Math.max(1, containerRef.current?.clientWidth || 1);
@@ -732,7 +732,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
                 pitch: 0.26,
                 distance: cameraMode === 'SATELLITE' ? 5.8
                   : cameraMode === 'EARTH' ? 15
-                  : cameraMode === 'MOON' ? fitCameraDistance(width, height, moonRadius, 42, 1.15)
+                  : cameraMode === 'MOON' ? fitCameraDistance(width, height, moonRadius, 42, MOON_CAMERA_MARGIN)
                   : cameraMode === 'SYSTEM' ? fitCameraDistance(width, height, 5.15 * (384400 / 6378.137) + moonRadius + 1)
                   : cameraMode === 'PLANETS' ? fitCameraDistance(width, height, selectedBody === 'Overview' ? 55 : selectedBody === 'Sun' ? 4 : 3, 42, 1.15)
                   : 11
