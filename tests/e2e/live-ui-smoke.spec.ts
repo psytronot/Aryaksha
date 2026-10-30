@@ -97,6 +97,7 @@ test('live deployed UI loads the lazy simulation, tracking and calculator worksp
 
 
 test('CSP report-only audit records no blocked resources across key workspaces', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   await page.addInitScript(() => {
     const target = window as Window & { __cspViolations?: string[] };
     target.__cspViolations = [];
