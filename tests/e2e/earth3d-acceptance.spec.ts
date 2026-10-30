@@ -123,17 +123,29 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   });
   expect(frameCount).toBeGreaterThan(0);
 
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await expect.poll(() => canvas.evaluate(element => element.getBoundingClientRect().width)).toBeGreaterThan(initial.cssWidth);
-  const resized = await canvas.evaluate((element: HTMLCanvasElement) => ({
-    width: element.width,
-    height: element.height,
-    cssWidth: element.getBoundingClientRect().width,
-    cssHeight: element.getBoundingClientRect().height
-  }));
+  // Shrink the viewport: the Earth canvas lives inside a deliberately
+  // bounded workspace, so widening the browser does not necessarily widen it.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(() => canvas.evaluate(element => element.getBoundingClientRect().width)).toBeLessThan(initial.cssWidth);
+  const resized = await canvas.evaluate((element: HTMLCanvasElement) => {
+    const rect = element.getBoundingClientRect();
+    const gl = element.getContext('webgl2') ?? element.getContext('webgl');
+    return {
+      width: element.width,
+      height: element.height,
+      cssWidth: rect.width,
+      cssHeight: rect.height,
+      drawingBufferWidth: gl?.drawingBufferWidth ?? 0,
+      drawingBufferHeight: gl?.drawingBufferHeight ?? 0
+    };
+  });
   expect(resized.width).toBeGreaterThan(0);
   expect(resized.height).toBeGreaterThan(0);
-  expect(resized.cssWidth).toBeGreaterThan(resized.cssHeight);
+  expect(resized.drawingBufferWidth).toBeGreaterThan(0);
+  expect(resized.drawingBufferHeight).toBeGreaterThan(0);
+  expect(resized.cssWidth).toBeLessThan(initial.cssWidth);
+  expect(resized.cssWidth).toBeGreaterThan(0);
+  expect(resized.cssHeight).toBeGreaterThan(0);
 
   const startupMs = Date.now() - navigationStart;
   test.info().annotations.push({
