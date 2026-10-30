@@ -177,14 +177,7 @@ function App() {
           <span><strong>ARYAKSHA</strong><small>SPACE EXPLORATION LAB</small></span>
         </button>
         {view === 'simulation' && <nav className="mission-top-nav" aria-label="Mission control navigation">
-          {[
-            { id: 'mission', label: 'Mission' },
-            { id: 'spacecraft', label: 'Spacecraft' },
-            { id: 'orbit', label: 'Orbits' },
-            { id: 'simulation', label: 'Earth 3D' },
-            { id: 'tracking', label: 'Ground Track' },
-            { id: 'instructions', label: 'Docs' }
-          ].map(item => <button key={item.id} type="button" aria-current={view === item.id ? 'page' : undefined} className={view === item.id ? 'active' : ''} onClick={() => { setView(item.id as View); setMobileNavOpen(false); }}>{item.label}</button>)}
+          {nav.map(item => <button key={item.id} type="button" aria-current={view === item.id ? 'page' : undefined} className={view === item.id ? 'active' : ''} onClick={() => { setView(item.id); setMobileNavOpen(false); }}>{item.label}</button>)}
         </nav>}
         <div className="engine-status"><span /> PHYSICS ENGINE <b>READY</b></div>
         <div className="topbar-actions"><button className="mobile-menu-button" type="button" aria-label={mobileNavOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={mobileNavOpen} aria-controls="mobile-navigation" onClick={() => setMobileNavOpen(v => !v)}><Layers3 size={17} /></button><button className={coachEnabled ? "coach-setting active" : "coach-setting"} type="button" aria-pressed={coachEnabled} onClick={() => setCoachEnabled(v => !v)}><CircleHelp size={15} /><span>COACH {coachEnabled ? "ON" : "OFF"}</span></button><button className="top-help" onClick={() => { setView('instructions'); setMobileNavOpen(false); }}><BookOpen size={16} /> <span>HELP · DEFINITIONS</span></button></div>
