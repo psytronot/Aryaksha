@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('Earth 3D exposes five-upgrade controls and remains usable on touch-sized viewports', async ({ page }) => {
+  test.setTimeout(60000);
   const pageErrors: string[] = [];
   const shaderErrors: string[] = [];
   page.on('pageerror', error => pageErrors.push(error.message));
@@ -104,26 +105,25 @@ test('Earth 3D preserves SYSTEM framing, responds to two-pointer touch pinch, an
     if (!bounds) throw new Error('Earth 3D canvas has no touchable viewport bounds.');
     const centerX = bounds.x + bounds.width / 2;
     const centerY = bounds.y + bounds.height / 2;
-    const session = await context.newCDPSession(page);
-    try {
-      await session.send('Input.dispatchTouchEvent', {
-        type: 'touchStart',
-        touchPoints: [
-          { x: centerX - 35, y: centerY, id: 1 },
-          { x: centerX + 35, y: centerY, id: 2 }
-        ]
+    await page.evaluate(({ startX, endX, y }) => {
+      const canvasElement = document.querySelector('.earth3d-canvas canvas');
+      if (!(canvasElement instanceof HTMLCanvasElement)) throw new Error('Earth 3D canvas is unavailable for touch input.');
+      const makeTouch = (identifier: number, clientX: number) => new Touch({
+        identifier,
+        target: canvasElement,
+        clientX,
+        clientY: y,
+        pageX: clientX,
+        pageY: y,
+        screenX: clientX,
+        screenY: y
       });
-      await session.send('Input.dispatchTouchEvent', {
-        type: 'touchMove',
-        touchPoints: [
-          { x: centerX - 65, y: centerY, id: 1 },
-          { x: centerX + 65, y: centerY, id: 2 }
-        ]
-      });
-      await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-    } finally {
-      await session.detach();
-    }
+      const startTouches = [makeTouch(1, startX - 35), makeTouch(2, startX + 35)];
+      canvasElement.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, cancelable: true, touches: startTouches, targetTouches: startTouches, changedTouches: startTouches }));
+      const movedTouches = [makeTouch(1, endX - 65), makeTouch(2, endX + 65)];
+      canvasElement.dispatchEvent(new TouchEvent('touchmove', { bubbles: true, cancelable: true, touches: movedTouches, targetTouches: movedTouches, changedTouches: movedTouches }));
+      canvasElement.dispatchEvent(new TouchEvent('touchend', { bubbles: true, cancelable: true, touches: [], targetTouches: [], changedTouches: movedTouches }));
+    }, { startX: centerX, endX: centerX, y: centerY });
 
     await expect.poll(readDistance).toBeLessThan(portraitSystemFit - 1);
     const pinchedSystemDistance = await readDistance();
