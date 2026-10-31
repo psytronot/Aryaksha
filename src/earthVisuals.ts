@@ -39,20 +39,20 @@ export function applyEarthNightLightMask(
     shader.uniforms.uEarthSunDirection = sunDirectionUniform;
     shader.vertexShader = shader.vertexShader.replace(
       '#include <common>',
-      '#include <common>\\nvarying vec3 vEarthWorldNormal;'
+      '#include <common>\nvarying vec3 vEarthWorldNormal;'
     );
     shader.vertexShader = shader.vertexShader.replace(
       '#include <beginnormal_vertex>',
-      '#include <beginnormal_vertex>\\nvEarthWorldNormal = normalize(mat3(modelMatrix) * objectNormal);'
+      '#include <beginnormal_vertex>\nvEarthWorldNormal = normalize(mat3(modelMatrix) * objectNormal);'
     );
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <common>',
-      '#include <common>\\nuniform vec3 uEarthSunDirection;\\nvarying vec3 vEarthWorldNormal;'
+      '#include <common>\nuniform vec3 uEarthSunDirection;\nvarying vec3 vEarthWorldNormal;'
     );
-    const maskedEmissive = '#include <emissivemap_fragment>\\n'
+    const maskedEmissive = '#include <emissivemap_fragment>\n'
       + 'float earthDaylight = smoothstep(' + NIGHT_LIGHT_TWILIGHT_START.toFixed(2) + ', '
       + NIGHT_LIGHT_TWILIGHT_END.toFixed(2)
-      + ', dot(normalize(vEarthWorldNormal), normalize(uEarthSunDirection)));\\n'
+      + ', dot(normalize(vEarthWorldNormal), normalize(uEarthSunDirection)));\n'
       + 'totalEmissiveRadiance *= (1.0 - earthDaylight);';
     shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', maskedEmissive);
   };
