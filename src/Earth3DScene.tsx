@@ -4,7 +4,7 @@ import { dayNightSnapshot, solarEciDirection } from './daynight';
 import { applyEarthNightLightMask, makeNightLightsTexture } from './earthVisuals';
 import { formatIstDateTime } from './time';
 import { createSpaceEnvironment } from './solarSystem';
-import { fitCameraDistance, MOON_CAMERA_MARGIN, SYSTEM_CAMERA_MARGIN } from './earth3dMath';
+import { fitCameraDistance, MOON_CAMERA_MARGIN, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO } from './earth3dMath';
 import { disposeObjectResources, updateFootprint } from './earth3dGeometry';
 import './earth3d-upgrade.css';
 
@@ -35,7 +35,7 @@ function systemCameraDistance(width: number, height: number) {
   const moonRadius = earthRadius * (1737.4 / 6378.137);
   const moonDistance = earthRadius * (384400 / 6378.137);
   return Math.max(2, Math.min(2600,
-    fitCameraDistance(width, height, moonDistance + moonRadius, 42, SYSTEM_CAMERA_MARGIN)
+    fitCameraDistance(width, height, moonDistance * SYSTEM_DISPLAY_DISTANCE_RATIO + moonRadius, 42, SYSTEM_CAMERA_MARGIN)
   ));
 }
 
@@ -534,10 +534,9 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         earthSunUniform.value.set(sunVector.x, sunVector.z, sunVector.y).normalize();
         sun.position.copy(earthSunUniform.value).multiplyScalar(30);
         rim.position.copy(earthSunUniform.value).multiplyScalar(-14);
-        spaceEnvironment.update(simSeconds);
-        spaceEnvironment.group.visible = showSpaceEnvironmentRef.current;
-
         const mode = cameraModeRef.current;
+        spaceEnvironment.update(simSeconds, mode === 'SYSTEM' ? SYSTEM_DISPLAY_DISTANCE_RATIO : 1);
+        spaceEnvironment.group.visible = showSpaceEnvironmentRef.current;
         syncCameraDiagnostics();
         scene.fog = mode === 'SYSTEM' ? null : sceneFog;
         const s = cameraState.current;
@@ -662,12 +661,12 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         <div className="earth3d-left-hud">
           <div className="earth3d-hud-card"><small>POSITION / WGS84</small><b>{Number(current?.lla?.lat || 0).toFixed(3)}°</b><b>{Number(current?.lla?.lon || 0).toFixed(3)}°</b><span>ALT {Number(current?.lla?.alt || 0).toFixed(1)} km</span></div>
           <div className="earth3d-hud-card"><small>FLIGHT STATE</small><span>t+ {Number(seconds || 0).toFixed(1)} s</span><span>V {speed.toFixed(3)} km/s</span><span>{dayNight.isDay ? 'DAY SIDE' : 'NIGHT SIDE'} · {dayNight.localSolar}</span></div>
-          <div className="earth3d-hud-card"><small>PHYSICAL SCALE · REFERENCE VALUES</small><span>EARTH RADIUS 6,378.137 km (WGS-84 equatorial)</span><span>MOON RADIUS 1,737.4 km · 0.2727 R⊕</span><span>EARTH–MOON CENTRES 384,400 km · 60.3 R⊕ mean</span><span>SUN RADIUS 695,700 km · 109.2 R⊕</span><span>SUN DISTANCE 149.6 million km · 1 AU mean</span><span>SPACECRAFT SIZE IS EXAGGERATED FOR VISIBILITY</span><span>ORBIT {inclinationDeg.toFixed(2)}° inc · e {eccentricity.toFixed(4)}</span></div>
+          <div className="earth3d-hud-card"><small>PHYSICAL SCALE · REFERENCE VALUES</small><span>EARTH RADIUS 6,378.137 km (WGS-84 equatorial)</span><span>MOON RADIUS 1,737.4 km · 0.2727 R⊕</span><span>EARTH–MOON CENTRES 384,400 km · 60.3 R⊕ mean</span>{cameraMode === 'SYSTEM' && <span>SYSTEM DISPLAY: CENTRE SEPARATION COMPRESSED TO 8% (12.5×) FOR VISIBILITY; BODY RADII RETAINED; NOT TO SCALE</span>}<span>SUN RADIUS 695,700 km · 109.2 R⊕</span><span>SUN DISTANCE 149.6 million km · 1 AU mean</span><span>SPACECRAFT SIZE IS EXAGGERATED FOR VISIBILITY</span><span>ORBIT {inclinationDeg.toFixed(2)}° inc · e {eccentricity.toFixed(4)}</span></div>
           <div className="earth3d-hud-card"><small>ORBITAL ELEMENTS</small><span>RAAN {raanDeg.toFixed(2)}°</span><span>ARG PERIAPSIS {argumentOfPerigeeDeg.toFixed(2)}°</span><span>TRUE ANOMALY {trueAnomalyDeg.toFixed(2)}°</span><span>PERIOD {periodMin.toFixed(2)} min</span><span>RANGE FROM EARTH CENTRE {(6378.137 + Number(current?.lla?.alt ?? altitudeKm)).toFixed(2)} km</span></div>
         </div>
         <div className="earth3d-right-hud">
           <div className="earth3d-hud-card"><small>VISUAL LAYERS</small><label><input type="checkbox" checked={showFootprint} onChange={e => setShowFootprint(e.target.checked)} /> <span>Ground footprint</span></label><label><input type="checkbox" checked={showVectors} onChange={e => setShowVectors(e.target.checked)} /> <span>Velocity / nadir vectors</span></label><label><input type="checkbox" checked={showAxes} onChange={e => setShowAxes(e.target.checked)} /> <span>ECI axes</span></label></div>
-          <div className="earth3d-hud-card"><small>EARTH–MOON SYSTEM</small><label><input type="checkbox" checked={showSpaceEnvironment} onChange={e => setShowSpaceEnvironment(e.target.checked)} /> <span>Show Moon and lunar orbit</span></label><div className="earth3d-planet-select"><span>SPACECRAFT MODEL</span><select aria-label="Choose spacecraft model" value={selectedSatellite} onChange={e => setSelectedSatellite(e.target.value)}><option value="design">Current mission design</option><option value="cubesat1u">CubeSat 1U · 10 cm</option><option value="cubesat3u">CubeSat 3U · 34 cm</option><option value="cubesat6u">CubeSat 6U</option><option value="microsat">Microsatellite · reference</option><option value="iss">ISS · reference silhouette</option></select></div><span>Model choice changes the 3D silhouette only; orbit and telemetry remain the selected mission state.</span></div>
+          <div className="earth3d-hud-card"><small>EARTH–MOON SYSTEM</small>{cameraMode === 'SYSTEM' && <span className="earth3d-scale-warning">SCHEMATIC VIEW · 12.5× DISTANCE COMPRESSION</span>}<label><input type="checkbox" checked={showSpaceEnvironment} onChange={e => setShowSpaceEnvironment(e.target.checked)} /> <span>Show Moon and lunar orbit</span></label><div className="earth3d-planet-select"><span>SPACECRAFT MODEL</span><select aria-label="Choose spacecraft model" value={selectedSatellite} onChange={e => setSelectedSatellite(e.target.value)}><option value="design">Current mission design</option><option value="cubesat1u">CubeSat 1U · 10 cm</option><option value="cubesat3u">CubeSat 3U · 34 cm</option><option value="cubesat6u">CubeSat 6U</option><option value="microsat">Microsatellite · reference</option><option value="iss">ISS · reference silhouette</option></select></div><span>Model choice changes the 3D silhouette only; orbit and telemetry remain the selected mission state.</span></div>
           <div className="earth3d-hud-card"><small>SOLAR GEOMETRY</small><span>SUBSOLAR {dayNight.subsolarLat.toFixed(1)}°, {dayNight.subsolarLon.toFixed(1)}°</span><span>{dayNight.timeZone}</span></div>
         </div>
         <div className="earth3d-bottom-bar">
