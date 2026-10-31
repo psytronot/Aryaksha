@@ -138,20 +138,21 @@
     "name": "Earth 3D space environment and mobile mission-control view",
     "viewport": "mobile",
     "covers": [
-      "Moon model and Earth-Moon orbit visible",
-      "planet layer visibility control",
-      "Moon camera preset",
-      "mission-control telemetry layout",
-      "mobile visualization controls"
+      "Earth-Moon mean-distance system framing",
+      "Moon orbit visibility",
+      "pinch-to-zoom and drag camera controls",
+      "satellite model selector",
+      "selected spacecraft telemetry remains tied to the propagated state"
     ],
-    "description": "Verifies the expanded 3D view exposes the Moon preset, optional planetary layer, and responsive mission-control overlays without replacing the tracked satellite model.",
+    "description": "Verifies the Earth-Moon-only 3D view supports system framing, touch navigation, and model changes without changing the selected orbit or telemetry.",
     "steps": [
-      "Open the Earth 3D workspace",
-      "Choose the MOON camera preset and verify the view follows the Moon",
-      "Toggle the solar-system layer off and on",
-      "Return to TRACK and verify the selected spacecraft telemetry remains visible"
+      "Open the Earth 3D workspace on a mobile viewport",
+      "Choose SYSTEM and verify Earth and Moon are both framed with the lunar orbit visible",
+      "Use a two-finger pinch gesture to zoom in and out, then drag to orbit the camera",
+      "Change the spacecraft model from the selector and verify its silhouette changes",
+      "Return to TRACK and verify spacecraft telemetry and propagated orbit remain unchanged"
     ],
-    "expected": "Moon focus and solar-system layer controls respond, then TRACK returns to the propagated spacecraft while the telemetry and mission-control overlays remain available."
+    "expected": "The Earth-Moon system is framed, pinch and drag controls respond, spacecraft silhouette changes on selection, and the selected mission state and telemetry remain unchanged."
   },
   {
     "name": "Mission analysis backend returns validated orbital metrics",
@@ -160,16 +161,19 @@
       "mission analysis navigation",
       "backend orbital calculation",
       "orbital period and apsides display",
+      "600-second TAI propagation",
+      "EME2000 position and velocity state vectors",
       "engine adapter fidelity disclosure"
     ],
-    "description": "Verifies the backend returns numerical metrics from the configured Orekit engine and fails visibly rather than silently substituting a different propagation engine.",
+    "description": "Verifies mission analysis uses the independently hosted Orekit engine and clearly discloses its two-body fidelity.",
     "steps": [
       "Open Mission Analysis",
       "Use the default orbit inputs",
+      "Set propagation time to 600 seconds",
       "Click Run analysis",
-      "Inspect the period, periapsis, apoapsis and engine integration status"
+      "Inspect the orbital metrics, propagated epoch, EME2000 position/velocity and engine integration status"
     ],
-    "expected": "Finite orbital metrics appear; the page identifies Orekit 13.1.9 and the orekit-http adapter and discloses the current numerical two-body model. If the Orekit service is not configured or is unavailable, the API returns a clear 503/502 error and never returns a fallback result mislabeled as Orekit."
+    "expected": "Finite orbital metrics and state vectors appear; Orekit 13.1.9 and the connected Orekit HTTP adapter are identified; the TAI epoch advances by 600 seconds; the page discloses two-body fidelity and that GMAT/STK/FreeFlyer remain future adapters."
   },
   {
     "name": "Mission analysis rejects an Earth-intersecting orbit",
