@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { NIGHT_LIGHT_TWILIGHT_END, NIGHT_LIGHT_TWILIGHT_START } from './earth3dMath';
 
 export function makeNightLightsTexture(width = 1024, height = 512) {
   const canvas = document.createElement('canvas');
@@ -28,4 +29,32 @@ export function makeNightLightsTexture(width = 1024, height = 512) {
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
+}
+
+export function applyEarthNightLightMask(
+  material: THREE.MeshPhongMaterial,
+  sunDirectionUniform: { value: THREE.Vector3 }
+) {
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uEarthSunDirection = sunDirectionUniform;
+    shader.vertexShader = shader.vertexShader.replace(
+      '#include <common>',
+      '#include <common>\\nvarying vec3 vEarthWorldNormal;'
+    );
+    shader.vertexShader = shader.vertexShader.replace(
+      '#include <beginnormal_vertex>',
+      '#include <beginnormal_vertex>\\nvEarthWorldNormal = normalize(mat3(modelMatrix) * objectNormal);'
+    );
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <common>',
+      '#include <common>\\nuniform vec3 uEarthSunDirection;\\nvarying vec3 vEarthWorldNormal;'
+    );
+    const maskedEmissive = '#include <emissivemap_fragment>\\n'
+      + 'float earthDaylight = smoothstep(' + NIGHT_LIGHT_TWILIGHT_START.toFixed(2) + ', '
+      + NIGHT_LIGHT_TWILIGHT_END.toFixed(2)
+      + ', dot(normalize(vEarthWorldNormal), normalize(uEarthSunDirection)));\\n'
+      + 'totalEmissiveRadiance *= (1.0 - earthDaylight);';
+    shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', maskedEmissive);
+  };
+  material.customProgramCacheKey = () => 'earth-night-lights-terminator-v2';
 }
