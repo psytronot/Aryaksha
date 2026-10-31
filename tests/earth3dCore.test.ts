@@ -23,15 +23,18 @@ describe('Earth 3D lighting, camera and lunar geometry', () => {
     const material = new THREE.MeshPhongMaterial();
     const sunUniform = { value: new THREE.Vector3(1, 0, 0) };
     applyEarthNightLightMask(material, sunUniform);
+    const newline = String.fromCharCode(10);
     const shader: any = {
       uniforms: {},
-      vertexShader: '#include <common>\nvoid main() {\n#include <beginnormal_vertex>\n}',
-      fragmentShader: '#include <common>\nvoid main() {\n#include <emissivemap_fragment>\n}'
+      vertexShader: ['#include <common>', 'void main() {', '#include <beginnormal_vertex>', '}'].join(newline),
+      fragmentShader: ['#include <common>', 'void main() {', '#include <emissivemap_fragment>', '}'].join(newline)
     };
     const compile = material.onBeforeCompile as unknown as (shader: any, renderer: any) => void;
     compile(shader, {});
     expect(shader.uniforms.uEarthSunDirection).toBe(sunUniform);
-    expect(shader.vertexShader).toContain('vEarthWorldNormal');
+    expect(shader.vertexShader).toContain(newline + 'vEarthWorldNormal');
+    expect(shader.vertexShader).not.toContain(String.fromCharCode(92) + 'n');
+    expect(shader.fragmentShader).not.toContain(String.fromCharCode(92) + 'n');
     expect(shader.fragmentShader).toContain('uniform vec3 uEarthSunDirection');
     expect(shader.fragmentShader).toContain('smoothstep(' + NIGHT_LIGHT_TWILIGHT_START.toFixed(2) + ', ' + NIGHT_LIGHT_TWILIGHT_END.toFixed(2));
     expect(shader.fragmentShader).toContain('totalEmissiveRadiance *= (1.0 - earthDaylight)');
