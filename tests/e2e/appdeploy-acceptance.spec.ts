@@ -1,4 +1,4 @@
-import { expect, test, devices, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const issTle = [
   'ISS (ZARYA)',
@@ -50,7 +50,6 @@ async function loadTrackingAndPredict(page: Page) {
 }
 
 test.describe('Desktop AppDeploy acceptance scenarios', () => {
-  test.use({ ...devices['Desktop Chrome'] });
 
   test('1. Complete student engineering workflow with verification', async ({ page }) => {
     await openLab(page);
@@ -169,7 +168,14 @@ test.describe('Desktop AppDeploy acceptance scenarios', () => {
 });
 
 test.describe('Mobile AppDeploy acceptance scenarios', () => {
-  test.use({ ...devices['Pixel 7'] });
+  test.use({
+    viewport: { width: 412, height: 915 },
+    screen: { width: 412, height: 915 },
+    deviceScaleFactor: 2.625,
+    isMobile: true,
+    hasTouch: true,
+    userAgent: 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
+  });
 
   test('6. Mobile catalog selection, filtering and pass CSV export', async ({ page }) => {
     await page.clock.install({ time: new Date('2024-01-01T12:00:00.000Z') });
@@ -287,7 +293,6 @@ test.describe('Mobile AppDeploy acceptance scenarios', () => {
 });
 
 test.describe('Desktop AppDeploy mission-analysis acceptance', () => {
-  test.use({ ...devices['Desktop Chrome'] });
 
   test('8. Mission Analysis returns validated 600-second Orekit metrics and state vectors', async ({ page }) => {
     test.setTimeout(120_000);
