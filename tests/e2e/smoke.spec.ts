@@ -124,7 +124,7 @@ test('invalid engineering orbit inputs produce a visible FAIL in Verification', 
   await page.goto('/');
   await page.getByRole('button', { name: 'Orbit & Maneuver', exact: true }).click();
 
-  await page.locator('.orbit-layout .field-grid label.field').filter({ hasText: 'INCLINATION' }).locator('input').fill('181');
+  await page.getByLabel('INCLINATION', { exact: true }).fill('181');
   await page.getByRole('button', { name: 'Verification', exact: true }).click();
 
   const inputCheck = page.locator('.verification-row').filter({ hasText: 'Engineering inputs valid' });
