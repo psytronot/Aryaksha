@@ -195,13 +195,17 @@ test('Earth 3D SYSTEM and MOON reset, pinch, resize and drag preserve fitted fra
   const moonRadius = earthRadius * (1737.4 / 6378.137);
   const moonDistance = earthRadius * (384400 / 6378.137);
   const systemExtent = moonDistance + moonRadius;
-  const systemFit = (width: number, height: number) => fitCameraDistance(width, height, systemExtent, 42, SYSTEM_CAMERA_MARGIN);
-  const moonFit = (width: number, height: number) => fitCameraDistance(width, height, moonRadius, 42, MOON_CAMERA_MARGIN);
+  const fitForContainer = async (extent: number, margin: number) => {
+    const size = await container.evaluate(element => ({ width: element.clientWidth, height: element.clientHeight }));
+    return fitCameraDistance(size.width, size.height, extent, 42, margin);
+  };
+  const systemFit = () => fitForContainer(systemExtent, SYSTEM_CAMERA_MARGIN);
+  const moonFit = () => fitForContainer(moonRadius, MOON_CAMERA_MARGIN);
 
   await modes.getByRole('button', { name: 'SYSTEM', exact: true }).click();
   await expect(container).toHaveAttribute('data-camera-mode', 'SYSTEM');
   await expect.poll(readDistance).toBeGreaterThan(500);
-  const portraitSystemFit = systemFit(390, 844);
+  const portraitSystemFit = await systemFit();
   expect(await readDistance()).toBeCloseTo(portraitSystemFit, 1);
   await modes.getByRole('button', { name: 'Reset camera framing', exact: true }).click();
   await expect.poll(readDistance).toBeCloseTo(portraitSystemFit, 1);
@@ -229,7 +233,7 @@ test('Earth 3D SYSTEM and MOON reset, pinch, resize and drag preserve fitted fra
   await expect.poll(readYaw).not.toBe(yawBeforeDrag);
 
   await page.setViewportSize({ width: 844, height: 390 });
-  const landscapeSystemFit = systemFit(844, 390);
+  const landscapeSystemFit = await systemFit();
   await expect.poll(readDistance).toBeLessThan(pinchedOut);
   expect((await readDistance()) / landscapeSystemFit).toBeCloseTo(zoomRatio, 2);
   await modes.getByRole('button', { name: 'Reset camera framing', exact: true }).click();
@@ -237,13 +241,14 @@ test('Earth 3D SYSTEM and MOON reset, pinch, resize and drag preserve fitted fra
 
   await modes.getByRole('button', { name: 'MOON', exact: true }).click();
   await expect(container).toHaveAttribute('data-camera-mode', 'MOON');
-  const landscapeMoonFit = moonFit(844, 390);
+  const landscapeMoonFit = await moonFit();
   await expect.poll(readDistance).toBeCloseTo(landscapeMoonFit, 1);
   await modes.getByRole('button', { name: 'Reset camera framing', exact: true }).click();
   await expect.poll(readDistance).toBeCloseTo(landscapeMoonFit, 1);
   await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(readDistance).toBeGreaterThan(landscapeMoonFit);
-  expect(await readDistance()).toBeCloseTo(moonFit(390, 844), 1);
+  const portraitMoonFit = await moonFit();
+  await expect.poll(readDistance).toBeCloseTo(portraitMoonFit, 1);
   expect(pageErrors).toEqual([]);
 });
 
@@ -267,7 +272,6 @@ test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without sh
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator('[aria-label="Camera modes"]').getByRole('button', { name: 'SYSTEM', exact: true }).click();
-  await page.locator('[aria-label="Camera modes"]').getByRole('button', { name: 'Reset camera framing', exact: true }).click();
   await page.waitForTimeout(400);
   const mobile = await page.screenshot({ fullPage: true });
   await test.info().attach('earth3d-mobile-system-390x844.png', { body: mobile, contentType: 'image/png' });
@@ -291,8 +295,7 @@ test('Earth 3D releases its WebGL context on unmount and remounts cleanly', asyn
     (window as any).__earth3dUnmountContext = context;
   });
 
-  await page.locator('.mission-top-nav')
-    .getByRole('button', { name: 'Mission', exact: true }).click();
+  await page.getByRole('button', { name: 'Satellite Tracking', exact: true }).click();
   await expect(canvas).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => Boolean((window as any).__earth3dUnmountContext?.isContextLost())), { timeout: 10000 }).toBe(true);
 
