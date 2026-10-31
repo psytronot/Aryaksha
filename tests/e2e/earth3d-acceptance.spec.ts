@@ -214,22 +214,48 @@ test('Earth 3D SYSTEM and MOON reset, pinch, resize and drag preserve fitted fra
   expect(box).not.toBeNull();
   const x = box!.x + box!.width * 0.4;
   const y = box!.y + box!.height * 0.5;
-  await canvas.dispatchEvent('pointerdown', { pointerId: 11, pointerType: 'touch', clientX: x - 40, clientY: y });
-  await canvas.dispatchEvent('pointerdown', { pointerId: 12, pointerType: 'touch', clientX: x + 40, clientY: y });
-  await canvas.dispatchEvent('pointermove', { pointerId: 12, pointerType: 'touch', clientX: x + 120, clientY: y });
+  // Exercise real Chromium touch input (which generates PointerEvents), not synthetic pointer dispatch.
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 2 });
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [
+      { id: 11, x: x - 40, y, radiusX: 6, radiusY: 6, force: 1 },
+      { id: 12, x: x + 40, y, radiusX: 6, radiusY: 6, force: 1 }
+    ]
+  });
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [
+      { id: 11, x: x - 40, y, radiusX: 6, radiusY: 6, force: 1 },
+      { id: 12, x: x + 120, y, radiusX: 6, radiusY: 6, force: 1 }
+    ]
+  });
   await expect.poll(readDistance).toBeLessThan(portraitSystemFit - 1);
   const pinchedIn = await readDistance();
-  await canvas.dispatchEvent('pointermove', { pointerId: 12, pointerType: 'touch', clientX: x + 40, clientY: y });
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [
+      { id: 11, x: x - 40, y, radiusX: 6, radiusY: 6, force: 1 },
+      { id: 12, x: x + 40, y, radiusX: 6, radiusY: 6, force: 1 }
+    ]
+  });
   await expect.poll(readDistance).toBeGreaterThan(pinchedIn + 1);
   const pinchedOut = await readDistance();
   const zoomRatio = pinchedOut / portraitSystemFit;
-  await canvas.dispatchEvent('pointerup', { pointerId: 12, pointerType: 'touch', clientX: x + 40, clientY: y });
-  await canvas.dispatchEvent('pointerup', { pointerId: 11, pointerType: 'touch', clientX: x - 40, clientY: y });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
 
   const yawBeforeDrag = await readYaw();
-  await canvas.dispatchEvent('pointerdown', { pointerId: 13, pointerType: 'touch', clientX: x, clientY: y });
-  await canvas.dispatchEvent('pointermove', { pointerId: 13, pointerType: 'touch', clientX: x + 45, clientY: y + 10 });
-  await canvas.dispatchEvent('pointerup', { pointerId: 13, pointerType: 'touch', clientX: x + 45, clientY: y + 10 });
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [{ id: 13, x, y, radiusX: 6, radiusY: 6, force: 1 }]
+  });
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [{ id: 13, x: x + 45, y: y + 10, radiusX: 6, radiusY: 6, force: 1 }]
+  });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await cdp.detach();
   await expect.poll(readYaw).not.toBe(yawBeforeDrag);
 
   await page.setViewportSize({ width: 844, height: 390 });
@@ -265,16 +291,25 @@ test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without sh
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
   await expect(page.locator('.earth3d-canvas canvas')).toBeVisible();
-  await page.locator('[aria-label="Camera modes"]').getByRole('button', { name: 'EARTH', exact: true }).click();
+  const cameraModes = page.locator('[aria-label="Camera modes"]');
+  await cameraModes.getByRole('button', { name: 'EARTH', exact: true }).click();
   await page.waitForTimeout(400);
-  const desktop = await page.screenshot();
-  await test.info().attach('earth3d-desktop-1536x1024.png', { body: desktop, contentType: 'image/png' });
+  const desktopPath = test.info().outputPath('earth3d-desktop-earth-1536x1024.png');
+  await page.screenshot({ path: desktopPath });
+  await test.info().attach('earth3d-desktop-earth-1536x1024.png', { path: desktopPath, contentType: 'image/png' });
+
+  await cameraModes.getByRole('button', { name: 'MOON', exact: true }).click();
+  await page.waitForTimeout(400);
+  const moonPath = test.info().outputPath('earth3d-desktop-moon-1536x1024.png');
+  await page.screenshot({ path: moonPath });
+  await test.info().attach('earth3d-desktop-moon-1536x1024.png', { path: moonPath, contentType: 'image/png' });
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.locator('[aria-label="Camera modes"]').getByRole('button', { name: 'SYSTEM', exact: true }).click();
+  await cameraModes.getByRole('button', { name: 'SYSTEM', exact: true }).click();
   await page.waitForTimeout(400);
-  const mobile = await page.screenshot({ fullPage: true });
-  await test.info().attach('earth3d-mobile-system-390x844.png', { body: mobile, contentType: 'image/png' });
+  const mobilePath = test.info().outputPath('earth3d-mobile-system-390x844.png');
+  await page.screenshot({ path: mobilePath });
+  await test.info().attach('earth3d-mobile-system-390x844.png', { path: mobilePath, contentType: 'image/png' });
 
   expect(pageErrors).toEqual([]);
   expect(shaderErrors).toEqual([]);
