@@ -126,3 +126,15 @@ test('Earth 3D desktop profiling records WebGL draw submission timings and resou
   expect(metrics.canvas?.bufferWidth).toBeGreaterThan(0);
   expect(metrics.canvas?.bufferHeight).toBeGreaterThan(0);
 });
+
+
+test('Spacecraft engineering inputs expose explicit accessible labels', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Spacecraft', exact: true }).click();
+
+  for (const label of ['TX POWER', 'FREQUENCY', 'THRUST', 'THERMAL AREA', 'BATTERY EFFICIENCY', 'BATTERY DoD']) {
+    await expect(page.getByLabel(label, { exact: true })).toBeVisible();
+  }
+
+  await expect(page.getByRole('button', { name: 'Explain Communications Link Budget' })).toBeVisible();
+});
