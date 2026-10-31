@@ -52,6 +52,7 @@ test('Earth 3D controls remain usable on a narrow mobile viewport', async ({ pag
 
 test('Earth 3D camera controls are keyboard-operable and fit a mobile viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   const pageErrors: string[] = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/');
@@ -210,10 +211,14 @@ test('Earth 3D SYSTEM and MOON reset, pinch, resize and drag preserve fitted fra
   await modes.getByRole('button', { name: 'Reset camera framing', exact: true }).click();
   await expect.poll(readDistance).toBeCloseTo(portraitSystemFit, 1);
 
+  await canvas.scrollIntoViewIfNeeded();
+  await expect(canvas).toBeInViewport();
   const box = await canvas.boundingBox();
   expect(box).not.toBeNull();
   const x = box!.x + box!.width * 0.4;
   const y = box!.y + box!.height * 0.5;
+  expect(y).toBeGreaterThan(0);
+  expect(y).toBeLessThan(844);
   // Exercise real Chromium touch input (which generates PointerEvents), not synthetic pointer dispatch.
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 2 });
@@ -287,8 +292,10 @@ test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without sh
   });
 
   await page.setViewportSize({ width: 1536, height: 1024 });
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   await page.goto('/');
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await page.locator('.earth3d-canvas canvas').scrollIntoViewIfNeeded();
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
   await expect(page.locator('.earth3d-canvas canvas')).toBeVisible();
   const cameraModes = page.locator('[aria-label="Camera modes"]');
@@ -306,6 +313,7 @@ test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without sh
 
   await page.setViewportSize({ width: 390, height: 844 });
   await cameraModes.getByRole('button', { name: 'SYSTEM', exact: true }).click();
+  await page.locator('.earth3d-canvas canvas').scrollIntoViewIfNeeded();
   await page.waitForTimeout(400);
   const mobilePath = test.info().outputPath('earth3d-mobile-system-390x844.png');
   await page.screenshot({ path: mobilePath });
