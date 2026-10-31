@@ -32,7 +32,7 @@ async function waitForOrekit(page: Page) {
   let lastStatus = 'no response';
   while (Date.now() < deadline) {
     try {
-      const response = await page.request.get('https://aryaksha-orekit.onrender.com/api/v1/health', { timeout: 12_000 });
+      const response = await page.context().request.get('https://aryaksha-orekit.onrender.com/api/v1/health', { timeout: 12_000 });
       lastStatus = `HTTP ${response.status()}`;
       if (response.ok()) {
         console.log(`Orekit health ready after ${Date.now() - started} ms (${lastStatus})`);
@@ -138,7 +138,7 @@ test.describe('Desktop AppDeploy acceptance scenarios', () => {
     await epoch.selectOption('vernal');
     expect(Math.abs(await readLatitude())).toBeLessThan(0.05);
     await expect(terminator).toHaveCount(2);
-    await expect(groundTrack.first()).toHaveAttribute('d', /^M /g);
+    await expect(groundTrack.first()).toHaveAttribute('d', /^M /);
 
     await epoch.selectOption('summer');
     const summerLatitude = await readLatitude();
@@ -309,9 +309,11 @@ test.describe('Mobile AppDeploy acceptance scenarios', () => {
     await page.getByRole('spinbutton', { name: 'Orbit eccentricity' }).fill('0.99');
     await page.getByRole('button', { name: 'Run analysis', exact: true }).click();
 
-    const error = page.getByText(/Network Error|periapsis.*intersects Earth|intersects Earth.*periapsis/i).first();
-    await expect(error).toBeVisible({ timeout: 120_000 });
-    await expect(error).toContainText(/periapsis.*intersects Earth|intersects Earth.*periapsis/i);
+    await expect.poll(async () => {
+      const text = await page.locator('body').innerText();
+      return /Network Error|periapsis.*intersects Earth|intersects Earth.*periapsis/i.test(text);
+    }, { timeout: 120_000 }).toBe(true);
+    await expect(page.getByText(/periapsis.*intersects Earth|intersects Earth.*periapsis/i)).toBeVisible();
     await expect(page.getByText(/Analysis completed/)).toHaveCount(0);
   });
 });
@@ -327,8 +329,11 @@ test.describe('Desktop AppDeploy mission-analysis acceptance', () => {
     await page.getByRole('spinbutton', { name: 'Propagation time in seconds' }).fill('600');
     await page.getByRole('button', { name: 'Run analysis', exact: true }).click();
 
-    await expect(page.getByText(/Analysis completed · Orekit|Network Error|Orekit service/i).first()).toBeVisible({ timeout: 120_000 });
-    await expect(page.getByText(/Analysis completed · Orekit/)).toBeVisible({ timeout: 1_000 });
+    await expect.poll(async () => {
+      const text = await page.locator('body').innerText();
+      return /Analysis completed · Orekit|Network Error|Orekit service returned|Orekit service timed out/i.test(text);
+    }, { timeout: 120_000 }).toBe(true);
+    await expect(page.getByText(/Analysis completed · Orekit/)).toBeVisible();
     await expect(page.getByText(/Propagated state · 600\.0 s/)).toBeVisible();
     await expect(page.getByText(/Frame EME2000/)).toBeVisible();
     await expect(page.getByText('Connected: this result came from the Orekit numerical-propagation service.')).toBeVisible();
