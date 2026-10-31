@@ -262,7 +262,7 @@ test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without sh
   await expect(page.locator('.earth3d-canvas canvas')).toBeVisible();
   await page.locator('[aria-label="Camera modes"]').getByRole('button', { name: 'EARTH', exact: true }).click();
   await page.waitForTimeout(400);
-  const desktop = await page.screenshot({ fullPage: true });
+  const desktop = await page.screenshot();
   await test.info().attach('earth3d-desktop-1536x1024.png', { body: desktop, contentType: 'image/png' });
 
   await page.setViewportSize({ width: 390, height: 844 });
