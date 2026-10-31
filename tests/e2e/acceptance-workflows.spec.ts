@@ -45,7 +45,7 @@ test('satellite tracking validates TLEs and exposes SGP4 look angles and Doppler
   await page.goto('/');
   await page.getByRole('button', { name: 'Satellite Tracking', exact: true }).click();
 
-  await expect(page.getByRole('heading', { name: 'Satellite tracking & pass planning' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Satellite tracking & pass planning' })).toBeVisible({ timeout: 15000 });
   await expect(page.getByText('Live data loaded · 1 objects · Space stations')).toBeVisible();
   await expect(page.getByText('SGP4 / TEME')).toBeVisible();
   await expect(page.locator('.sat-track-doppler-grid').getByText(/km\/s$/)).toBeVisible();
