@@ -136,5 +136,7 @@ test('Spacecraft engineering inputs expose explicit accessible labels', async ({
     await expect(page.getByLabel(label, { exact: true })).toBeVisible();
   }
 
-  await expect(page.getByRole('button', { name: 'Explain Communications Link Budget' })).toBeVisible();
+  const communicationsHelp = page.getByRole('button', { name: 'Explain Communications Link Budget' });
+  await expect(communicationsHelp).toHaveCount(3);
+  await expect(communicationsHelp.first()).toBeVisible();
 });
