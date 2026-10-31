@@ -35,25 +35,28 @@ export function applyEarthNightLightMask(
   material: THREE.MeshPhongMaterial,
   sunDirectionUniform: { value: THREE.Vector3 }
 ) {
+  const newline = String.fromCharCode(10);
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uEarthSunDirection = sunDirectionUniform;
     shader.vertexShader = shader.vertexShader.replace(
       '#include <common>',
-      '#include <common>\nvarying vec3 vEarthWorldNormal;'
+      ['#include <common>', 'varying vec3 vEarthWorldNormal;'].join(newline)
     );
     shader.vertexShader = shader.vertexShader.replace(
       '#include <beginnormal_vertex>',
-      '#include <beginnormal_vertex>\nvEarthWorldNormal = normalize(mat3(modelMatrix) * objectNormal);'
+      ['#include <beginnormal_vertex>', 'vEarthWorldNormal = normalize(mat3(modelMatrix) * objectNormal);'].join(newline)
     );
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <common>',
-      '#include <common>\nuniform vec3 uEarthSunDirection;\nvarying vec3 vEarthWorldNormal;'
+      ['#include <common>', 'uniform vec3 uEarthSunDirection;', 'varying vec3 vEarthWorldNormal;'].join(newline)
     );
-    const maskedEmissive = '#include <emissivemap_fragment>\n'
-      + 'float earthDaylight = smoothstep(' + NIGHT_LIGHT_TWILIGHT_START.toFixed(2) + ', '
-      + NIGHT_LIGHT_TWILIGHT_END.toFixed(2)
-      + ', dot(normalize(vEarthWorldNormal), normalize(uEarthSunDirection)));\n'
-      + 'totalEmissiveRadiance *= (1.0 - earthDaylight);';
+    const maskedEmissive = [
+      '#include <emissivemap_fragment>',
+      'float earthDaylight = smoothstep(' + NIGHT_LIGHT_TWILIGHT_START.toFixed(2) + ', '
+        + NIGHT_LIGHT_TWILIGHT_END.toFixed(2)
+        + ', dot(normalize(vEarthWorldNormal), normalize(uEarthSunDirection)));',
+      'totalEmissiveRadiance *= (1.0 - earthDaylight);'
+    ].join(newline);
     shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', maskedEmissive);
   };
   material.customProgramCacheKey = () => 'earth-night-lights-terminator-v2';
