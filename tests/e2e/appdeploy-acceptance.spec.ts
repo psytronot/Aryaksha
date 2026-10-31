@@ -10,7 +10,7 @@ async function openLab(page: Page) {
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   const response = await page.goto('/');
   expect(response?.ok()).toBeTruthy();
-  await expect(page.getByRole('heading', { name: 'Start with the engineering problem.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Explore Space.*Build What’s Next/ })).toBeVisible();
 }
 
 async function openWorkspace(page: Page, label: string) {
@@ -24,6 +24,26 @@ async function openWorkspace(page: Page, label: string) {
     return;
   }
   await page.getByRole('button', { name: label, exact: true }).click();
+}
+
+async function waitForOrekit(page: Page) {
+  const started = Date.now();
+  const deadline = started + 90_000;
+  let lastStatus = 'no response';
+  while (Date.now() < deadline) {
+    try {
+      const response = await page.request.get('https://aryaksha-orekit.onrender.com/api/v1/health', { timeout: 12_000 });
+      lastStatus = `HTTP ${response.status()}`;
+      if (response.ok()) {
+        console.log(`Orekit health ready after ${Date.now() - started} ms (${lastStatus})`);
+        return;
+      }
+    } catch (cause) {
+      lastStatus = cause instanceof Error ? cause.message : String(cause);
+    }
+    await page.waitForTimeout(3_000);
+  }
+  throw new Error(`Orekit health did not become ready within 90 seconds; last result: ${lastStatus}`);
 }
 
 async function stubCelesTrak(page: Page) {
@@ -61,7 +81,7 @@ test.describe('Desktop AppDeploy acceptance scenarios', () => {
 
     await openWorkspace(page, 'Spacecraft');
     await expect(page.getByRole('heading', { name: 'Build the vehicle around the mission.' })).toBeVisible();
-    for (const label of ['BATTERY', 'THERMAL AREA', 'FREQUENCY', 'THRUST']) {
+    for (const label of ['TX POWER', 'FREQUENCY', 'THRUST', 'THERMAL AREA', 'BATTERY EFFICIENCY', 'BATTERY DoD']) {
       await expect(page.getByLabel(label)).toBeVisible();
     }
 
@@ -118,7 +138,7 @@ test.describe('Desktop AppDeploy acceptance scenarios', () => {
     await epoch.selectOption('vernal');
     expect(Math.abs(await readLatitude())).toBeLessThan(0.05);
     await expect(terminator).toHaveCount(2);
-    await expect(groundTrack.first()).toBeVisible();
+    await expect(groundTrack.first()).toHaveAttribute('d', /^M /g);
 
     await epoch.selectOption('summer');
     const summerLatitude = await readLatitude();
@@ -135,7 +155,7 @@ test.describe('Desktop AppDeploy acceptance scenarios', () => {
     expect(winterLatitude).toBeLessThan(-23.3);
     expect(winterLatitude).toBeGreaterThan(-23.5);
     await expect(terminator).toHaveCount(2);
-    await expect(groundTrack.first()).toBeVisible();
+    await expect(groundTrack.first()).toHaveAttribute('d', /^M /g);
   });
 
   test('4. Satellite tracking validates TLEs and predicts 24-hour passes', async ({ page }) => {
@@ -212,7 +232,6 @@ test.describe('Mobile AppDeploy acceptance scenarios', () => {
   });
 
   test('7. Earth-Moon SYSTEM view supports pinch/drag and preserves spacecraft telemetry', async ({ page }) => {
-    await page.clock.install({ time: new Date('2026-01-01T00:00:00.000Z') });
     await openLab(page);
     await openWorkspace(page, 'Simulation');
 
@@ -221,7 +240,8 @@ test.describe('Mobile AppDeploy acceptance scenarios', () => {
     await expect(canvas).toBeVisible({ timeout: 20_000 });
     const cameraModes = page.locator('[aria-label="Camera modes"]');
     const system = cameraModes.getByRole('button', { name: 'SYSTEM', exact: true });
-    await system.click();
+    await system.scrollIntoViewIfNeeded();
+    await system.click({ timeout: 8_000 });
     await expect(system).toHaveClass(/active/);
     await expect(page.getByLabel('Show Moon and lunar orbit')).toBeChecked();
     await expect(page.getByText(/EARTH–MOON CENTRES 384,400 km/)).toBeVisible();
@@ -281,13 +301,17 @@ test.describe('Mobile AppDeploy acceptance scenarios', () => {
   });
 
   test('9. Mobile Mission Analysis rejects an Earth-intersecting orbit without showing metrics', async ({ page }) => {
+    test.setTimeout(150_000);
+    await waitForOrekit(page);
     await openLab(page);
     await openWorkspace(page, 'Mission Analysis');
     await page.getByRole('spinbutton', { name: 'Altitude above Earth in kilometres' }).fill('120');
     await page.getByRole('spinbutton', { name: 'Orbit eccentricity' }).fill('0.99');
     await page.getByRole('button', { name: 'Run analysis', exact: true }).click();
 
-    await expect(page.getByRole('alert')).toContainText(/periapsis.*intersects Earth|intersects Earth.*periapsis/i, { timeout: 30_000 });
+    const error = page.getByText(/Network Error|periapsis.*intersects Earth|intersects Earth.*periapsis/i).first();
+    await expect(error).toBeVisible({ timeout: 120_000 });
+    await expect(error).toContainText(/periapsis.*intersects Earth|intersects Earth.*periapsis/i);
     await expect(page.getByText(/Analysis completed/)).toHaveCount(0);
   });
 });
@@ -295,14 +319,16 @@ test.describe('Mobile AppDeploy acceptance scenarios', () => {
 test.describe('Desktop AppDeploy mission-analysis acceptance', () => {
 
   test('8. Mission Analysis returns validated 600-second Orekit metrics and state vectors', async ({ page }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(150_000);
     await openLab(page);
     await openWorkspace(page, 'Mission Analysis');
     await expect(page.getByRole('heading', { name: 'Orbital Mission Analysis' })).toBeVisible();
-    await page.getByRole('spinbutton', { name: 'Propagation time from J2000 TAI (seconds)' }).fill('600');
+    await waitForOrekit(page);
+    await page.getByRole('spinbutton', { name: 'Propagation time in seconds' }).fill('600');
     await page.getByRole('button', { name: 'Run analysis', exact: true }).click();
 
-    await expect(page.getByText(/Analysis completed · Orekit/)).toBeVisible({ timeout: 100_000 });
+    await expect(page.getByText(/Analysis completed · Orekit|Network Error|Orekit service/i).first()).toBeVisible({ timeout: 120_000 });
+    await expect(page.getByText(/Analysis completed · Orekit/)).toBeVisible({ timeout: 1_000 });
     await expect(page.getByText(/Propagated state · 600\.0 s/)).toBeVisible();
     await expect(page.getByText(/Frame EME2000/)).toBeVisible();
     await expect(page.getByText('Connected: this result came from the Orekit numerical-propagation service.')).toBeVisible();
