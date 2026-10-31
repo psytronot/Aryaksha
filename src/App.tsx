@@ -887,8 +887,15 @@ function ToolsView() {
 }
 
 function Card({ title, icon, children }: { title:string; icon:React.ReactNode; children:React.ReactNode }) { return <section data-context-label={title} className="card"><div className="card-head"><span>{icon}</span><b>{title}</b></div>{children}</section>; }
-function Field({ label, value, unit, type='text', onChange }: { label:string; value:string|number; unit?:string; type?:string; onChange:(v:string)=>void }) { return <label data-context-label={label} className="field"><span><span className="field-label">{label}<HelpTip label={label} /></span><em>{unit || ''}</em></span><input type={type} value={value} onChange={e=>onChange(e.target.value)} /></label>; }
-function SelectField({ label, value, options, onChange }: { label:string; value:string; options:string[]; onChange:(v:string)=>void }) { return <label data-context-label={label} className="field"><span><span className="field-label">{label}<HelpTip label={label} /></span></span><select value={value} onChange={e=>onChange(e.target.value)}>{options.map(x=><option key={x}>{x}</option>)}</select></label>; }
+function fieldControlId(label:string) { return `field-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`; }
+function Field({ label, value, unit, type='text', onChange }: { label:string; value:string|number; unit?:string; type?:string; onChange:(v:string)=>void }) {
+  const id = fieldControlId(label);
+  return <div data-context-label={label} className="field"><span><label htmlFor={id}><span className="field-label">{label}</span></label><em>{unit || ''}</em><HelpTip label={label} /></span><input id={id} aria-label={label} type={type} value={value} onChange={e=>onChange(e.target.value)} /></div>;
+}
+function SelectField({ label, value, options, onChange }: { label:string; value:string; options:string[]; onChange:(v:string)=>void }) {
+  const id = fieldControlId(label);
+  return <div data-context-label={label} className="field"><span><label htmlFor={id}><span className="field-label">{label}</span></label><HelpTip label={label} /></span><select id={id} aria-label={label} value={value} onChange={e=>onChange(e.target.value)}>{options.map(x=><option key={x}>{x}</option>)}</select></div>;
+}
 function Stat({ label, value }: { label:string; value:string }) { return <div data-context-label={label} className="stat-row"><span className="result-label">{label}<HelpTip label={label} /></span><b>{value}</b></div>; }
 function Flow({ items }: { items:string[] }) { return <div data-context-label={items.join(' → ')} className="flow">{items.map((item,i)=><div key={item}><span>{String(i+1).padStart(2,'0')}</span><b>{item}</b>{i<items.length-1&&<ArrowRight size={13}/>}</div>)}</div>; }
 function Telemetry({ label, value }: { label:string; value:string }) { return <div data-context-label={label} className="telemetry"><small className="result-label">{label}<HelpTip label={label} /></small><b>{value}</b></div>; }
