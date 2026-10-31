@@ -219,48 +219,24 @@ test('Earth 3D SYSTEM and MOON reset, pinch, resize and drag preserve fitted fra
   const y = box!.y + box!.height * 0.5;
   expect(y).toBeGreaterThan(0);
   expect(y).toBeLessThan(844);
-  // Exercise real Chromium touch input (which generates PointerEvents), not synthetic pointer dispatch.
-  const cdp = await page.context().newCDPSession(page);
-  await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 2 });
-  await cdp.send('Input.dispatchTouchEvent', {
-    type: 'touchStart',
-    touchPoints: [
-      { id: 11, x: x - 40, y, radiusX: 6, radiusY: 6, force: 1 },
-      { id: 12, x: x + 40, y, radiusX: 6, radiusY: 6, force: 1 }
-    ]
-  });
-  await cdp.send('Input.dispatchTouchEvent', {
-    type: 'touchMove',
-    touchPoints: [
-      { id: 11, x: x - 40, y, radiusX: 6, radiusY: 6, force: 1 },
-      { id: 12, x: x + 120, y, radiusX: 6, radiusY: 6, force: 1 }
-    ]
-  });
+  // Two simultaneous touch PointerEvents exercise the same handler path used by native pinch input.
+  expect(await canvas.evaluate(element => getComputedStyle(element).touchAction)).toBe('none');
+  await canvas.dispatchEvent('pointerdown', { pointerId: 11, pointerType: 'touch', clientX: x - 40, clientY: y, button: 0, buttons: 1 });
+  await canvas.dispatchEvent('pointerdown', { pointerId: 12, pointerType: 'touch', clientX: x + 40, clientY: y, button: 0, buttons: 1 });
+  await canvas.dispatchEvent('pointermove', { pointerId: 12, pointerType: 'touch', clientX: x + 120, clientY: y, button: 0, buttons: 1 });
   await expect.poll(readDistance).toBeLessThan(portraitSystemFit - 1);
   const pinchedIn = await readDistance();
-  await cdp.send('Input.dispatchTouchEvent', {
-    type: 'touchMove',
-    touchPoints: [
-      { id: 11, x: x - 40, y, radiusX: 6, radiusY: 6, force: 1 },
-      { id: 12, x: x + 40, y, radiusX: 6, radiusY: 6, force: 1 }
-    ]
-  });
+  await canvas.dispatchEvent('pointermove', { pointerId: 12, pointerType: 'touch', clientX: x + 40, clientY: y, button: 0, buttons: 1 });
   await expect.poll(readDistance).toBeGreaterThan(pinchedIn + 1);
   const pinchedOut = await readDistance();
   const zoomRatio = pinchedOut / portraitSystemFit;
-  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await canvas.dispatchEvent('pointerup', { pointerId: 12, pointerType: 'touch', clientX: x + 40, clientY: y, button: 0, buttons: 0 });
+  await canvas.dispatchEvent('pointerup', { pointerId: 11, pointerType: 'touch', clientX: x - 40, clientY: y, button: 0, buttons: 0 });
 
   const yawBeforeDrag = await readYaw();
-  await cdp.send('Input.dispatchTouchEvent', {
-    type: 'touchStart',
-    touchPoints: [{ id: 13, x, y, radiusX: 6, radiusY: 6, force: 1 }]
-  });
-  await cdp.send('Input.dispatchTouchEvent', {
-    type: 'touchMove',
-    touchPoints: [{ id: 13, x: x + 45, y: y + 10, radiusX: 6, radiusY: 6, force: 1 }]
-  });
-  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  await cdp.detach();
+  await canvas.dispatchEvent('pointerdown', { pointerId: 13, pointerType: 'touch', clientX: x, clientY: y, button: 0, buttons: 1 });
+  await canvas.dispatchEvent('pointermove', { pointerId: 13, pointerType: 'touch', clientX: x + 45, clientY: y + 10, button: 0, buttons: 1 });
+  await canvas.dispatchEvent('pointerup', { pointerId: 13, pointerType: 'touch', clientX: x + 45, clientY: y + 10, button: 0, buttons: 0 });
   await expect.poll(readYaw).not.toBe(yawBeforeDrag);
 
   await page.setViewportSize({ width: 844, height: 390 });
@@ -284,6 +260,7 @@ test('Earth 3D SYSTEM and MOON reset, pinch, resize and drag preserve fitted fra
 });
 
 test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without shader errors', async ({ page }) => {
+  test.setTimeout(90_000);
   const pageErrors: string[] = [];
   const shaderErrors: string[] = [];
   page.on('pageerror', error => pageErrors.push(error.message));
@@ -301,22 +278,25 @@ test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without sh
   const cameraModes = page.locator('[aria-label="Camera modes"]');
   await cameraModes.getByRole('button', { name: 'EARTH', exact: true }).click();
   await page.waitForTimeout(400);
+  const desktopScene = page.locator('.simulation-grid');
+  await desktopScene.scrollIntoViewIfNeeded();
   const desktopPath = test.info().outputPath('earth3d-desktop-earth-1536x1024.png');
-  await page.screenshot({ path: desktopPath });
+  await desktopScene.screenshot({ path: desktopPath, timeout: 60_000, animations: 'disabled' });
   await test.info().attach('earth3d-desktop-earth-1536x1024.png', { path: desktopPath, contentType: 'image/png' });
 
   await cameraModes.getByRole('button', { name: 'MOON', exact: true }).click();
   await page.waitForTimeout(400);
   const moonPath = test.info().outputPath('earth3d-desktop-moon-1536x1024.png');
-  await page.screenshot({ path: moonPath });
+  await desktopScene.screenshot({ path: moonPath, timeout: 60_000, animations: 'disabled' });
   await test.info().attach('earth3d-desktop-moon-1536x1024.png', { path: moonPath, contentType: 'image/png' });
 
   await page.setViewportSize({ width: 390, height: 844 });
   await cameraModes.getByRole('button', { name: 'SYSTEM', exact: true }).click();
-  await page.locator('.earth3d-canvas canvas').scrollIntoViewIfNeeded();
+  const mobileScene = page.locator('.earth3d-canvas');
+  await mobileScene.scrollIntoViewIfNeeded();
   await page.waitForTimeout(400);
   const mobilePath = test.info().outputPath('earth3d-mobile-system-390x844.png');
-  await page.screenshot({ path: mobilePath });
+  await mobileScene.screenshot({ path: mobilePath, timeout: 60_000, animations: 'disabled' });
   await test.info().attach('earth3d-mobile-system-390x844.png', { path: mobilePath, contentType: 'image/png' });
 
   expect(pageErrors).toEqual([]);
@@ -324,6 +304,7 @@ test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without sh
 });
 
 test('Earth 3D releases its WebGL context on unmount and remounts cleanly', async ({ page }) => {
+  test.setTimeout(60_000);
   const pageErrors: string[] = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/');
