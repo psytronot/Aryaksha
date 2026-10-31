@@ -7,7 +7,8 @@ import {
   NIGHT_LIGHT_TWILIGHT_START,
   nightLightFactor,
   moonSynchronousYaw,
-  SYSTEM_CAMERA_MARGIN
+  SYSTEM_CAMERA_MARGIN,
+  SYSTEM_DISPLAY_DISTANCE_RATIO
 } from '../src/earth3dMath';
 import { applyEarthNightLightMask } from '../src/earthVisuals';
 import { disposeObjectResources, updateFootprint } from '../src/earth3dGeometry';
@@ -58,12 +59,17 @@ describe('Earth 3D lighting, camera and lunar geometry', () => {
     const moonDistance = earthRadius * (384400 / 6378.137);
     const desktopMoon = fitCameraDistance(1536, 1024, moonRadius, 42, MOON_CAMERA_MARGIN);
     const portraitMoon = fitCameraDistance(390, 844, moonRadius, 42, MOON_CAMERA_MARGIN);
-    const desktopSystem = fitCameraDistance(1536, 1024, moonDistance + moonRadius, 42, SYSTEM_CAMERA_MARGIN);
-    const portraitSystem = fitCameraDistance(390, 844, moonDistance + moonRadius, 42, SYSTEM_CAMERA_MARGIN);
+    const displayMoonDistance = moonDistance * SYSTEM_DISPLAY_DISTANCE_RATIO;
+    const desktopSystem = fitCameraDistance(1536, 1024, displayMoonDistance + moonRadius, 42, SYSTEM_CAMERA_MARGIN);
+    const portraitSystem = fitCameraDistance(390, 844, displayMoonDistance + moonRadius, 42, SYSTEM_CAMERA_MARGIN);
+    expect(SYSTEM_DISPLAY_DISTANCE_RATIO).toBe(0.08);
+    expect(displayMoonDistance).toBeLessThan(moonDistance);
     expect(desktopMoon).toBeGreaterThan(6);
     expect(portraitMoon).toBeGreaterThan(desktopMoon);
+    expect(portraitSystem).toBeGreaterThan(portraitMoon);
     expect(portraitSystem).toBeGreaterThan(desktopSystem);
-    expect(portraitSystem).toBeLessThan(2600);
+    expect(portraitSystem).toBeLessThan(300);
+    expect(2 * Math.asin(earthRadius / portraitSystem)).toBeGreaterThan(0.05);
     expect(2 * Math.asin(moonRadius / portraitMoon) / (2 * Math.atan(Math.tan(21 * Math.PI / 180) * (390 / 844)))).toBeLessThanOrEqual(0.6);
   });
 });
