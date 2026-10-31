@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { moonSynchronousYaw } from './earth3dMath';
 
 export function createSpaceEnvironment(moonRadius: number, moonDistance: number) {
   const group = new THREE.Group();
@@ -58,7 +59,7 @@ export function createSpaceEnvironment(moonRadius: number, moonDistance: number)
       const phase = (elapsedSeconds / (27.321661 * 86400)) * Math.PI * 2;
       moon.position.set(Math.cos(phase) * moonDistance, 0, Math.sin(phase) * moonDistance);
       // Keep the same lunar hemisphere facing Earth as the simulated orbit advances.
-      moon.rotation.y = phase + Math.PI;
+      moon.rotation.y = moonSynchronousYaw(phase);
     },
     dispose() {
       lunarTexture.dispose();
