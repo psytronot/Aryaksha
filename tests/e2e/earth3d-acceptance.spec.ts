@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { fitCameraDistance, MOON_CAMERA_MARGIN, SYSTEM_CAMERA_MARGIN } from '../../src/earth3dMath';
+import { fitCameraDistance, MOON_CAMERA_MARGIN, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO } from '../../src/earth3dMath';
 
 test('Earth 3D exposes responsive camera modes and lunar layer controls', async ({ page }) => {
   const pageErrors: string[] = [];
@@ -195,7 +195,7 @@ test('Earth 3D SYSTEM and MOON reset, pinch, resize and drag preserve fitted fra
   const earthRadius = 5.15;
   const moonRadius = earthRadius * (1737.4 / 6378.137);
   const moonDistance = earthRadius * (384400 / 6378.137);
-  const systemExtent = moonDistance + moonRadius;
+  const systemExtent = moonDistance * SYSTEM_DISPLAY_DISTANCE_RATIO + moonRadius;
   const fitForContainer = async (extent: number, margin: number) => {
     const size = await container.evaluate(element => ({ width: element.clientWidth, height: element.clientHeight }));
     return fitCameraDistance(size.width, size.height, extent, 42, margin);
@@ -205,7 +205,9 @@ test('Earth 3D SYSTEM and MOON reset, pinch, resize and drag preserve fitted fra
 
   await modes.getByRole('button', { name: 'SYSTEM', exact: true }).click();
   await expect(container).toHaveAttribute('data-camera-mode', 'SYSTEM');
-  await expect.poll(readDistance).toBeGreaterThan(500);
+  await expect.poll(readDistance).toBeGreaterThan(50);
+  await expect.poll(readDistance).toBeLessThan(300);
+  await expect(page.locator('.earth3d-hud-card').filter({ hasText: 'PHYSICAL SCALE' })).toContainText('12.5×');
   const portraitSystemFit = await systemFit();
   expect(await readDistance()).toBeCloseTo(portraitSystemFit, 1);
   await modes.getByRole('button', { name: 'Reset camera framing', exact: true }).click();
