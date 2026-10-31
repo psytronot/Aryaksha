@@ -25,8 +25,8 @@ describe('Earth 3D lighting, camera and lunar geometry', () => {
     applyEarthNightLightMask(material, sunUniform);
     const shader: any = {
       uniforms: {},
-      vertexShader: '#include <common>\\nvoid main() {\\n#include <beginnormal_vertex>\\n}',
-      fragmentShader: '#include <common>\\nvoid main() {\\n#include <emissivemap_fragment>\\n}'
+      vertexShader: '#include <common>\nvoid main() {\n#include <beginnormal_vertex>\n}',
+      fragmentShader: '#include <common>\nvoid main() {\n#include <emissivemap_fragment>\n}'
     };
     const compile = material.onBeforeCompile as unknown as (shader: any, renderer: any) => void;
     compile(shader, {});
