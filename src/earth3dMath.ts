@@ -1,10 +1,10 @@
 export const EARTH_3D_FOV_DEGREES = 42;
 export const MOON_CAMERA_MARGIN = 1.7;
 export const SYSTEM_CAMERA_MARGIN = 1.08;
-export const EARTH_CAMERA_MARGIN = 1.08;
+export const EARTH_CAMERA_MARGIN = 1.35;
 // In SYSTEM view, compress only the displayed Earth-Moon centre separation.
 // Physical radii and the authoritative 384,400 km reference remain unchanged.
-export const SYSTEM_DISPLAY_DISTANCE_RATIO = 0.03;
+export const SYSTEM_DISPLAY_DISTANCE_RATIO = 0.0225;
 export const NIGHT_LIGHT_TWILIGHT_START = -0.18;
 export const NIGHT_LIGHT_TWILIGHT_END = 0.12;
 
