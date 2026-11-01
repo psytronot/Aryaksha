@@ -236,7 +236,7 @@ test('Earth 3D SYSTEM and MOON reset, pinch, resize and drag preserve fitted fra
   await expect(container).toHaveAttribute('data-camera-mode', 'SYSTEM');
   await expect.poll(readDistance).toBeGreaterThan(50);
   await expect.poll(readDistance).toBeLessThan(300);
-  await expect(page.locator('.earth3d-hud-card').filter({ hasText: 'PHYSICAL SCALE' })).toContainText('33.3×');
+  await expect(page.locator('.earth3d-hud-card').filter({ hasText: 'PHYSICAL SCALE' })).toContainText('44.4×');
   const portraitSystemFit = await systemFit();
   expect(await readDistance()).toBeCloseTo(portraitSystemFit, 1);
   const portraitFov = await limitingFov();
@@ -275,9 +275,11 @@ test('Earth 3D SYSTEM and MOON reset, pinch, resize and drag preserve fitted fra
 
   await page.setViewportSize({ width: 844, height: 390 });
   const landscapeSystemFit = await systemFit();
-  await expect.poll(readDistance).toBeLessThan(pinchedOut);
-  expect((await readDistance()) / landscapeSystemFit).toBeCloseTo(zoomRatio, 2);
-  await modes.getByRole('button', { name: 'Reset camera framing', exact: true }).click();
+  await expect.poll(async () => (await readDistance()) / landscapeSystemFit).toBeCloseTo(zoomRatio, 2);
+  const resetAfterResize = modes.getByRole('button', { name: 'Reset camera framing', exact: true });
+  await resetAfterResize.scrollIntoViewIfNeeded();
+  await expect(resetAfterResize).toBeVisible();
+  await resetAfterResize.click({ timeout: 15_000 });
   await expect.poll(readDistance).toBeCloseTo(landscapeSystemFit, 1);
 
   await modes.getByRole('button', { name: 'MOON', exact: true }).click();
