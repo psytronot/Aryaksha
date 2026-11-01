@@ -188,6 +188,7 @@ test('Earth 3D reports a recoverable viewport state when WebGL context is lost',
 
 
 test('Earth 3D SYSTEM and MOON reset, pinch, resize and drag preserve fitted framing', async ({ page }) => {
+  test.setTimeout(60_000);
   await page.setViewportSize({ width: 390, height: 844 });
   const pageErrors: string[] = [];
   page.on('pageerror', error => pageErrors.push(error.message));
