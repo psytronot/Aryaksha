@@ -42,3 +42,15 @@ Inspect the uploaded screenshots at desktop and mobile sizes before acceptance. 
 ## Release hold
 
 Do not merge or deploy from this branch automatically. Require green CI/CodeQL/AppDeploy scenario validation, visual screenshot review, quota/cost headroom, Render deployment review, rollback readiness, and explicit release authorization. Monthly AppDeploy credits alone do not establish daily quota or deployment headroom.
+
+
+## 2026-10-30 — render-loop and WebGL lifecycle increment (stacked PR #60)
+
+- Preallocated the footprint BufferAttribute and unit-circle coordinates once per scene; the frame update now mutates the same typed array and reuses tangent/bitangent scratch vectors.
+- Reused spacecraft, camera-target, ground-point, velocity, basis and nadir vectors/matrices across animation frames instead of constructing them per frame.
+- Updated the schematic planetary positions in place using scalar phase math, avoiding one temporary position object per planet per frame. The public deterministic position helper remains for tests and reference calculations.
+- Added explicit `renderer.forceContextLoss()` during scene teardown after removing listeners and disposing scene resources; the remount E2E asserts the old WebGL context is lost and a new context is live.
+- Replaced synthetic pointer dispatch with Chromium CDP two-finger touch input in a `hasTouch` mobile context. The test verifies pinch zoom, SYSTEM reset back to the portrait fit, portrait/landscape refit, and Moon refit/reset.
+- Added a unit test that asserts footprint BufferAttribute and backing-array identity are reused and updated in place.
+- No renderer FPS, GPU memory, heap or device benchmark was measured. Do not infer performance gains from allocation removal alone.
+- This is a stacked source-only increment on PR #56. It does not change lazy loading, vendor chunk splitting, satellite.js/SGP4, Kepler propagation or Mission Analysis behavior. Live AppDeploy and Render deployments remain unchanged.
