@@ -3,6 +3,7 @@ import type { ErrorInfo, ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './index.css';
+import './reduced-motion.css';
 
 // Remove campaign/share query parameters so the app always opens on a clean URL.
 if (window.location.search) {
