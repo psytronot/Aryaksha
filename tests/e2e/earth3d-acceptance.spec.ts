@@ -301,6 +301,23 @@ test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without sh
   await mobileScene.screenshot({ path: mobilePath, timeout: 60_000, animations: 'disabled' });
   await test.info().attach('earth3d-mobile-system-390x844.png', { path: mobilePath, contentType: 'image/png' });
 
+  const mobileCanvasBounds = await mobileScene.boundingBox();
+  expect(mobileCanvasBounds).not.toBeNull();
+  const focalPoint = {
+    x: mobileCanvasBounds!.x + mobileCanvasBounds!.width / 2,
+    y: mobileCanvasBounds!.y + mobileCanvasBounds!.height / 2
+  };
+  for (const selector of ['.earth3d-topbar', '.earth3d-left-hud', '.earth3d-right-hud', '.earth3d-bottom-bar']) {
+    const overlayBounds = await page.locator(selector).boundingBox();
+    if (!overlayBounds) continue;
+    const obscuresFocalPoint =
+      focalPoint.x >= overlayBounds.x &&
+      focalPoint.x <= overlayBounds.x + overlayBounds.width &&
+      focalPoint.y >= overlayBounds.y &&
+      focalPoint.y <= overlayBounds.y + overlayBounds.height;
+    expect(obscuresFocalPoint, `${selector} must not cover the mobile Earth–Moon focal point`).toBe(false);
+  }
+
   expect(pageErrors).toEqual([]);
   expect(shaderErrors).toEqual([]);
 });
