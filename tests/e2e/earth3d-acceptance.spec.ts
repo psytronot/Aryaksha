@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { fitCameraDistance, MOON_CAMERA_MARGIN, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO } from '../../src/earth3dMath';
+import { earthCameraDistance, EARTH_CAMERA_MARGIN, fitCameraDistance, MOON_CAMERA_MARGIN, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO } from '../../src/earth3dMath';
 
 test('Earth 3D exposes responsive camera modes and lunar layer controls', async ({ page }) => {
   const pageErrors: string[] = [];
@@ -18,6 +18,15 @@ test('Earth 3D exposes responsive camera modes and lunar layer controls', async 
 
   await cameraModes.getByRole('button', { name: 'MOON', exact: true }).click();
   await expect(cameraModes.getByRole('button', { name: 'MOON', exact: true })).toHaveClass(/active/);
+
+  const referenceGrid = page.getByRole('checkbox', { name: 'Reference grid' });
+  const canvasContainer = page.locator('.earth3d-canvas');
+  await expect(referenceGrid).not.toBeChecked();
+  await expect.poll(() => canvasContainer.getAttribute('data-grid-visible')).toBe('false');
+  await referenceGrid.check();
+  await expect.poll(() => canvasContainer.getAttribute('data-grid-visible')).toBe('true');
+  await referenceGrid.uncheck();
+  await expect.poll(() => canvasContainer.getAttribute('data-grid-visible')).toBe('false');
 
   const lunarLayer = page.getByRole('checkbox', { name: 'Show Moon and lunar orbit' });
   await expect(lunarLayer).toBeChecked();
@@ -202,14 +211,37 @@ test('Earth 3D SYSTEM and MOON reset, pinch, resize and drag preserve fitted fra
   };
   const systemFit = () => fitForContainer(systemExtent, SYSTEM_CAMERA_MARGIN);
   const moonFit = () => fitForContainer(moonRadius, MOON_CAMERA_MARGIN);
+  const earthFit = () => fitForContainer(earthRadius, EARTH_CAMERA_MARGIN);
+  const limitingFov = async () => {
+    const size = await container.evaluate(element => ({ width: element.clientWidth, height: element.clientHeight }));
+    const vertical = 42 * Math.PI / 180;
+    const horizontal = 2 * Math.atan(Math.tan(vertical / 2) * (size.width / size.height));
+    return Math.min(vertical, horizontal);
+  };
+  const apparentDiameterFraction = (radius: number, distance: number, fov: number) => 2 * Math.asin(radius / distance) / fov;
+
+  await modes.getByRole('button', { name: 'EARTH', exact: true }).click();
+  await expect(container).toHaveAttribute('data-camera-mode', 'EARTH');
+  const portraitEarthFit = await earthFit();
+  await expect.poll(readDistance).toBeCloseTo(portraitEarthFit, 1);
+  await modes.getByRole('button', { name: 'Reset camera framing', exact: true }).click();
+  await expect.poll(readDistance).toBeCloseTo(portraitEarthFit, 1);
+  await page.setViewportSize({ width: 844, height: 390 });
+  const landscapeEarthFit = await earthFit();
+  await expect.poll(readDistance).toBeCloseTo(landscapeEarthFit, 1);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(readDistance).toBeCloseTo(portraitEarthFit, 1);
 
   await modes.getByRole('button', { name: 'SYSTEM', exact: true }).click();
   await expect(container).toHaveAttribute('data-camera-mode', 'SYSTEM');
   await expect.poll(readDistance).toBeGreaterThan(50);
   await expect.poll(readDistance).toBeLessThan(300);
-  await expect(page.locator('.earth3d-hud-card').filter({ hasText: 'PHYSICAL SCALE' })).toContainText('12.5×');
+  await expect(page.locator('.earth3d-hud-card').filter({ hasText: 'PHYSICAL SCALE' })).toContainText('33.3×');
   const portraitSystemFit = await systemFit();
   expect(await readDistance()).toBeCloseTo(portraitSystemFit, 1);
+  const portraitFov = await limitingFov();
+  expect(apparentDiameterFraction(earthRadius, portraitSystemFit, portraitFov)).toBeGreaterThan(0.4);
+  expect(apparentDiameterFraction(moonRadius, portraitSystemFit, portraitFov)).toBeGreaterThan(0.1);
   await modes.getByRole('button', { name: 'Reset camera framing', exact: true }).click();
   await expect.poll(readDistance).toBeCloseTo(portraitSystemFit, 1);
 
