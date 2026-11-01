@@ -3,7 +3,7 @@ export const MOON_CAMERA_MARGIN = 1.7;
 export const SYSTEM_CAMERA_MARGIN = 1.08;
 // In SYSTEM view, compress only the displayed Earth-Moon centre separation.
 // Physical radii and the authoritative 384,400 km reference remain unchanged.
-export const SYSTEM_DISPLAY_DISTANCE_RATIO = 0.08;
+export const SYSTEM_DISPLAY_DISTANCE_RATIO = 0.03;
 export const NIGHT_LIGHT_TWILIGHT_START = -0.18;
 export const NIGHT_LIGHT_TWILIGHT_END = 0.12;
 
@@ -24,6 +24,10 @@ export function fitCameraDistance(
   const limitingFov = Math.min(verticalFov, horizontalFov);
   // Fit the bounding sphere, not a flat plane: the sphere's angular radius is asin(r / d).
   return (safeExtent * safeMargin) / Math.sin(limitingFov / 2);
+}
+
+export function earthCameraDistance(width: number, height: number, earthRadius = 5.15): number {
+  return fitCameraDistance(width, height, earthRadius, EARTH_3D_FOV_DEGREES, 1.08);
 }
 
 export function moonSynchronousYaw(phase: number): number {
