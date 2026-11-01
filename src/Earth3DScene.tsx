@@ -231,6 +231,7 @@ export function disposeObjectResources(root: THREE.Object3D) {
 
 export default function Earth3DScene({ model, current, seconds, name, propagator, footprintAngleDeg = 0.52, busWidthM = 0.1, busHeightM = 0.2, busDepthM = 0.1, altitudeKm = 550, eccentricity = 0, inclinationDeg = 0, raanDeg = 0, argumentOfPerigeeDeg = 0, trueAnomalyDeg = 0, periodMin = 95, panelAreaM2 = 0.6, running, setRunning, playback, setPlayback, duration, setSeconds }: Earth3DSceneProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const workspaceRef = useRef<HTMLElement | null>(null);
   const modelRef = useRef(model);
   const currentRef = useRef(current);
   const designRef = useRef({ busWidthM, busHeightM, busDepthM, panelAreaM2 });
@@ -261,6 +262,8 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   const [selectedSatellite, setSelectedSatellite] = useState('design');
   const [selectedBody, setSelectedBody] = useState('Overview');
   const [errorState, setErrorState] = useState('');
+  const [sidePanelOpen, setSidePanelOpen] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [wallTime, setWallTime] = useState(() => new Date());
   const cameraState = useRef({ yaw: 0.65, pitch: 0.26, distance: 11 });
   const syncCameraDebug = () => {
@@ -273,6 +276,12 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   modelRef.current = model;
   currentRef.current = current;
   designRef.current = { busWidthM, busHeightM, busDepthM, panelAreaM2 };
+
+  useEffect(() => {
+    const syncFullscreen = () => setIsFullscreen(document.fullscreenElement === workspaceRef.current);
+    document.addEventListener('fullscreenchange', syncFullscreen);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreen);
+  }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => setWallTime(new Date()), 1000);
@@ -769,7 +778,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   return (
     <div className="page earth3d-page">
       <h1 className="earth3d-visually-hidden">Earth 3D</h1>
-      <article className="earth3d-workspace glass-panel">
+      <article ref={workspaceRef} className={`earth3d-workspace glass-panel${sidePanelOpen ? " side-panel-open" : " side-panel-closed"}${isFullscreen ? " is-fullscreen" : ""}`}>
         <div className="earth3d-canvas" ref={containerRef} aria-label="Interactive 3D Earth with trackable spacecraft" data-camera-mode={cameraMode} data-camera-distance={cameraState.current.distance.toFixed(3)} />
         <div className="earth3d-topbar">
           <div className="earth3d-object">
@@ -779,7 +788,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
             <span className="earth3d-ist-clock">CLOCK · {formatIstDateTime(wallTime)} IST</span>
             <span className="earth3d-data-source">{propagator === 'SGP4' ? 'SGP4 PROPAGATED · INPUT SOURCE NOT DECLARED' : 'SIMULATED · TWO-BODY KEPLER'}</span>
           </div>
-          <div className="earth-camera-controls" aria-label="Camera modes">
+          <div className="earth3d-topbar-actions"><div className="earth-camera-controls" aria-label="Camera modes">
             {(['TRACK', 'EARTH', 'SATELLITE', 'MOON', 'SYSTEM', 'PLANETS'] as CameraMode[]).map(mode => <button key={mode} type="button" className={`earth-camera-button ${cameraMode === mode ? 'active' : ''}`} onClick={() => { if (mode === 'MOON') { setShowSpaceEnvironment(true); setSelectedBody('Moon'); } if (mode === 'SYSTEM') { setShowSpaceEnvironment(true); setSelectedBody('Overview'); } if (mode === 'PLANETS') { setShowPlanets(true); setSelectedBody('Overview'); } if (mode === 'EARTH') setSelectedBody('Earth'); setCameraMode(mode); }}>{mode}</button>)}
             <button type="button" className="earth-camera-button" aria-label="Reset camera framing" onClick={() => {
               const width = Math.max(1, containerRef.current?.clientWidth || 1);
@@ -801,7 +810,10 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
               syncCameraDebug();
             }}>RESET</button>
           </div>
+          <button type="button" className="earth-panel-toggle" aria-expanded={sidePanelOpen} onClick={() => setSidePanelOpen(value => !value)}>{sidePanelOpen ? "HIDE DATA" : "SHOW DATA"}</button>
+          <button type="button" className="earth-panel-toggle earth-fullscreen-toggle" onClick={async () => { try { if (document.fullscreenElement === workspaceRef.current) await document.exitFullscreen(); else await workspaceRef.current?.requestFullscreen(); } catch { setErrorState("Fullscreen is unavailable in this browser."); } }}>{isFullscreen ? "EXIT FULLSCREEN" : "FULLSCREEN"}</button></div>
         </div>
+        <aside className="earth3d-side-panel" aria-label="Mission telemetry and visualisation settings" aria-hidden={!sidePanelOpen}>
         <div className="earth3d-left-hud">
           <div className="earth3d-hud-card"><small>MISSION SETUP · VEHICLE / CREW</small><b>{name || 'Mission spacecraft'}</b><label className="earth3d-select-label">VEHICLE MODEL<select aria-label="Choose spacecraft model" value={selectedSatellite} onChange={e => setSelectedSatellite(e.target.value)}><option value="design">Current mission design</option><option value="cubesat1u">CubeSat 1U · 10 cm</option><option value="cubesat3u">CubeSat 3U · 34 cm</option><option value="cubesat6u">CubeSat 6U</option><option value="microsat">Microsatellite · reference</option><option value="iss">ISS · reference silhouette</option></select></label><span>CREW STATUS · UNCREWED / NO CREW DATA</span><span>PROPAGATOR · {propagator}</span></div>
           <div className="earth3d-hud-card"><small>PHYSICAL SCALE · REFERENCE VALUES</small><span>EARTH RADIUS 6,378.137 km (WGS-84 equatorial)</span><span>MOON RADIUS 1,737.4 km · 0.2727 R⊕</span><span>EARTH–MOON CENTRES 384,400 km · 60.3 R⊕ mean</span><span>SUN RADIUS 695,700 km · 109.2 R⊕</span><span>SUN DISTANCE 149.6 million km · 1 AU mean</span><span>SPACECRAFT SIZE IS EXAGGERATED FOR VISIBILITY</span><span>ORBIT {inclinationDeg.toFixed(2)}° inc · e {eccentricity.toFixed(4)}</span></div>
@@ -813,6 +825,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
           <div className="earth3d-hud-card"><small>SOLAR GEOMETRY / COMMS</small><span>SUBSOLAR {dayNight.subsolarLat.toFixed(1)}°, {dayNight.subsolarLon.toFixed(1)}°</span><span>{dayNight.timeZone}</span><span>LINK STATE · NOT MODELLED</span><span>RF TELEMETRY · NOT CONNECTED</span></div>
           <div className="earth3d-hud-card"><small>ORBITAL FACTS</small><span>RAAN {raanDeg.toFixed(2)}°</span><span>ARG PERIAPSIS {argumentOfPerigeeDeg.toFixed(2)}°</span><span>TRUE ANOMALY {trueAnomalyDeg.toFixed(2)}°</span><span>PERIOD {periodMin.toFixed(2)} min</span><span>RANGE FROM EARTH CENTRE {(6378.137 + Number(current?.lla?.alt ?? altitudeKm)).toFixed(2)} km</span></div>
         </div>
+        </aside>
         <div className="earth3d-bottom-bar">
           <span><i className="legend-spacecraft" /> SPACECRAFT</span><span><i className="legend-orbit" /> ORBIT</span><span><i className="legend-footprint" /> FOOTPRINT · FOV GEOMETRY</span><span><i className="legend-vector" /> VECTORS</span>
           <span className="earth3d-help">DRAG TO ORBIT · WHEEL / PINCH TO ZOOM · SYSTEM FRAMES EARTH + MOON · PLANETS IS SCHEMATIC</span>
