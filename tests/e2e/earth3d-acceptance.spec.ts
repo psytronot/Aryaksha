@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { earthCameraDistance, EARTH_CAMERA_MARGIN, fitCameraDistance, MOON_CAMERA_MARGIN, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO } from '../../src/earth3dMath';
+import { EARTH_CAMERA_MARGIN, fitCameraDistance, MOON_CAMERA_MARGIN, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO } from '../../src/earth3dMath';
 
 test('Earth 3D exposes responsive camera modes and lunar layer controls', async ({ page }) => {
   const pageErrors: string[] = [];
