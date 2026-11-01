@@ -274,6 +274,8 @@ test('Earth 3D SYSTEM and MOON reset, pinch, resize and drag preserve fitted fra
   await expect.poll(readYaw).not.toBe(yawBeforeDrag);
 
   await page.setViewportSize({ width: 844, height: 390 });
+  const landscapeSize = await container.evaluate(element => ({ width: element.clientWidth, height: element.clientHeight }));
+  await expect.poll(async () => container.getAttribute('data-camera-viewport')).toBe(`${landscapeSize.width}x${landscapeSize.height}`);
   const landscapeSystemFit = await systemFit();
   await expect.poll(async () => (await readDistance()) / landscapeSystemFit).toBeCloseTo(zoomRatio, 2);
   const resetAfterResize = modes.getByRole('button', { name: 'Reset camera framing', exact: true });
