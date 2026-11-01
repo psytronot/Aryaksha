@@ -51,6 +51,13 @@ describe('Earth 3D lighting, camera and lunar geometry', () => {
     expect(desktop).toBeGreaterThan(5.15);
     expect(portrait).toBeGreaterThan(desktop);
     expect(earthCameraDistance(390, 844, 5.15)).toBeCloseTo(fitCameraDistance(390, 844, 5.15, 42, EARTH_CAMERA_MARGIN), 8);
+    const verticalFov = 42 * Math.PI / 180;
+    const desktopHorizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * (1536 / 1024));
+    const portraitHorizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * (390 / 844));
+    const desktopFraction = 2 * Math.asin(5.15 / desktop) / Math.min(verticalFov, desktopHorizontalFov);
+    const portraitFraction = 2 * Math.asin(5.15 / portrait) / Math.min(verticalFov, portraitHorizontalFov);
+    expect(desktopFraction).toBeLessThan(0.8);
+    expect(portraitFraction).toBeLessThan(0.8);
   });
 
   it('keeps the same lunar hemisphere facing Earth over a full orbit', () => {
@@ -72,8 +79,9 @@ describe('Earth 3D lighting, camera and lunar geometry', () => {
     const displayMoonDistance = moonDistance * SYSTEM_DISPLAY_DISTANCE_RATIO;
     const desktopSystem = fitCameraDistance(1536, 1024, displayMoonDistance + moonRadius, 42, SYSTEM_CAMERA_MARGIN);
     const portraitSystem = fitCameraDistance(390, 844, displayMoonDistance + moonRadius, 42, SYSTEM_CAMERA_MARGIN);
-    expect(SYSTEM_DISPLAY_DISTANCE_RATIO).toBe(0.03);
+    expect(SYSTEM_DISPLAY_DISTANCE_RATIO).toBe(0.0225);
     expect(displayMoonDistance).toBeLessThan(moonDistance);
+    expect(displayMoonDistance).toBeGreaterThan(earthRadius + moonRadius);
     expect(desktopMoon).toBeGreaterThan(6);
     expect(portraitMoon).toBeGreaterThan(desktopMoon);
     expect(portraitSystem).toBeGreaterThan(portraitMoon);
@@ -81,8 +89,8 @@ describe('Earth 3D lighting, camera and lunar geometry', () => {
     expect(portraitSystem).toBeLessThan(300);
     const portraitHorizontalFov = 2 * Math.atan(Math.tan(21 * Math.PI / 180) * (390 / 844));
     const portraitLimitingFov = Math.min(42 * Math.PI / 180, portraitHorizontalFov);
-    expect(2 * Math.asin(earthRadius / portraitSystem) / portraitLimitingFov).toBeGreaterThan(0.4);
-    expect(2 * Math.asin(moonRadius / portraitSystem) / portraitLimitingFov).toBeGreaterThan(0.1);
+    expect(2 * Math.asin(earthRadius / portraitSystem) / portraitLimitingFov).toBeGreaterThan(0.5);
+    expect(2 * Math.asin(moonRadius / portraitSystem) / portraitLimitingFov).toBeGreaterThan(0.14);
     expect(2 * Math.asin(earthRadius / portraitSystem)).toBeGreaterThan(0.05);
     expect(2 * Math.asin(moonRadius / portraitMoon) / (2 * Math.atan(Math.tan(21 * Math.PI / 180) * (390 / 844)))).toBeLessThanOrEqual(0.6);
   });
