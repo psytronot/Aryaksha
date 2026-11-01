@@ -98,3 +98,45 @@
 /* Keep camera controls above HUD cards and clear of the sticky application header. */
 .earth3d-topbar{z-index:8!important}
 .earth-camera-controls .earth-camera-button{scroll-margin-top:88px}
+
+
+/* Focused mission viewport with a dedicated, collapsible telemetry rail. */
+.earth3d-workspace{min-height:780px;height:min(82vh,980px);position:relative;overflow:hidden;background:#02060c}
+.earth3d-canvas{position:absolute;inset:0;width:100%;height:100%;transition:width .22s ease}
+.earth3d-topbar{right:0;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;max-width:100%;padding:10px 12px;background:linear-gradient(180deg,rgba(2,5,9,.94),rgba(2,5,9,.45))}
+.earth3d-topbar-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto;max-width:100%}
+.earth-camera-controls{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.earth-panel-toggle{min-height:30px;padding:7px 9px;border:1px solid rgba(151,190,214,.28);background:rgba(5,13,22,.9);color:#c7d7e2;font:8px ui-monospace,monospace;letter-spacing:.08em;cursor:pointer}
+.earth-panel-toggle:hover,.earth-panel-toggle:focus-visible{border-color:#d8a967;color:#f4d5a4;outline:none}
+.earth3d-side-panel{position:absolute;z-index:7;top:76px;right:10px;bottom:110px;width:min(330px,34%);display:flex;flex-direction:column;gap:8px;padding:9px;border:1px solid rgba(151,190,214,.22);background:rgba(3,8,15,.94);backdrop-filter:blur(16px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#526575 transparent;transition:transform .22s ease,opacity .22s ease,width .22s ease}
+.earth3d-side-panel .earth3d-left-hud,.earth3d-side-panel .earth3d-right-hud{position:static;inset:auto;width:100%;max-width:none;max-height:none;overflow:visible;display:grid;gap:8px}
+.earth3d-side-panel .earth3d-hud-card{background:rgba(8,15,24,.84);padding:10px}
+.earth3d-workspace.side-panel-closed .earth3d-side-panel{transform:translateX(calc(100% + 20px));opacity:0;pointer-events:none}
+.earth3d-workspace.side-panel-closed .earth3d-canvas{width:100%}
+.earth3d-workspace.side-panel-closed .earth3d-bottom-bar{right:10px}
+.earth3d-bottom-bar{right:350px;left:10px;bottom:8px;border:1px solid rgba(151,190,214,.18);background:rgba(3,8,15,.82);border-radius:2px}
+.earth3d-timeline{left:12px;right:350px;bottom:56px;width:auto;max-width:none}
+.earth3d-workspace.is-fullscreen{height:100vh;min-height:100vh;width:100vw;border:0;border-radius:0}
+.earth3d-workspace.is-fullscreen .earth3d-side-panel{bottom:110px}
+.earth3d-workspace.is-fullscreen .earth3d-timeline{bottom:54px}
+.earth3d-workspace.is-fullscreen .earth3d-bottom-bar{bottom:7px}
+@media(max-width:900px){
+ .earth3d-workspace{height:780px;min-height:780px}
+ .earth3d-side-panel{width:min(310px,44%);top:112px;bottom:112px}
+ .earth3d-timeline{left:10px;right:calc(min(310px,44%) + 18px);bottom:56px}
+ .earth3d-bottom-bar{right:calc(min(310px,44%) + 18px)}
+}
+@media(max-width:600px){
+ .earth3d-workspace{height:780px;min-height:780px}
+ .earth3d-topbar{padding:8px;gap:7px}
+ .earth3d-object{max-width:100%;width:100%}
+ .earth3d-topbar-actions{margin-left:0;width:100%;justify-content:flex-start}
+ .earth-camera-controls{flex:1 1 100%}
+ .earth-camera-button{padding:6px 7px;font-size:8px}
+ .earth3d-side-panel{top:150px;right:7px;bottom:92px;width:min(340px,calc(100% - 14px));max-width:none}
+ .earth3d-workspace.side-panel-open .earth3d-side-panel{box-shadow:0 14px 45px rgba(0,0,0,.55)}
+ .earth3d-timeline{left:7px;right:7px;bottom:8px;width:auto;padding:7px}
+ .earth3d-bottom-bar{display:none}
+ .earth3d-workspace.is-fullscreen .earth3d-side-panel{top:116px;bottom:92px}
+}
+@media(prefers-reduced-motion:reduce){.earth3d-side-panel,.earth3d-canvas{transition:none}}
