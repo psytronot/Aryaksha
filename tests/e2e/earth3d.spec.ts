@@ -95,11 +95,23 @@ test('Earth 3D preserves SYSTEM framing, responds to two-pointer touch pinch, an
     const canvas = page.locator('.earth3d-canvas canvas');
     const cameraModes = page.locator('.earth-camera-controls');
     const readDistance = async () => Number(await container.getAttribute('data-camera-distance'));
+    const readStableDistance = async () => {
+      let previous = await readDistance();
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        await page.evaluate(() => new Promise<void>(resolve => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        }));
+        const next = await readDistance();
+        if (Math.abs(next - previous) < 0.01) return next;
+        previous = next;
+      }
+      return previous;
+    };
     await expect(canvas).toBeVisible();
 
     await cameraModes.getByRole('button', { name: 'SYSTEM', exact: true }).click();
     await expect.poll(readDistance).toBeGreaterThan(500);
-    const portraitSystemFit = await readDistance();
+    const portraitSystemFit = await readStableDistance();
 
     const bounds = await canvas.boundingBox();
     if (!bounds) throw new Error('Earth 3D canvas has no touchable viewport bounds.');
@@ -134,7 +146,7 @@ test('Earth 3D preserves SYSTEM framing, responds to two-pointer touch pinch, an
     const pinchedSystemDistance = await readDistance();
     await page.getByRole('button', { name: 'Reset camera framing' }).click();
     await expect.poll(readDistance).toBeGreaterThan(pinchedSystemDistance + 1);
-    const resetPortraitSystem = await readDistance();
+    const resetPortraitSystem = await readStableDistance();
     expect(Math.abs(resetPortraitSystem - portraitSystemFit)).toBeLessThan(1);
 
     await page.setViewportSize({ width: 844, height: 390 });
