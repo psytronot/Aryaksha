@@ -40,3 +40,54 @@
   .earth-camera-button{width:100%;min-width:0;padding:0 4px;white-space:nowrap}
   .earth3d-left-hud{top:178px}
 }
+
+/* Preserve an unobstructed Earth–Moon focal area on narrow touch screens. */
+@media(max-width:500px){
+  .earth3d-left-hud{
+    top:170px;
+    left:8px;
+    right:8px;
+    max-width:none;
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:4px;
+    max-height:210px;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+  }
+  .earth3d-left-hud .earth3d-hud-card{
+    max-width:none;
+    min-width:0;
+    padding:6px;
+    font-size:7px;
+  }
+  .earth3d-left-hud .earth3d-hud-card:nth-child(n+3){grid-column:1/-1}
+  .earth3d-right-hud{
+    top:auto;
+    left:8px;
+    right:8px;
+    bottom:46px;
+    max-width:none;
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:4px;
+    max-height:150px;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+  }
+  .earth3d-right-hud .earth3d-hud-card{
+    max-width:none;
+    min-width:0;
+    padding:6px;
+    font-size:7px;
+  }
+  .earth3d-right-hud .earth3d-hud-card:nth-child(2){grid-column:1/-1}
+  .earth3d-bottom-bar{
+    bottom:4px;
+    left:8px;
+    right:8px;
+    padding:4px 6px;
+    gap:6px;
+    font-size:6px;
+  }
+}
