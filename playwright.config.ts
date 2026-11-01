@@ -16,7 +16,19 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testIgnore: /earth3d-touch\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] }
+    },
+    {
+      name: 'chromium-mobile-touch',
+      testMatch: /earth3d-touch\.spec\.ts/,
+      use: {
+        browserName: 'chromium',
+        viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 3,
+        isMobile: true,
+        hasTouch: true
+      }
     }
   ],
   ...(externalBaseURL ? {} : {
