@@ -56,6 +56,7 @@ jobs:
   browser-e2e:
     name: Browser smoke tests
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     needs: [web-build-and-tests]
     steps:
       - uses: actions/checkout@v7
@@ -64,6 +65,7 @@ jobs:
           node-version-file: .nvmrc
       - run: npm ci
       - name: Install Chromium for Playwright
+        timeout-minutes: 15
         run: npx playwright install --with-deps chromium
       - run: npm run build
       - run: npm run test:e2e
