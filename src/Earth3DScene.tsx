@@ -379,12 +379,24 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         camera.updateProjectionMatrix();
         renderer.setPixelRatio(pixelRatioForViewport());
         renderer.setSize(width, height, false);
+        container.dataset.cameraViewport = `${width}x${height}`;
         if (cameraModeRef.current === 'SYSTEM') cameraState.current.distance = Math.max(2, Math.min(2600, systemCameraDistance(width, height) * systemZoomRatioRef.current));
         if (cameraModeRef.current === 'MOON') cameraState.current.distance = Math.max(2, Math.min(2600, moonCameraDistance(width, height) * moonZoomRatioRef.current));
         if (cameraModeRef.current === 'EARTH') cameraState.current.distance = Math.max(2, Math.min(2600, earthCameraDistance(width, height) * earthZoomRatioRef.current));
       };
+      let resizeFrame: number | null = null;
+      const scheduleResize = () => {
+        if (resizeFrame !== null) cancelAnimationFrame(resizeFrame);
+        resizeFrame = requestAnimationFrame(() => {
+          resizeFrame = null;
+          resize();
+        });
+      };
       const observer = new ResizeObserver(resize);
       observer.observe(container);
+      window.addEventListener('resize', scheduleResize, { passive: true });
+      window.addEventListener('orientationchange', scheduleResize, { passive: true });
+      window.visualViewport?.addEventListener('resize', scheduleResize, { passive: true });
 
       const activePointers = new Map<number, { x: number; y: number }>();
       let dragging = false;
@@ -582,6 +594,10 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       animate();
       cleanup = () => {
         observer.disconnect();
+        window.removeEventListener('resize', scheduleResize);
+        window.removeEventListener('orientationchange', scheduleResize);
+        window.visualViewport?.removeEventListener('resize', scheduleResize);
+        if (resizeFrame !== null) cancelAnimationFrame(resizeFrame);
         renderer.domElement.removeEventListener('webglcontextlost', onContextLost, false);
         renderer.domElement.removeEventListener('pointerdown', onPointerDown);
         renderer.domElement.removeEventListener('pointermove', onPointerMove);
