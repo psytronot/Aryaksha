@@ -16,6 +16,7 @@ type Earth3DSceneProps = {
   seconds: number;
   name: string;
   propagator: 'KEPLER' | 'SGP4';
+  objectStatus?: 'TRACKED' | 'SIMULATED';
   footprintAngleDeg?: number;
   busWidthM?: number;
   busHeightM?: number;
@@ -192,7 +193,7 @@ function scenePosition(r: number[], scale: number) {
   return new THREE.Vector3(r[0] * scale, r[2] * scale, r[1] * scale);
 }
 
-export default function Earth3DScene({ model, current, seconds, name, propagator, footprintAngleDeg = 0.52, busWidthM = 0.1, busHeightM = 0.2, busDepthM = 0.1, altitudeKm = 550, eccentricity = 0, inclinationDeg = 0, raanDeg = 0, argumentOfPerigeeDeg = 0, trueAnomalyDeg = 0, periodMin = 95, panelAreaM2 = 0.6 }: Earth3DSceneProps) {
+export default function Earth3DScene({ model, current, seconds, name, propagator, objectStatus = 'SIMULATED', footprintAngleDeg = 0.52, busWidthM = 0.1, busHeightM = 0.2, busDepthM = 0.1, altitudeKm = 550, eccentricity = 0, inclinationDeg = 0, raanDeg = 0, argumentOfPerigeeDeg = 0, trueAnomalyDeg = 0, periodMin = 95, panelAreaM2 = 0.6 }: Earth3DSceneProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
   const modelRef = useRef(model);
@@ -748,9 +749,10 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         <div className="earth3d-topbar">
           <div className="earth3d-object">
             <span className="earth3d-live-dot" />
-            <div><small>TRACKING OBJECT</small><b>{name || 'MySat-1'}</b></div>
+            <div><small>{objectStatus === 'TRACKED' ? 'TRACKED OBJECT' : 'SIMULATED MISSION OBJECT'}</small><b>{name || 'MySat-1'}</b></div>
+            <span className={`earth3d-badge earth3d-source-badge ${objectStatus.toLowerCase()}`}>{objectStatus}</span>
             <span className="earth3d-badge">{propagator}</span>
-            <span className="earth3d-ist-clock">REAL TIME · {formatIstDateTime(wallTime)} IST</span>
+            <span className="earth3d-ist-clock">LOCAL CLOCK · {formatIstDateTime(wallTime)} IST</span>
           </div>
           <div className="earth-camera-controls" aria-label="Camera modes">
             {(['TRACK', 'EARTH', 'SATELLITE', 'MOON', 'SYSTEM'] as CameraMode[]).map(mode => <button key={mode} type="button" className={`earth-camera-button ${cameraMode === mode ? 'active' : ''}`} onClick={() => { if (mode === 'MOON' || mode === 'SYSTEM') setShowSpaceEnvironment(true); setCameraMode(mode); }}>{mode}</button>)}
