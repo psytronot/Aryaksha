@@ -28,3 +28,8 @@ NASA's Earth Science FAQ says most material published under science.nasa.gov/ear
 - If Blue Marble cannot load, the scene retains the deterministic illustrative cartographic fallback and reports that state in the UI.
 - If Black Marble cannot load, the scene uses a black 1 × 1 texture. No synthetic city lights are generated or presented as observed data.
 - The imagery dates are historical (January 2004 surface composite and 2016 night lights). These textures are visual context, not live Earth observation, a synchronized epoch, or an operational geospatial data product.
+
+
+## Content Security Policy
+
+The Render web/API security header allowlists https://assets.science.nasa.gov in connect-src for the two CORS-mode image fetches. The application still uses self-hosted scripts/styles and blob: only for the decoded local image source; no wildcard origins are added.
