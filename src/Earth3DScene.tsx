@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { dayNightSnapshot, solarEciDirection } from './daynight';
-import { applyEarthNightLightMask, makeNightLightsTexture } from './earthVisuals';
+import { applyEarthNightLightMask, makeFallbackNightLightsTexture } from './earthVisuals';
+import { EARTH_IMAGERY_SOURCES, loadEarthImagery } from './earthImagery';
 import { formatIstDateTime } from './time';
 import { createSpaceEnvironment } from './solarSystem';
 import { earthCameraDistance, fitCameraDistance, MOON_CAMERA_MARGIN, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO } from './earth3dMath';
@@ -212,6 +213,8 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   const [showSpaceEnvironment, setShowSpaceEnvironment] = useState(true);
   const [selectedSatellite, setSelectedSatellite] = useState('design');
   const [errorState, setErrorState] = useState('');
+  const [imageryState, setImageryState] = useState<'loading' | 'nasa' | 'partial' | 'fallback'>('loading');
+  const [imageryStatus, setImageryStatus] = useState('Loading NASA Blue Marble and Black Marble imagery…');
   const [wallTime, setWallTime] = useState(() => new Date());
   const cameraState = useRef({ yaw: 0.65, pitch: 0.26, distance: 11 });
   const systemZoomRatioRef = useRef(1);
@@ -241,6 +244,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
     if (!container) return undefined;
     let mounted = true;
     let cleanup = () => {};
+    const imageryAbortController = new AbortController();
     try {
       const scene = new THREE.Scene();
       scene.background = new THREE.Color('#01040a');
@@ -296,10 +300,10 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       const moonRadius = earthRadius * (1737.4 / 6378.137);
       const moonDistance = earthRadius * (384400 / 6378.137);
       const earth = new THREE.Group();
-      const earthTexture = makeEarthTexture();
-      const nightTexture = makeNightLightsTexture();
+      let earthTexture: THREE.Texture = makeEarthTexture();
+      let nightTexture: THREE.Texture = makeFallbackNightLightsTexture();
       const cloudTexture = makeCloudTexture();
-      const earthMaterial = new THREE.MeshPhongMaterial({ map: earthTexture, emissive: 0x03070d, emissiveMap: nightTexture, emissiveIntensity: 1.65, specular: 0x5d889c, shininess: 22 });
+      const earthMaterial = new THREE.MeshPhongMaterial({ map: earthTexture, emissive: 0xffffff, emissiveMap: nightTexture, emissiveIntensity: 1.25, specular: 0x5d889c, shininess: 22 });
       const earthSunUniform = { value: new THREE.Vector3(1, 0, 0) };
       applyEarthNightLightMask(earthMaterial, earthSunUniform);
       const sphere = new THREE.Mesh(new THREE.SphereGeometry(earthRadius, 128, 96), earthMaterial);
@@ -315,6 +319,53 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       const atmosphereCore = new THREE.Mesh(new THREE.SphereGeometry(earthRadius * 1.025, 96, 64), new THREE.MeshBasicMaterial({ color: 0x6dd8ff, transparent: true, opacity: 0.055, side: THREE.FrontSide, depthWrite: false }));
       earth.add(atmosphereCore);
       scene.add(earth);
+
+      container.dataset.earthImageryState = 'loading';
+      container.dataset.earthImageryAlbedo = 'cartographic-fallback';
+      container.dataset.earthImageryNightLights = 'transparent-fallback';
+      void loadEarthImagery(imageryAbortController.signal).then(({ albedo, nightLights, failures }) => {
+        if (!mounted || imageryAbortController.signal.aborted) {
+          albedo?.dispose();
+          nightLights?.dispose();
+          return;
+        }
+
+        if (albedo) {
+          const fallback = earthTexture;
+          earthTexture = albedo;
+          earthMaterial.map = albedo;
+          fallback.dispose();
+        }
+        if (nightLights) {
+          const fallback = nightTexture;
+          nightTexture = nightLights;
+          earthMaterial.emissiveMap = nightLights;
+          fallback.dispose();
+        }
+        earthMaterial.needsUpdate = true;
+
+        const nextState = albedo && nightLights ? 'nasa' : albedo || nightLights ? 'partial' : 'fallback';
+        const albedoSource = albedo ? EARTH_IMAGERY_SOURCES.albedo.id : 'cartographic-fallback';
+        const nightLightsSource = nightLights ? EARTH_IMAGERY_SOURCES.nightLights.id : 'transparent-fallback';
+        container.dataset.earthImageryState = nextState;
+        container.dataset.earthImageryAlbedo = albedoSource;
+        container.dataset.earthImageryNightLights = nightLightsSource;
+        container.dataset.earthImageryFailures = Object.keys(failures).join(',');
+        setImageryState(nextState);
+        setImageryStatus(`${albedo ? 'NASA Blue Marble' : 'Cartographic fallback'} · ${nightLights ? 'NASA Black Marble' : 'No night-light layer'}`);
+        if (Object.keys(failures).length > 0) {
+          console.warn('Orbital Lab: one or more NASA Earth imagery layers used their safe fallback.', failures);
+        }
+      }).catch((error) => {
+        if (error instanceof Error && error.name === 'AbortError') return;
+        if (!mounted) return;
+        container.dataset.earthImageryState = 'fallback';
+        container.dataset.earthImageryAlbedo = 'cartographic-fallback';
+        container.dataset.earthImageryNightLights = 'transparent-fallback';
+        setImageryState('fallback');
+        setImageryStatus('Cartographic fallback · No night-light layer');
+        console.warn('Orbital Lab: NASA Earth imagery could not be loaded; safe fallback textures remain active.', error);
+      });
 
       // The Moon and planet layer use a deliberately compressed display scale;
       // they are illustrative context, not ephemeris-grade planetary positions.
@@ -642,6 +693,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
     }
     return () => {
       mounted = false;
+      imageryAbortController.abort();
       cleanup();
     };
   }, []);
@@ -663,7 +715,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   const visualExaggeration = 1_000_000;
   return (
     <div className="page">
-      <div className="page-header"><div><small>3D MISSION VIEW</small><h1>Earth 3D</h1><p>A local spacecraft-tracking globe with a detailed Earth surface, orbital path, vectors and mission HUD.</p><small>Scale disclosure: Earth diameter is approximately {Math.round(trueEarthToBusRatio).toLocaleString()} times the maximum bus dimension at true scale. Spacecraft geometry is enlarged by {visualExaggeration.toLocaleString()}× for visibility; dimensions are not shown to physical scale.</small></div></div>
+      <div className="page-header"><div><small>3D MISSION VIEW</small><h1>Earth 3D</h1><p>A local spacecraft-tracking globe with asynchronous NASA Earth imagery, orbital path, vectors and mission HUD.</p><small className="earth3d-imagery-status" data-testid="earth-imagery-status" data-imagery-state={imageryState} role="status" aria-live="polite">{imageryStatus}</small><small>Scale disclosure: Earth diameter is approximately {Math.round(trueEarthToBusRatio).toLocaleString()} times the maximum bus dimension at true scale. Spacecraft geometry is enlarged by {visualExaggeration.toLocaleString()}× for visibility; dimensions are not shown to physical scale.</small></div></div>
       <article className="earth3d-workspace glass-panel">
         <div className="earth3d-canvas" ref={containerRef} role="region" aria-label="Interactive 3D Earth with trackable spacecraft" />
         <div className="earth3d-topbar">
