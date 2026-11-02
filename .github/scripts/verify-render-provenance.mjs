@@ -1,5 +1,6 @@
 import { appendFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 
 const RENDER_API = 'https://api.render.com/v1';
 const GITHUB_API = 'https://api.github.com';
@@ -177,7 +178,7 @@ export async function runProvenanceCheck(env = process.env, fetchImpl = fetch) {
   return rows;
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   runProvenanceCheck().catch(error => {
     console.error(error instanceof Error ? error.message : 'Render provenance check failed.');
     process.exitCode = 1;
