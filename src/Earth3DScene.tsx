@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { dayNightSnapshot, solarEciDirection } from './daynight';
+import { dayNightSnapshot, greenwichMeanSiderealAngle, solarEciDirection } from './daynight';
 import { applyEarthNightLightMask, makeFallbackNightLightsTexture } from './earthVisuals';
 import { EARTH_IMAGERY_SOURCES, loadEarthImagery } from './earthImagery';
 import { formatIstDateTime } from './time';
@@ -590,12 +590,14 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         grid.visible = showGridRef.current;
         container.dataset.gridVisible = String(grid.visible);
         const simSeconds = secondsRef.current;
-        const earthRotation = Number.isFinite(simSeconds) ? -((simSeconds / 86164.0905) * Math.PI * 2) : 0;
+        const date = new Date(state.time || Date.now());
+        // The Earth-fixed texture frame rotates into ECI by -GMST in this Y-up scene.
+        // Use the absolute simulation epoch, not elapsed seconds from an arbitrary zero.
+        const earthRotation = -greenwichMeanSiderealAngle(date);
         earth.rotation.y = earthRotation;
         clouds.rotation.y = earthRotation * 0.985;
         starField.rotation.y += 0.00002;
 
-        const date = new Date(state.time || Date.now());
         const sunVector = solarEciDirection(date);
         // Keep solar illumination in the same scene frame as ECI-to-scene spacecraft coordinates.
         earthSunUniform.value.set(sunVector.x, sunVector.z, sunVector.y).normalize();
