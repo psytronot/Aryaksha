@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { fitCameraDistance, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO } from '../../src/earth3dMath';
 
 test('Earth 3D responds to native two-pointer touch pinch on mobile Chromium', async ({ page }) => {
   test.setTimeout(60_000);
@@ -19,8 +20,15 @@ test('Earth 3D responds to native two-pointer touch pinch on mobile Chromium', a
   await expect(container).toHaveAttribute('data-camera-mode', 'SYSTEM');
 
   const readDistance = async () => Number(await container.getAttribute('data-camera-distance'));
+  const earthRadius = 5.15;
+  const moonRadius = earthRadius * (1737.4 / 6378.137);
+  const moonDistance = earthRadius * (384400 / 6378.137);
+  const systemExtent = moonDistance * SYSTEM_DISPLAY_DISTANCE_RATIO + moonRadius;
+  const viewport = await container.evaluate(element => ({ width: element.clientWidth, height: element.clientHeight }));
+  const expectedFit = fitCameraDistance(viewport.width, viewport.height, systemExtent, 42, SYSTEM_CAMERA_MARGIN);
   const initialDistance = await readDistance();
-  expect(initialDistance).toBeGreaterThan(50);
+  expect(initialDistance).toBeCloseTo(expectedFit, 1);
+  expect(initialDistance).toBeGreaterThan(systemExtent);
   expect(await canvas.evaluate(element => getComputedStyle(element).touchAction)).toBe('none');
 
   await canvas.evaluate(element => {
