@@ -314,6 +314,9 @@ test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without sh
   await page.locator('.earth3d-canvas canvas').scrollIntoViewIfNeeded();
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
   await expect(page.locator('.earth3d-canvas canvas')).toBeVisible();
+  await expect(page.getByTestId('earth-imagery-status')).toHaveAttribute('data-imagery-state', 'nasa', { timeout: 30_000 });
+  await expect(page.getByTestId('earth-imagery-status')).toContainText('NASA Blue Marble');
+  await expect(page.getByTestId('earth-imagery-status')).toContainText('NASA Black Marble');
   const cameraModes = page.locator('[aria-label="Camera modes"]');
   await cameraModes.getByRole('button', { name: 'EARTH', exact: true }).click();
   await page.waitForTimeout(400);
@@ -357,6 +360,30 @@ test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without sh
 
   expect(pageErrors).toEqual([]);
   expect(shaderErrors).toEqual([]);
+});
+
+test('Earth 3D uses deterministic local textures when NASA imagery is blocked by CORS', async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.route('https://assets.science.nasa.gov/**', route => route.abort('blockedbyclient'));
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
+  const imageryStatus = page.getByTestId('earth-imagery-status');
+  await expect(imageryStatus).toHaveAttribute('data-imagery-state', 'fallback', { timeout: 15_000 });
+  await expect(imageryStatus).toContainText('Cartographic fallback');
+  const sources = await page.locator('.earth3d-canvas').evaluate(element => ({
+    albedo: (element as HTMLElement).dataset.earthImageryAlbedo,
+    nightLights: (element as HTMLElement).dataset.earthImageryNightLights
+  }));
+  expect(sources).toEqual({
+    albedo: 'cartographic-fallback',
+    nightLights: 'transparent-fallback'
+  });
+  await expect(page.locator('.earth3d-canvas canvas')).toBeVisible();
+  expect(pageErrors).toEqual([]);
 });
 
 test('Earth 3D releases its WebGL context on unmount and remounts cleanly', async ({ page }) => {

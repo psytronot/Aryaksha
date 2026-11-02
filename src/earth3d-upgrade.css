@@ -91,3 +91,9 @@
     font-size:6px;
   }
 }
+
+
+.earth3d-imagery-status {
+  display: block;
+  margin-top: 0.35rem;
+}

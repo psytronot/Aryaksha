@@ -12,8 +12,39 @@ import {
   SYSTEM_CAMERA_MARGIN,
   SYSTEM_DISPLAY_DISTANCE_RATIO
 } from '../src/earth3dMath';
-import { applyEarthNightLightMask } from '../src/earthVisuals';
+import { applyEarthNightLightMask, makeFallbackNightLightsTexture } from '../src/earthVisuals';
+import { EARTH_IMAGERY_SOURCES, loadEarthImagery } from '../src/earthImagery';
 import { disposeObjectResources, updateFootprint } from '../src/earth3dGeometry';
+
+describe('NASA Earth imagery source and fallback behavior', () => {
+  it('pins the NASA Blue Marble and Black Marble equirectangular sources with attribution', () => {
+    expect(EARTH_IMAGERY_SOURCES.albedo.id).toBe('nasa-blue-marble');
+    expect(EARTH_IMAGERY_SOURCES.albedo.url).toContain('world.topo.bathy.200401.3x5400x2700.jpg');
+    expect(EARTH_IMAGERY_SOURCES.albedo.credit).toBe('NASA Earth Observatory');
+    expect(EARTH_IMAGERY_SOURCES.nightLights.id).toBe('nasa-black-marble');
+    expect(EARTH_IMAGERY_SOURCES.nightLights.url).toContain('BlackMarble_2016_01deg.jpg');
+    expect(EARTH_IMAGERY_SOURCES.nightLights.credit).toContain('NASA Earth Observatory');
+  });
+
+  it('keeps both imagery layers on safe fallbacks when CORS or network requests fail', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('CORS blocked')));
+    try {
+      const result = await loadEarthImagery(new AbortController().signal);
+      expect(result.albedo).toBeNull();
+      expect(result.nightLights).toBeNull();
+      expect(result.failures.albedo).toContain('CORS blocked');
+      expect(result.failures.nightLights).toContain('CORS blocked');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('uses a black night-light fallback instead of synthetic city lights', () => {
+    const texture = makeFallbackNightLightsTexture();
+    expect(Array.from((texture.image as unknown as { data: ArrayLike<number> }).data)).toEqual([0, 0, 0, 255]);
+    texture.dispose();
+  });
+});
 
 describe('Earth 3D lighting, camera and lunar geometry', () => {
   it('masks city lights on the day side and preserves them on the night side', () => {
@@ -40,8 +71,10 @@ describe('Earth 3D lighting, camera and lunar geometry', () => {
     expect(shader.fragmentShader).not.toContain(String.fromCharCode(92) + 'n');
     expect(shader.fragmentShader).toContain('uniform vec3 uEarthSunDirection');
     expect(shader.fragmentShader).toContain('smoothstep(' + NIGHT_LIGHT_TWILIGHT_START.toFixed(2) + ', ' + NIGHT_LIGHT_TWILIGHT_END.toFixed(2));
-    expect(shader.fragmentShader).toContain('totalEmissiveRadiance *= (1.0 - earthDaylight)');
-    expect(material.customProgramCacheKey()).toBe('earth-night-lights-terminator-v2');
+    expect(shader.fragmentShader).toContain('float nightLightLuminance = dot(totalEmissiveRadiance, vec3(0.2126, 0.7152, 0.0722));');
+    expect(shader.fragmentShader).toContain('float nightLightSignal = smoothstep(0.012, 0.08, nightLightLuminance);');
+    expect(shader.fragmentShader).toContain('totalEmissiveRadiance *= nightLightSignal * (1.0 - earthDaylight)');
+    expect(material.customProgramCacheKey()).toBe('earth-night-lights-terminator-v3');
     material.dispose();
   });
 
