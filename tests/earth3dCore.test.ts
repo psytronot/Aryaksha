@@ -15,6 +15,8 @@ import {
 import { applyEarthNightLightMask, makeFallbackNightLightsTexture } from '../src/earthVisuals';
 import { EARTH_IMAGERY_SOURCES, loadEarthImagery } from '../src/earthImagery';
 import { disposeObjectResources, updateFootprint } from '../src/earth3dGeometry';
+import { greenwichMeanSiderealAngle, solarEciDirection, solarSubpoint } from '../src/daynight';
+import { eciToEcef } from '../src/orbit';
 
 describe('NASA Earth imagery source and fallback behavior', () => {
   it('pins the NASA Blue Marble and Black Marble equirectangular sources with attribution', () => {
@@ -43,6 +45,49 @@ describe('NASA Earth imagery source and fallback behavior', () => {
     const texture = makeFallbackNightLightsTexture();
     expect(Array.from((texture.image as unknown as { data: ArrayLike<number> }).data)).toEqual([0, 0, 0, 255]);
     texture.dispose();
+  });
+});
+
+describe('Sun direction and Earth-fixed frame coherence', () => {
+  it('maps the geocentric Sun vector through GMST to the displayed subsolar point', () => {
+    const dates = [
+      new Date('2026-01-01T00:00:00.000Z'),
+      new Date('2026-03-20T12:00:00.000Z'),
+      new Date('2026-06-21T00:00:00.000Z'),
+      new Date('2026-09-22T12:00:00.000Z')
+    ];
+    const northAxis = new THREE.Vector3(0, 1, 0);
+    const degrees = 180 / Math.PI;
+
+    for (const date of dates) {
+      const sun = solarEciDirection(date);
+      const subsolar = solarSubpoint(date);
+      const sunMagnitude = Math.hypot(sun.x, sun.y, sun.z);
+      expect(sunMagnitude).toBeCloseTo(1, 10);
+
+      // The orbital engine's ECI→ECEF transform must put the same Sun at the
+      // longitude/latitude reported by the day/night telemetry.
+      const ecef = eciToEcef([sun.x, sun.y, sun.z], date);
+      const ecefMagnitude = Math.hypot(ecef[0], ecef[1], ecef[2]);
+      const ecefLatitude = Math.asin(ecef[2] / ecefMagnitude) * degrees;
+      const ecefLongitude = Math.atan2(ecef[1], ecef[0]) * degrees;
+      const longitudeError = ((ecefLongitude - subsolar.lon + 540) % 360) - 180;
+      expect(ecefLatitude).toBeCloseTo(subsolar.lat, 6);
+      expect(longitudeError).toBeCloseTo(0, 6);
+
+      // Earth-fixed local +X at longitude zero rotates by -GMST in the
+      // Three.js Y-up scene. The subsolar surface normal must face the Sun.
+      const latitude = subsolar.lat / degrees;
+      const longitude = subsolar.lon / degrees;
+      const earthFixedNormal = new THREE.Vector3(
+        Math.cos(latitude) * Math.cos(longitude),
+        Math.sin(latitude),
+        Math.cos(latitude) * Math.sin(longitude)
+      );
+      earthFixedNormal.applyAxisAngle(northAxis, -greenwichMeanSiderealAngle(date));
+      const sunSceneDirection = new THREE.Vector3(sun.x, sun.z, sun.y);
+      expect(earthFixedNormal.dot(sunSceneDirection)).toBeCloseTo(1, 8);
+    }
   });
 });
 
