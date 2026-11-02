@@ -56,6 +56,7 @@ jobs:
   browser-e2e:
     name: Browser smoke tests
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     needs: [web-build-and-tests]
     steps:
       - uses: actions/checkout@v7
@@ -66,9 +67,18 @@ jobs:
       - name: Install pinned axe-core for accessibility audits
         run: npm install --no-save --package-lock=false axe-core@4.10.3
       - name: Install Chromium for Playwright
+        timeout-minutes: 15
         run: npx playwright install --with-deps chromium
       - run: npm run build
       - run: npm run test:e2e
+      - name: Upload Earth 3D browser screenshots and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: earth3d-browser-evidence-${{ github.run_id }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 14
 
   orekit-service:
     name: Orekit service build and tests

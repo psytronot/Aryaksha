@@ -4,10 +4,10 @@ const externalBaseURL = process.env.PLAYWRIGHT_BASE_URL;
 
 export default defineConfig({
   testDir: './tests/e2e',
-  fullyParallel: true,
+  fullyParallel: false,
+  workers: process.env.CI ? 1 : undefined,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
   reporter: 'list',
   use: {
     baseURL: externalBaseURL ?? 'http://127.0.0.1:3000',
@@ -16,7 +16,19 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testIgnore: /earth3d-touch\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] }
+    },
+    {
+      name: 'chromium-mobile-touch',
+      testMatch: /earth3d-touch\.spec\.ts/,
+      use: {
+        browserName: 'chromium',
+        viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 3,
+        isMobile: true,
+        hasTouch: true
+      }
     }
   ],
   ...(externalBaseURL ? {} : {
