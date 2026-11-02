@@ -328,6 +328,11 @@ test('Earth 3D mission-control rails stay outside the globe and support full scr
   await expect(canvas).toBeVisible();
   await expect(leftRail).toBeVisible();
   await expect(rightRail).toBeVisible();
+  await expect(page.getByText('SIMULATED MISSION OBJECT')).toBeVisible();
+  await expect(page.locator('.earth3d-source-badge')).toHaveText('SIMULATED');
+  await expect(page.getByText('TRACKING OBJECT')).toHaveCount(0);
+  expect(await leftRail.evaluate(element => element.scrollHeight - element.clientHeight)).toBeLessThanOrEqual(1);
+  expect(await rightRail.evaluate(element => element.scrollHeight - element.clientHeight)).toBeLessThanOrEqual(1);
   const canvasBox = await canvas.boundingBox();
   const leftBox = await leftRail.boundingBox();
   const rightBox = await rightRail.boundingBox();
@@ -342,6 +347,18 @@ test('Earth 3D mission-control rails stay outside the globe and support full scr
   await page.getByRole('button', { name: 'Exit full screen' }).click();
   await expect(page.getByRole('button', { name: 'Enter full screen' })).toBeVisible();
   await expect(workspace).toBeVisible();
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.waitForTimeout(250);
+  const mediumCanvasBox = await canvas.boundingBox();
+  const mediumLeftBox = await leftRail.boundingBox();
+  const mediumRightBox = await rightRail.boundingBox();
+  expect(mediumCanvasBox).not.toBeNull();
+  expect(mediumLeftBox).not.toBeNull();
+  expect(mediumRightBox).not.toBeNull();
+  expect(mediumCanvasBox!.width).toBeGreaterThan(350);
+  expect(mediumLeftBox!.x + mediumLeftBox!.width).toBeLessThanOrEqual(mediumCanvasBox!.x + 1);
+  expect(mediumRightBox!.y).toBeGreaterThanOrEqual(mediumCanvasBox!.y + mediumCanvasBox!.height - 1);
 });
 test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without shader errors', async ({ page }) => {
   test.setTimeout(90_000);
