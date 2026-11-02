@@ -298,6 +298,51 @@ test('Earth 3D SYSTEM and MOON reset, pinch, resize and drag preserve fitted fra
   expect(pageErrors).toEqual([]);
 });
 
+test('Earth 3D mission-control rails stay outside the globe and support full screen', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    let activeFullscreenElement: Element | null = null;
+    Object.defineProperty(document, 'fullscreenElement', {
+      configurable: true,
+      get: () => activeFullscreenElement
+    });
+    Element.prototype.requestFullscreen = async function () {
+      activeFullscreenElement = this;
+      document.dispatchEvent(new Event('fullscreenchange'));
+    };
+    document.exitFullscreen = async () => {
+      activeFullscreenElement = null;
+      document.dispatchEvent(new Event('fullscreenchange'));
+    };
+  });
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page.getByRole('navigation', { name: 'Mobile navigation' })
+    .getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const workspace = page.locator('.earth3d-workspace');
+  const canvas = page.locator('.earth3d-canvas');
+  const leftRail = page.getByRole('complementary', { name: 'Mission state and orbital details' });
+  const rightRail = page.getByRole('complementary', { name: 'Simulation controls and live telemetry' });
+  await expect(canvas).toBeVisible();
+  await expect(leftRail).toBeVisible();
+  await expect(rightRail).toBeVisible();
+  const canvasBox = await canvas.boundingBox();
+  const leftBox = await leftRail.boundingBox();
+  const rightBox = await rightRail.boundingBox();
+  expect(canvasBox).not.toBeNull();
+  expect(leftBox).not.toBeNull();
+  expect(rightBox).not.toBeNull();
+  expect(leftBox!.y).toBeGreaterThanOrEqual(canvasBox!.y + canvasBox!.height - 1);
+  expect(rightBox!.y).toBeGreaterThanOrEqual(leftBox!.y + leftBox!.height - 1);
+
+  await page.getByRole('button', { name: 'Enter full screen' }).click();
+  await expect(page.getByRole('button', { name: 'Exit full screen' })).toBeVisible();
+  await page.getByRole('button', { name: 'Exit full screen' }).click();
+  await expect(page.getByRole('button', { name: 'Enter full screen' })).toBeVisible();
+  await expect(workspace).toBeVisible();
+});
 test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without shader errors', async ({ page }) => {
   test.setTimeout(90_000);
   const pageErrors: string[] = [];
@@ -334,14 +379,15 @@ test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without sh
 
   await page.setViewportSize({ width: 390, height: 844 });
   await cameraModes.getByRole('button', { name: 'SYSTEM', exact: true }).click();
-  const mobileScene = page.locator('.earth3d-canvas');
+  const mobileScene = page.locator('.earth3d-workspace');
+  const mobileCanvas = page.locator('.earth3d-canvas');
   await mobileScene.scrollIntoViewIfNeeded();
   await page.waitForTimeout(400);
   const mobilePath = test.info().outputPath('earth3d-mobile-system-390x844.png');
   await mobileScene.screenshot({ path: mobilePath, timeout: 60_000, animations: 'disabled' });
   await test.info().attach('earth3d-mobile-system-390x844.png', { path: mobilePath, contentType: 'image/png' });
 
-  const mobileCanvasBounds = await mobileScene.boundingBox();
+  const mobileCanvasBounds = await mobileCanvas.boundingBox();
   expect(mobileCanvasBounds).not.toBeNull();
   const focalPoint = {
     x: mobileCanvasBounds!.x + mobileCanvasBounds!.width / 2,
