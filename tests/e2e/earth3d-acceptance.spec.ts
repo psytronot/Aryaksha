@@ -235,11 +235,11 @@ test('Earth 3D SYSTEM and MOON reset, pinch, resize and drag preserve fitted fra
 
   await modes.getByRole('button', { name: 'SYSTEM', exact: true }).click();
   await expect(container).toHaveAttribute('data-camera-mode', 'SYSTEM');
-  await expect.poll(readDistance).toBeGreaterThan(50);
-  await expect.poll(readDistance).toBeLessThan(300);
-  await expect(page.locator('.earth3d-hud-card').filter({ hasText: 'PHYSICAL SCALE' })).toContainText('44.4×');
   const portraitSystemFit = await systemFit();
-  expect(await readDistance()).toBeCloseTo(portraitSystemFit, 1);
+  await expect.poll(readDistance).toBeCloseTo(portraitSystemFit, 1);
+  expect(portraitSystemFit).toBeGreaterThan(systemExtent);
+  expect(portraitSystemFit).toBeLessThan(300);
+  await expect(page.locator('.earth3d-hud-card').filter({ hasText: 'PHYSICAL SCALE' })).toContainText('44.4×');
   const portraitFov = await limitingFov();
   expect(apparentDiameterFraction(earthRadius, portraitSystemFit, portraitFov)).toBeGreaterThan(0.4);
   expect(apparentDiameterFraction(moonRadius, portraitSystemFit, portraitFov)).toBeGreaterThan(0.1);
