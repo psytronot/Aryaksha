@@ -107,8 +107,10 @@ export async function runProvenanceCheck(env = process.env, fetchImpl = fetch) {
   const githubToken = env.GITHUB_TOKEN;
   const repository = env.GITHUB_REPOSITORY;
   const mainSha = env.GITHUB_SHA;
+  const ref = env.GITHUB_REF;
 
   if (!renderKey) throw new Error('RENDER_API_KEY is not configured in GitHub Actions secrets; exact Render provenance remains BLOCKED.');
+  if (ref !== 'refs/heads/main') throw new Error('Render provenance must run from canonical refs/heads/main; other refs are BLOCKED.');
   if (!githubToken || !repository || !/^[0-9a-f]{40}$/i.test(mainSha ?? '')) {
     throw new Error('GITHUB_TOKEN, GITHUB_REPOSITORY or full GITHUB_SHA is unavailable; exact Render provenance remains BLOCKED.');
   }
