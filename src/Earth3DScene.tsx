@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { Maximize2, Minimize2 } from 'lucide-react';
 import { dayNightSnapshot, greenwichMeanSiderealAngle, solarEciDirection } from './daynight';
 import { applyEarthNightLightMask, makeFallbackNightLightsTexture } from './earthVisuals';
 import { EARTH_IMAGERY_SOURCES, loadEarthImagery } from './earthImagery';
@@ -193,6 +194,7 @@ function scenePosition(r: number[], scale: number) {
 
 export default function Earth3DScene({ model, current, seconds, name, propagator, footprintAngleDeg = 0.52, busWidthM = 0.1, busHeightM = 0.2, busDepthM = 0.1, altitudeKm = 550, eccentricity = 0, inclinationDeg = 0, raanDeg = 0, argumentOfPerigeeDeg = 0, trueAnomalyDeg = 0, periodMin = 95, panelAreaM2 = 0.6 }: Earth3DSceneProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const workspaceRef = useRef<HTMLElement | null>(null);
   const modelRef = useRef(model);
   const currentRef = useRef(current);
   const designRef = useRef({ busWidthM, busHeightM, busDepthM, panelAreaM2 });
@@ -214,6 +216,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   const [selectedSatellite, setSelectedSatellite] = useState('design');
   const [errorState, setErrorState] = useState('');
   const [imageryState, setImageryState] = useState<'loading' | 'nasa' | 'partial' | 'fallback'>('loading');
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [imageryStatus, setImageryStatus] = useState('Loading NASA Blue Marble and Black Marble imagery…');
   const [wallTime, setWallTime] = useState(() => new Date());
   const cameraState = useRef({ yaw: 0.65, pitch: 0.26, distance: 11 });
@@ -228,6 +231,12 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   useEffect(() => {
     const timer = window.setInterval(() => setWallTime(new Date()), 1000);
     return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const syncFullscreenState = () => setIsFullscreen(document.fullscreenElement === workspaceRef.current);
+    document.addEventListener('fullscreenchange', syncFullscreenState);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
   }, []);
   secondsRef.current = seconds;
   cameraModeRef.current = cameraMode;
@@ -709,6 +718,22 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
     if (cameraMode === 'SYSTEM') cameraState.current.distance = Math.max(2, Math.min(2600, systemCameraDistance(containerRef.current?.clientWidth || 1, containerRef.current?.clientHeight || 1) * systemZoomRatioRef.current));
   }, [cameraMode]);
 
+  const toggleFullscreen = async () => {
+    const workspace = workspaceRef.current;
+    if (!workspace) return;
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else if (typeof workspace.requestFullscreen === 'function') {
+        await workspace.requestFullscreen();
+      } else {
+        setErrorState('Full-screen mode is not supported by this browser.');
+      }
+    } catch (error) {
+      setErrorState(error instanceof Error ? error.message : 'Full-screen mode could not be opened.');
+    }
+  };
+
   const dayNight = dayNightSnapshot(Number(current?.lla?.lat), Number(current?.lla?.lon), new Date(current?.time || Date.now()));
   const speed = Math.hypot(...(current?.v || [0, 0, 0]));
   const maxBusDimensionM = Math.max(0.01, busWidthM, busHeightM, busDepthM);
@@ -718,7 +743,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   return (
     <div className="page">
       <div className="page-header"><div><small>3D MISSION VIEW</small><h1>Earth 3D</h1><p>A local spacecraft-tracking globe with asynchronous NASA Earth imagery, orbital path, vectors and mission HUD.</p><small className="earth3d-imagery-status" data-testid="earth-imagery-status" data-imagery-state={imageryState} role="status" aria-live="polite">{imageryStatus}</small><small>Scale disclosure: Earth diameter is approximately {Math.round(trueEarthToBusRatio).toLocaleString()} times the maximum bus dimension at true scale. Spacecraft geometry is enlarged by {visualExaggeration.toLocaleString()}× for visibility; dimensions are not shown to physical scale.</small></div></div>
-      <article className="earth3d-workspace glass-panel">
+      <article ref={workspaceRef} className="earth3d-workspace glass-panel">
         <div className="earth3d-canvas" ref={containerRef} role="region" aria-label="Interactive 3D Earth with trackable spacecraft" />
         <div className="earth3d-topbar">
           <div className="earth3d-object">
@@ -730,15 +755,26 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
           <div className="earth-camera-controls" aria-label="Camera modes">
             {(['TRACK', 'EARTH', 'SATELLITE', 'MOON', 'SYSTEM'] as CameraMode[]).map(mode => <button key={mode} type="button" className={`earth-camera-button ${cameraMode === mode ? 'active' : ''}`} onClick={() => { if (mode === 'MOON' || mode === 'SYSTEM') setShowSpaceEnvironment(true); setCameraMode(mode); }}>{mode}</button>)}
             <button type="button" className="earth-camera-button" aria-label="Reset camera framing" onClick={() => { const width = containerRef.current?.clientWidth || 1; const height = containerRef.current?.clientHeight || 1; if (cameraMode === 'SYSTEM') systemZoomRatioRef.current = 1; if (cameraMode === 'MOON') moonZoomRatioRef.current = 1; if (cameraMode === 'EARTH') earthZoomRatioRef.current = 1; const distance = cameraMode === 'SATELLITE' ? 5.8 : cameraMode === 'EARTH' ? earthCameraDistance(width, height) : cameraMode === 'MOON' ? moonCameraDistance(width, height) : cameraMode === 'SYSTEM' ? systemCameraDistance(width, height) : 11; cameraState.current = { yaw: 0.65, pitch: 0.26, distance }; }}>RESET</button>
+            <button type='button' className='earth-camera-button earth-fullscreen-button' aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'} onClick={() => void toggleFullscreen()}>{isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}<span>{isFullscreen ? 'EXIT FULL SCREEN' : 'FULL SCREEN'}</span></button>
           </div>
         </div>
-        <div className="earth3d-left-hud">
+        <div className="earth3d-left-hud" role="complementary" aria-label="Mission state and orbital details">
           <div className="earth3d-hud-card"><small>POSITION / WGS84</small><b>{Number(current?.lla?.lat || 0).toFixed(3)}°</b><b>{Number(current?.lla?.lon || 0).toFixed(3)}°</b><span>ALT {Number(current?.lla?.alt || 0).toFixed(1)} km</span></div>
           <div className="earth3d-hud-card"><small>FLIGHT STATE</small><span>t+ {Number(seconds || 0).toFixed(1)} s</span><span>V {speed.toFixed(3)} km/s</span><span>{dayNight.isDay ? 'DAY SIDE' : 'NIGHT SIDE'} · {dayNight.localSolar}</span></div>
           <div className="earth3d-hud-card"><small>PHYSICAL SCALE · REFERENCE VALUES</small><span>EARTH RADIUS 6,378.137 km (WGS-84 equatorial)</span><span>MOON RADIUS 1,737.4 km · 0.2727 R⊕</span><span>EARTH–MOON CENTRES 384,400 km · 60.3 R⊕ mean</span>{cameraMode === 'SYSTEM' && <span>SYSTEM DISPLAY: CENTRE SEPARATION COMPRESSED TO 2.25% (44.4×) FOR VISIBILITY; BODY RADII RETAINED; NOT TO SCALE</span>}<span>SUN RADIUS 695,700 km · 109.2 R⊕</span><span>SUN DISTANCE 149.6 million km · 1 AU mean</span><span>SPACECRAFT SIZE IS EXAGGERATED FOR VISIBILITY</span><span>ORBIT {inclinationDeg.toFixed(2)}° inc · e {eccentricity.toFixed(4)}</span></div>
           <div className="earth3d-hud-card"><small>ORBITAL ELEMENTS</small><span>RAAN {raanDeg.toFixed(2)}°</span><span>ARG PERIAPSIS {argumentOfPerigeeDeg.toFixed(2)}°</span><span>TRUE ANOMALY {trueAnomalyDeg.toFixed(2)}°</span><span>PERIOD {periodMin.toFixed(2)} min</span><span>RANGE FROM EARTH CENTRE {(6378.137 + Number(current?.lla?.alt ?? altitudeKm)).toFixed(2)} km</span></div>
         </div>
-        <div className="earth3d-right-hud">
+        <div className="earth3d-right-hud" role="complementary" aria-label="Simulation controls and live telemetry">
+          <div className="earth3d-hud-card earth3d-telemetry-card" aria-label="Live telemetry">
+            <small>LIVE TELEMETRY</small>
+            <div className="earth3d-telemetry-row"><span>TIME</span><b>{Number(seconds || 0).toFixed(1)} s</b></div>
+            <div className="earth3d-telemetry-row"><span>ALTITUDE</span><b>{Number(current?.lla?.alt ?? altitudeKm).toFixed(2)} km</b></div>
+            <div className="earth3d-telemetry-row"><span>LATITUDE</span><b>{Number(current?.lla?.lat ?? 0).toFixed(3)}°</b></div>
+            <div className="earth3d-telemetry-row"><span>LONGITUDE</span><b>{Number(current?.lla?.lon ?? 0).toFixed(3)}°</b></div>
+            <div className="earth3d-telemetry-row"><span>SPEED</span><b>{speed.toFixed(4)} km/s</b></div>
+            <div className="earth3d-telemetry-row"><span>ECI X / Y / Z</span><b>{(current?.r || [0, 0, 0]).map((value:number) => Number(value).toFixed(1)).join(' / ')} km</b></div>
+            <div className="earth3d-model-box"><small>MODEL FIDELITY</small><b>{propagator === 'SGP4' ? 'SGP4 / TLE' : 'Two-body Keplerian'}</b><span>{propagator === 'SGP4' ? 'Element-set propagation; accuracy depends on TLE age and source.' : 'Transparent analytical model. No J2, drag, SRP or third-body gravity.'}</span></div>
+          </div>
           <div className="earth3d-hud-card"><small>VISUAL LAYERS</small><label><input type="checkbox" checked={showFootprint} onChange={e => setShowFootprint(e.target.checked)} /> <span>Ground footprint</span></label><label><input type="checkbox" checked={showVectors} onChange={e => setShowVectors(e.target.checked)} /> <span>Velocity / nadir vectors</span></label><label><input type="checkbox" checked={showGrid} onChange={e => setShowGrid(e.target.checked)} /> <span>Reference grid</span></label><label><input type="checkbox" checked={showAxes} onChange={e => setShowAxes(e.target.checked)} /> <span>ECI axes</span></label></div>
           <div className="earth3d-hud-card"><small>EARTH–MOON SYSTEM</small>{cameraMode === 'SYSTEM' && <span className="earth3d-scale-warning">SCHEMATIC VIEW · 44.4× DISTANCE COMPRESSION</span>}<label><input type="checkbox" checked={showSpaceEnvironment} onChange={e => setShowSpaceEnvironment(e.target.checked)} /> <span>Show Moon and lunar orbit</span></label><div className="earth3d-planet-select"><span>SPACECRAFT MODEL</span><select aria-label="Choose spacecraft model" value={selectedSatellite} onChange={e => setSelectedSatellite(e.target.value)}><option value="design">Current mission design</option><option value="cubesat1u">CubeSat 1U · 10 cm</option><option value="cubesat3u">CubeSat 3U · 34 cm</option><option value="cubesat6u">CubeSat 6U</option><option value="microsat">Microsatellite · reference</option><option value="iss">ISS · reference silhouette</option></select></div><span>Model choice changes the 3D silhouette only; orbit and telemetry remain the selected mission state.</span></div>
           <div className="earth3d-hud-card"><small>SOLAR GEOMETRY</small><span>SUBSOLAR {dayNight.subsolarLat.toFixed(1)}°, {dayNight.subsolarLon.toFixed(1)}°</span><span>{dayNight.timeZone}</span></div>
