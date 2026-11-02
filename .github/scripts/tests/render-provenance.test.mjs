@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assessDeploymentSource, extractLiveDeploy } from '../.github/scripts/verify-render-provenance.mjs';
+import { assessDeploymentSource, extractLiveDeploy } from '../verify-render-provenance.mjs';
 
 const sha = letter => letter.repeat(40);
 const deploy = (id, status, commitSha) => ({
