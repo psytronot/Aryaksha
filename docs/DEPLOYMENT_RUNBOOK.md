@@ -68,3 +68,22 @@ A rollback drill has not been performed. Treat this section as a runbook, not pr
 - Render metrics in the sampled 11-minute window showed roughly 51 MB web memory and 129 MB Orekit memory at the last sample, but HTTP request-count and latency series were empty. This is not a performance benchmark and does not establish latency, FPS or load budgets.
 - The deployed Vite build now splits the former 989.94 kB JavaScript chunk: largest emitted chunk is `vendor-three` at 483.88 kB (120.82 kB gzip); `vendor-react` is 223.19 kB, and the application entry is 183.28 kB. CI and Render build logs showed no >500 kB chunk warning. Representative-device/WebGL frame-rate, memory, resize/context-loss, and accessibility testing remains open.
 - Free-tier cold starts can exceed one minute. The 90-second proxy timeout reduces false failures but does not eliminate first-request latency.
+
+
+## 2026-11-02 — automated Render deployment provenance
+
+The scheduled production-health workflow now has a separate read-only provenance job. It retrieves the **currently live** deploy for each existing Render service through the Render API and compares that deploy's exact commit SHA with canonical GitHub `main`. A newer failed or in-progress deploy is not mistaken for the deployment serving traffic.
+
+- Web policy: the live `aryaksha-web` commit must exactly match canonical `main`. A stale web deployment is a HOLD, not an automatic deploy.
+- Orekit policy: the live `aryaksha-orekit` commit must be an ancestor of `main`, and no file under `orekit-service/` may have changed since that commit. Unrelated frontend/workflow commits do not require rebuilding the Orekit service.
+- The job is read-only. It never triggers, restarts, rolls back or modifies a Render service.
+- The check requires a GitHub Actions repository secret named `RENDER_API_KEY`. Repository owner/admin action is required to add it under **Settings → Secrets and variables → Actions**. If it is absent, provenance remains blocked and the job fails explicitly.
+- The existing service IDs are pinned in the verifier: web `srv-dbhm5nks728c73d2f73g`; Orekit `srv-dbhm5p942hec73cr4ddg`. No service is created.
+
+### Verified deployment snapshot on 2026-11-02
+
+- Canonical GitHub main: `4529c008792ed8f8383f43aa6cb7ddeeefc0edb3`.
+- Render web live deployment: `dep-dbi7p24s728c73cj84gg`, commit `4ba079e27801d5e78377e3328a6e7b9074139612`. GitHub compare reports main is 3 commits ahead; the changed paths include application/frontend files. The web provenance gate is therefore HOLD.
+- Render Orekit live deployment: `dep-dbhok7qfngtc73c6tlp0`, commit `d29e517a7e10775814f284b622b5cdda9286b446`. GitHub compare reports main is 14 commits ahead, with no changed `orekit-service/` paths in that comparison. This is source-equivalent for the Orekit subtree, not an exact repository-wide SHA match.
+- Existing Render web Build Command remains `npm install && npm run build`; Start Command remains `npm start`. Changing it to `npm ci && npm run build` is a separate **dashboard-only** owner action on the existing web service. This PR does not change production settings.
+- Keep the release HOLD until the web provenance gate and all other Phase A gates pass. No deployment is authorized by this documentation or workflow change.

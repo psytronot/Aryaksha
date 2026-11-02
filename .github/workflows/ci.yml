@@ -48,6 +48,8 @@ jobs:
           NODE
       - run: npm run typecheck
       - run: npm test
+      - name: Test Render deployment provenance policy
+        run: node --test .github/scripts/tests/render-provenance.test.mjs
       - run: npm run build
 
 
