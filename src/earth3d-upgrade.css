@@ -97,3 +97,55 @@
   display: block;
   margin-top: 0.35rem;
 }
+
+
+/* Reference-matched mission-control layout: keep the globe clear and controls in side rails. */
+.simulation-page .simulation-grid { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.simulation-page .scene-wrap { min-width: 0; min-height: 0; }
+.earth3d-workspace { display: grid; grid-template-columns: minmax(176px, 210px) minmax(0, 1fr) minmax(220px, 270px); grid-template-rows: auto minmax(560px, 1fr) auto; gap: 10px; min-height: 760px; padding: 12px; overflow: hidden; align-items: stretch; }
+.earth3d-topbar { position: relative; inset: auto; grid-column: 1 / -1; grid-row: 1; display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+.earth3d-canvas { position: relative; inset: auto; grid-column: 2; grid-row: 2; min-width: 0; min-height: 560px; border: 1px solid rgba(173,194,211,.18); border-radius: 10px; overflow: hidden; }
+.earth3d-left-hud { position: relative; inset: auto; grid-column: 1; grid-row: 2; align-content: start; max-width: none; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
+.earth3d-right-hud { position: relative; inset: auto; grid-column: 3; grid-row: 2; max-width: none; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
+.earth3d-hud-card { width: 100%; max-width: none; border-radius: 9px; }
+.earth3d-bottom-bar { position: relative; inset: auto; grid-column: 1 / -1; grid-row: 3; margin: 0; }
+.earth3d-telemetry-card { gap: 8px; }
+.earth3d-telemetry-row { display: flex; justify-content: space-between; align-items: baseline; gap: 9px; border-bottom: 1px solid var(--line); padding-bottom: 5px; font-size: 8px; }
+.earth3d-telemetry-row span { color: var(--muted); }
+.earth3d-telemetry-row b { font-size: 9px; text-align: right; overflow-wrap: anywhere; }
+.earth3d-model-box { display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 8px; }
+.earth3d-model-box small { color: #d6aa70; font: 7px ui-monospace, monospace; letter-spacing: .16em; }
+.earth3d-model-box b { color: #f1f4f6; font-size: 10px; font-weight: 600; }
+.earth3d-model-box span { color: var(--muted); font: 7px/1.5 ui-monospace, monospace; }
+.earth-camera-controls { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; pointer-events: auto; }
+.earth-fullscreen-button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.earth-fullscreen-button span { font: 7px ui-monospace, monospace; }
+.earth3d-workspace:fullscreen { width: 100vw; height: 100vh; min-height: 100vh; border-radius: 0; padding: 12px; grid-template-rows: auto minmax(0, 1fr) auto; background: #03060b; }
+.earth3d-workspace:fullscreen .earth3d-canvas { min-height: 0; height: 100%; }
+@media (max-width: 1100px) {
+  .earth3d-workspace { grid-template-columns: minmax(150px, 185px) minmax(0, 1fr) minmax(190px, 220px); }
+}
+@media (max-width: 800px) {
+  .earth3d-workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(320px, 46svh) auto auto auto; min-height: 0; padding: 8px; gap: 8px; overflow: visible; }
+  .earth3d-topbar { grid-column: 1; grid-row: 1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; }
+  .earth3d-object { width: 100%; max-width: 100%; }
+  .earth-camera-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; max-width: none; gap: 5px; }
+  .earth-camera-button { width: 100%; min-width: 0; height: 36px; }
+  .earth-fullscreen-button { justify-content: center; }
+  .earth3d-canvas { grid-column: 1; grid-row: 2; min-height: 320px; height: 46svh; max-height: 460px; }
+  .earth3d-left-hud { grid-column: 1; grid-row: 3; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; max-height: 220px; overflow-y: auto; }
+  .earth3d-left-hud .earth3d-hud-card:nth-child(n + 3) { grid-column: 1 / -1; }
+  .earth3d-right-hud { grid-column: 1; grid-row: 4; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; max-height: 260px; overflow-y: auto; }
+  .earth3d-right-hud .earth3d-hud-card:first-child { grid-column: 1 / -1; }
+  .earth3d-bottom-bar { grid-column: 1; grid-row: 5; gap: 8px; flex-wrap: wrap; }
+  .earth3d-help { display: none; }
+}
+@media (max-width: 500px) {
+  .earth3d-workspace { grid-template-rows: auto minmax(300px, 44svh) auto auto auto; }
+  .earth3d-canvas { min-height: 300px; height: 44svh; max-height: 400px; }
+  .earth3d-left-hud { max-height: 200px; }
+  .earth3d-right-hud { max-height: 240px; }
+  .earth3d-hud-card { padding: 8px; font-size: 7px; }
+  .earth3d-bottom-bar { padding: 7px; font-size: 6px; }
+  .earth-camera-button { font-size: 8px; }
+}
