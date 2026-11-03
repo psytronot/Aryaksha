@@ -32,6 +32,13 @@ export function earthCameraDistance(width: number, height: number, earthRadius =
   return fitCameraDistance(width, height, earthRadius, EARTH_3D_FOV_DEGREES, EARTH_CAMERA_MARGIN);
 }
 
+export function cloudRelativeRotation(earthRotation: number): number {
+  const safeRotation = Number.isFinite(earthRotation) ? earthRotation : 0;
+  // Clouds are children of the rotating Earth group. Apply only the -1.5%
+  // relative drift so the world-space rate is 98.5%, not 198.5%.
+  return safeRotation * -0.015;
+}
+
 export function moonSynchronousYaw(phase: number): number {
   const safePhase = Number.isFinite(phase) ? phase : 0;
   // Three.js local +Z points from the Moon back toward Earth in the x-z orbital plane.
