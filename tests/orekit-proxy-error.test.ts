@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapOrekitProxyFailure } from '../backend/orekitProxyError';
+import { mapOrekitProxyException, mapOrekitProxyFailure } from '../backend/orekitProxyError';
 
 describe('Orekit proxy failure mapping', () => {
   it('preserves the structured HTTP 400 periapsis validation response', () => {
@@ -41,4 +41,21 @@ describe('Orekit proxy failure mapping', () => {
     expect(result.status).toBe(400);
     expect(result.message).toHaveLength(300);
   });
+  
+  it('returns a retryable 503 when the Orekit readiness request times out', () => {
+    const timeout = new Error('The operation was aborted.');
+    timeout.name = 'AbortError';
+    expect(mapOrekitProxyException(timeout)).toEqual({
+      status: 503,
+      message: 'Orekit did not become ready within 15 seconds. The service may be waking from idle; retry after 20 seconds.'
+    });
+  });
+
+  it('keeps non-timeout transport failures as HTTP 502', () => {
+    expect(mapOrekitProxyException(new TypeError('fetch failed'))).toEqual({
+      status: 502,
+      message: 'Orekit service is configured but unavailable. Check its deployment and logs.'
+    });
+  });
+
 });
