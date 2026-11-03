@@ -254,7 +254,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
     if (!container) return undefined;
     // AppDeploy injects a fixed <pwa-install> host outside the React tree. Keep it
     // out of the interactive Earth 3D workspace so it cannot intercept controls.
-    document.body.classList.add('earth3d-active');
+    document.documentElement.classList.add('earth3d-active');
     let mounted = true;
     let cleanup = () => {};
     const imageryAbortController = new AbortController();
@@ -708,7 +708,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
     }
     return () => {
       mounted = false;
-      document.body.classList.remove('earth3d-active');
+      document.documentElement.classList.remove('earth3d-active');
       imageryAbortController.abort();
       cleanup();
     };
