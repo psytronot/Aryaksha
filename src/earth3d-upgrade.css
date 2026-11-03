@@ -162,3 +162,9 @@ html.earth3d-active pwa-install {
   display: none !important;
   pointer-events: none !important;
 }
+
+
+/* The platform install host has a full-viewport hitbox even when its sheet is not visible. */
+html.aryaksha-app-active pwa-install {
+  pointer-events: none !important;
+}
