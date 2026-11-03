@@ -1,5 +1,6 @@
 import { router, json, error } from '@appdeploy/sdk';
 import * as satellite from 'satellite.js';
+import { mapOrekitProxyFailure } from './orekitProxyError';
 
 const MU = 398600.4418;
 const EARTH_RADIUS = 6378.137;
@@ -101,7 +102,11 @@ export const handler = router({
         } finally {
           clearTimeout(timeout);
         }
-        if (!response.ok) return error(`Orekit service returned HTTP ${response.status}.`, 502);
+        if (!response.ok) {
+          const upstreamPayload = await response.json().catch(() => null) as unknown;
+          const failure = mapOrekitProxyFailure(response.status, upstreamPayload);
+          return error(failure.message, failure.status);
+        }
         const result = await response.json() as Record<string, unknown>;
         if (result.valid !== true || typeof result.engine !== 'string' || !result.orbit || typeof result.orbit !== 'object') {
           return error('Orekit service returned an invalid analysis response.', 502);
