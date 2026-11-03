@@ -527,6 +527,7 @@ test('Earth 3D releases its WebGL context on unmount and remounts cleanly', asyn
 
 test("Earth 3D mission timeline and scene gallery control the shared simulation state", async ({ page }) => {
   await page.setViewportSize({ width: 1536, height: 1024 });
+  await page.addInitScript(() => localStorage.setItem("orbital-lab-coach-enabled", "false"));
   await page.goto("/");
   await page.getByRole("button", { name: "Simulation", exact: true }).click();
 
@@ -554,8 +555,6 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   await speed.selectOption("60");
   await expect(speed).toHaveValue("60");
 
-  await timeline.getByRole("button", { name: "Earth scene", exact: true }).click();
-  await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "EARTH", exact: true })).toHaveClass(/active/);
   await timeline.getByRole("button", { name: "Moon scene", exact: true }).click();
   await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "MOON", exact: true })).toHaveClass(/active/);
   await expect(timeline.getByRole("button", { name: "Moon scene", exact: true })).toHaveAttribute("aria-pressed", "true");
@@ -564,8 +563,20 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   await expect(timeline.getByRole("button", { name: "Earth and Moon scene" })).toHaveAttribute("aria-pressed", "true");
 });
 
+test("Earth 3D Earth scene shortcut selects the Earth camera", async ({ page }) => {
+  await page.setViewportSize({ width: 1536, height: 1024 });
+  await page.addInitScript(() => localStorage.setItem("orbital-lab-coach-enabled", "false"));
+  await page.goto("/");
+  await page.getByRole("button", { name: "Simulation", exact: true }).click();
+  const timeline = page.getByRole("region", { name: "Mission timeline and scene gallery" });
+  await timeline.getByRole("button", { name: "Earth scene", exact: true }).click();
+  await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "EARTH", exact: true })).toHaveClass(/active/);
+  await expect(timeline.getByRole("button", { name: "Earth scene", exact: true })).toHaveAttribute("aria-pressed", "true");
+});
+
 test("Earth 3D timeline and scene gallery remain touch-usable on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem("orbital-lab-coach-enabled", "false"));
   await page.goto("/");
   await page.getByRole("button", { name: "Open navigation" }).click();
   await page.getByRole("navigation", { name: "Mobile navigation" })
