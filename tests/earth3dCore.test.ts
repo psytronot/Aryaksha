@@ -9,6 +9,7 @@ import {
   NIGHT_LIGHT_TWILIGHT_START,
   nightLightFactor,
   moonSynchronousYaw,
+  moonCameraYaw,
   SYSTEM_CAMERA_MARGIN,
   SYSTEM_DISPLAY_DISTANCE_RATIO
 } from '../src/earth3dMath';
@@ -218,5 +219,24 @@ describe('Earth 3D reusable geometry and disposal', () => {
     expect(geometryDispose).toHaveBeenCalledTimes(1);
     expect(materialDispose).toHaveBeenCalledTimes(1);
     expect(spriteDispose).toHaveBeenCalledTimes(1);
+  });
+});
+
+
+describe('Earth-facing lunar camera', () => {
+  it('keeps the camera on the Earth-facing side at multiple lunar orbital phases', () => {
+    for (let i = 0; i < 32; i += 1) {
+      const phase = i * Math.PI / 16;
+      const yaw = moonCameraYaw(phase);
+      const cameraDirection = { x: Math.sin(yaw), z: Math.cos(yaw) };
+      const earthDirection = { x: -Math.cos(phase), z: -Math.sin(phase) };
+      const dot = cameraDirection.x * earthDirection.x + cameraDirection.z * earthDirection.z;
+      expect(dot).toBeCloseTo(1, 10);
+    }
+  });
+
+  it('preserves a user orbit offset around the Earth-facing lunar reference', () => {
+    const phase = 1.234;
+    expect(moonCameraYaw(phase, 0.4) - moonCameraYaw(phase)).toBeCloseTo(0.4, 10);
   });
 });
