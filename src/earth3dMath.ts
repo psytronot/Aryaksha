@@ -7,6 +7,7 @@ export const EARTH_CAMERA_MARGIN = 1.35;
 export const SYSTEM_DISPLAY_DISTANCE_RATIO = 0.0225;
 export const NIGHT_LIGHT_TWILIGHT_START = -0.18;
 export const NIGHT_LIGHT_TWILIGHT_END = 0.12;
+export const MOON_ORBIT_PERIOD_SECONDS = 27.321661 * 86400;
 
 export function fitCameraDistance(
   width: number,
@@ -35,6 +36,11 @@ export function moonSynchronousYaw(phase: number): number {
   const safePhase = Number.isFinite(phase) ? phase : 0;
   // Three.js local +Z points from the Moon back toward Earth in the x-z orbital plane.
   return -safePhase - Math.PI / 2;
+}
+
+export function moonCameraYaw(phase: number, yawOffset = 0): number {
+  const safeOffset = Number.isFinite(yawOffset) ? yawOffset : 0;
+  return moonSynchronousYaw(phase) + safeOffset;
 }
 
 export function nightLightFactor(normalDotSun: number): number {
