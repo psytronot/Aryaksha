@@ -6,7 +6,7 @@ import { applyEarthNightLightMask, makeFallbackNightLightsTexture } from './eart
 import { EARTH_IMAGERY_SOURCES, loadEarthImagery } from './earthImagery';
 import { formatIstDateTime } from './time';
 import { createSpaceEnvironment } from './solarSystem';
-import { earthCameraDistance, fitCameraDistance, MOON_CAMERA_MARGIN, MOON_ORBIT_PERIOD_SECONDS, moonCameraYaw, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO } from './earth3dMath';
+import { cloudRelativeRotation, earthCameraDistance, fitCameraDistance, MOON_CAMERA_MARGIN, MOON_ORBIT_PERIOD_SECONDS, moonCameraYaw, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO } from './earth3dMath';
 import { disposeObjectResources, updateFootprint } from './earth3dGeometry';
 import './earth3d-upgrade.css';
 
@@ -616,7 +616,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         // Use the absolute simulation epoch, not elapsed seconds from an arbitrary zero.
         const earthRotation = -greenwichMeanSiderealAngle(date);
         earth.rotation.y = earthRotation;
-        clouds.rotation.y = earthRotation * 0.985;
+        clouds.rotation.y = cloudRelativeRotation(earthRotation);
         starField.rotation.y += 0.00002;
 
         const sunVector = solarEciDirection(date);
