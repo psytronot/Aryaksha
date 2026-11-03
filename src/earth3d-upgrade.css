@@ -158,6 +158,7 @@
 
 /* AppDeploy's platform-injected install host can span the viewport and steal
    pointer events even when its visible sheet sits below the Earth 3D controls. */
-body.earth3d-active pwa-install {
+html.earth3d-active pwa-install {
   display: none !important;
+  pointer-events: none !important;
 }
