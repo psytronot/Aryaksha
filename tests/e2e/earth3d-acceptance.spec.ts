@@ -59,6 +59,40 @@ test('Earth 3D controls remain usable on a narrow mobile viewport', async ({ pag
   await expect(lunarLayer).toBeChecked();
 });
 
+test('AppDeploy PWA install host cannot intercept Earth 3D camera controls', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    const appendInstallHost = () => {
+      const host = document.createElement('pwa-install');
+      host.id = 'pwa-install';
+      Object.assign(host.style, {
+        position: 'fixed',
+        inset: '0',
+        zIndex: '2147483647',
+        pointerEvents: 'auto'
+      });
+      document.body.append(host);
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', appendInstallHost, { once: true });
+    } else {
+      appendInstallHost();
+    }
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page.getByRole('navigation', { name: 'Mobile navigation' })
+    .getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const installHost = page.locator('pwa-install');
+  await expect(installHost).toHaveCount(1);
+  await expect(installHost).toBeHidden();
+  const system = page.locator('[aria-label="Camera modes"]')
+    .getByRole('button', { name: 'SYSTEM', exact: true });
+  await system.click();
+  await expect(system).toHaveClass(/active/);
+});
+
 test('Earth 3D camera controls are keyboard-operable and fit a mobile viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
