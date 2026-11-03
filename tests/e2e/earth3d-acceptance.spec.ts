@@ -86,6 +86,9 @@ test('AppDeploy PWA install host cannot intercept Earth 3D camera controls', asy
 
   const installHost = page.locator('pwa-install');
   await expect(installHost).toHaveCount(1);
+  await expect.poll(() => page.locator('html').evaluate(element =>
+    element.classList.contains('earth3d-active')
+  )).toBe(true);
   await expect(installHost).toBeHidden();
   const system = page.locator('[aria-label="Camera modes"]')
     .getByRole('button', { name: 'SYSTEM', exact: true });
