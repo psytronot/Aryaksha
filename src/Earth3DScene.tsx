@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { Maximize2, Minimize2 } from 'lucide-react';
+import { Maximize2, Minimize2, Pause, Play } from 'lucide-react';
 import { dayNightSnapshot, greenwichMeanSiderealAngle, solarEciDirection } from './daynight';
 import { applyEarthNightLightMask, makeFallbackNightLightsTexture } from './earthVisuals';
 import { EARTH_IMAGERY_SOURCES, loadEarthImagery } from './earthImagery';
@@ -29,6 +29,12 @@ type Earth3DSceneProps = {
   trueAnomalyDeg?: number;
   periodMin?: number;
   panelAreaM2?: number;
+  running: boolean;
+  setRunning: (value: boolean) => void;
+  playback: number;
+  setPlayback: (value: number) => void;
+  duration: number;
+  setSeconds: (value: number) => void;
 };
 
 type CameraMode = 'TRACK' | 'EARTH' | 'SATELLITE' | 'MOON' | 'SYSTEM';
@@ -193,7 +199,7 @@ function scenePosition(r: number[], scale: number) {
   return new THREE.Vector3(r[0] * scale, r[2] * scale, r[1] * scale);
 }
 
-export default function Earth3DScene({ model, current, seconds, name, propagator, objectStatus = 'SIMULATED', footprintAngleDeg = 0.52, busWidthM = 0.1, busHeightM = 0.2, busDepthM = 0.1, altitudeKm = 550, eccentricity = 0, inclinationDeg = 0, raanDeg = 0, argumentOfPerigeeDeg = 0, trueAnomalyDeg = 0, periodMin = 95, panelAreaM2 = 0.6 }: Earth3DSceneProps) {
+export default function Earth3DScene({ model, current, seconds, name, propagator, objectStatus = 'SIMULATED', footprintAngleDeg = 0.52, busWidthM = 0.1, busHeightM = 0.2, busDepthM = 0.1, altitudeKm = 550, eccentricity = 0, inclinationDeg = 0, raanDeg = 0, argumentOfPerigeeDeg = 0, trueAnomalyDeg = 0, periodMin = 95, panelAreaM2 = 0.6, running, setRunning, playback, setPlayback, duration, setSeconds }: Earth3DSceneProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
   const modelRef = useRef(model);
@@ -789,6 +795,23 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         <div className="earth3d-bottom-bar">
           <span><i className="legend-spacecraft" /> SPACECRAFT</span><span><i className="legend-orbit" /> ORBIT</span><span><i className="legend-footprint" /> FOOTPRINT · FOV GEOMETRY</span><span><i className="legend-vector" /> VECTORS</span>
           <span className="earth3d-help">DRAG TO ORBIT · WHEEL TO ZOOM · SYSTEM FRAMES EARTH + MOON · TRACK FOLLOWS SATELLITE</span>
+        </div>
+        <div className="earth3d-timeline" role="region" aria-label="Mission timeline and scene gallery" data-testid="earth3d-timeline">
+          <div className="earth3d-timeline-heading"><span>MISSION TIMELINE / SCENE GALLERY</span><b>T+ {Number(seconds || 0).toFixed(1)} s</b></div>
+          <div className="earth3d-scene-gallery" aria-label="Scene gallery">
+            <button type="button" className={`earth3d-gallery-item ${cameraMode === "EARTH" ? "active" : ""}`} aria-label="Earth scene" aria-pressed={cameraMode === "EARTH"} onClick={() => setCameraMode("EARTH")}><span className="earth3d-gallery-thumb" data-scene="earth" aria-hidden="true" /><b>EARTH</b></button>
+            <button type="button" className={`earth3d-gallery-item ${cameraMode === "MOON" ? "active" : ""}`} aria-label="Moon scene" aria-pressed={cameraMode === "MOON"} onClick={() => { setShowSpaceEnvironment(true); setCameraMode("MOON"); }}><span className="earth3d-gallery-thumb" data-scene="moon" aria-hidden="true" /><b>MOON</b></button>
+            <button type="button" className={`earth3d-gallery-item ${cameraMode === "SYSTEM" ? "active" : ""}`} aria-label="Earth and Moon scene" aria-pressed={cameraMode === "SYSTEM"} onClick={() => { setShowSpaceEnvironment(true); setCameraMode("SYSTEM"); }}><span className="earth3d-gallery-thumb" data-scene="system" aria-hidden="true" /><b>EARTH + MOON</b></button>
+          </div>
+          <input className="earth3d-time-range" aria-label="Simulation timeline" type="range" min={0} max={Math.max(1, duration)} step={0.1} value={Math.max(0, Math.min(duration, seconds))} onChange={event => setSeconds(Number(event.currentTarget.value))} />
+          <div className="earth3d-timeline-actions">
+            <button type="button" aria-label={running ? "Pause simulation" : "Play simulation"} onClick={() => setRunning(!running)}>{running ? <Pause size={12} /> : <Play size={12} />}<span>{running ? "PAUSE" : "PLAY"}</span></button>
+            <button type="button" aria-label="Rewind simulation by 10 seconds" onClick={() => setSeconds(Math.max(0, seconds - 10))}>−10 s</button>
+            <button type="button" aria-label="Advance simulation by 10 seconds" onClick={() => setSeconds(Math.min(duration, seconds + 10))}>+10 s</button>
+            <button type="button" aria-label="Reset simulation time" onClick={() => { setSeconds(0); setRunning(false); }}>RESET TIME</button>
+            <label className="earth3d-playback-speed">SPEED <select aria-label="Simulation playback speed" value={playback} onChange={event => setPlayback(Number(event.target.value))}><option value={1}>1×</option><option value={10}>10×</option><option value={20}>20×</option><option value={60}>60×</option><option value={120}>120×</option></select></label>
+            <span>PERIOD {periodMin.toFixed(1)} min</span>
+          </div>
         </div>
         {errorState && (
           <div className="earth-error" role="alert">
