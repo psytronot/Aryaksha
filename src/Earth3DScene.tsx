@@ -652,9 +652,13 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         const horizontal = Math.cos(s.pitch) * distance;
         const cameraYaw = mode === 'MOON' ? moonCameraYaw(moonPhase, s.yaw) : s.yaw;
         if (mode === 'MOON') {
-          const earthDirection = spaceEnvironment.moon.position.clone().setY(0).multiplyScalar(-1).normalize();
-          const cameraDirection = new THREE.Vector3(Math.sin(cameraYaw), 0, Math.cos(cameraYaw));
-          container.dataset.moonEarthFacingDot = cameraDirection.dot(earthDirection).toFixed(6);
+          const moonPosition = spaceEnvironment.moon.position;
+          const earthX = -moonPosition.x;
+          const earthZ = -moonPosition.z;
+          const earthLength = Math.hypot(earthX, earthZ) || 1;
+          const cameraX = Math.sin(cameraYaw);
+          const cameraZ = Math.cos(cameraYaw);
+          container.dataset.moonEarthFacingDot = ((cameraX * earthX + cameraZ * earthZ) / earthLength).toFixed(6);
         } else {
           delete container.dataset.moonEarthFacingDot;
         }
