@@ -6,7 +6,7 @@ import { applyEarthNightLightMask, makeFallbackNightLightsTexture } from './eart
 import { EARTH_IMAGERY_SOURCES, loadEarthImagery } from './earthImagery';
 import { formatIstDateTime } from './time';
 import { createSpaceEnvironment } from './solarSystem';
-import { earthCameraDistance, fitCameraDistance, MOON_CAMERA_MARGIN, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO } from './earth3dMath';
+import { cloudRelativeRotation, earthCameraDistance, fitCameraDistance, MOON_CAMERA_MARGIN, MOON_ORBIT_PERIOD_SECONDS, moonCameraYaw, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO } from './earth3dMath';
 import { disposeObjectResources, updateFootprint } from './earth3dGeometry';
 import './earth3d-upgrade.css';
 
@@ -206,7 +206,8 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   const currentRef = useRef(current);
   const designRef = useRef({ busWidthM, busHeightM, busDepthM, panelAreaM2 });
   const secondsRef = useRef(seconds);
-  const cameraModeRef = useRef<CameraMode>('TRACK');  const showFootprintRef = useRef(true);
+  const cameraModeRef = useRef<CameraMode>('TRACK');
+  const previousCameraModeRef = useRef<CameraMode>('TRACK');  const showFootprintRef = useRef(true);
   const showVectorsRef = useRef(true);
   const showAxesRef = useRef(false);
   const showGridRef = useRef(false);
@@ -488,6 +489,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       let lastCameraDistance = Number.NaN;
       let lastCameraYaw = Number.NaN;
       let lastCameraPitch = Number.NaN;
+      let lastMoonFacingDiagnosticAt = 0;
       const syncCameraDiagnostics = () => {
         const state = cameraState.current;
         if (!Number.isFinite(lastCameraDistance) || Math.abs(state.distance - lastCameraDistance) > 1e-6) {
@@ -614,7 +616,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         // Use the absolute simulation epoch, not elapsed seconds from an arbitrary zero.
         const earthRotation = -greenwichMeanSiderealAngle(date);
         earth.rotation.y = earthRotation;
-        clouds.rotation.y = earthRotation * 0.985;
+        clouds.rotation.y = cloudRelativeRotation(earthRotation);
         starField.rotation.y += 0.00002;
 
         const sunVector = solarEciDirection(date);
@@ -624,6 +626,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         rim.position.copy(earthSunUniform.value).multiplyScalar(-14);
         const mode = cameraModeRef.current;
         spaceEnvironment.update(simSeconds, mode === 'SYSTEM' ? SYSTEM_DISPLAY_DISTANCE_RATIO : 1);
+        const moonPhase = (simSeconds / MOON_ORBIT_PERIOD_SECONDS) * Math.PI * 2;
         spaceEnvironment.group.visible = showSpaceEnvironmentRef.current;
         syncCameraDiagnostics();
         scene.fog = mode === 'SYSTEM' ? null : sceneFog;
@@ -648,7 +651,23 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
           distance = Math.max(s.distance, 12);
         }
         const horizontal = Math.cos(s.pitch) * distance;
-        camera.position.set(target.x + Math.sin(s.yaw) * horizontal, target.y + Math.sin(s.pitch) * distance, target.z + Math.cos(s.yaw) * horizontal);
+        const cameraYaw = mode === 'MOON' ? moonCameraYaw(moonPhase, s.yaw) : s.yaw;
+        if (mode === 'MOON') {
+          const diagnosticTime = performance.now();
+          if (diagnosticTime - lastMoonFacingDiagnosticAt >= 100) {
+            const moonPosition = spaceEnvironment.moon.position;
+            const earthX = -moonPosition.x;
+            const earthZ = -moonPosition.z;
+            const earthLength = Math.hypot(earthX, earthZ) || 1;
+            const cameraX = Math.sin(cameraYaw);
+            const cameraZ = Math.cos(cameraYaw);
+            container.dataset.moonEarthFacingDot = ((cameraX * earthX + cameraZ * earthZ) / earthLength).toFixed(6);
+            lastMoonFacingDiagnosticAt = diagnosticTime;
+          }
+        } else {
+          delete container.dataset.moonEarthFacingDot;
+        }
+        camera.position.set(target.x + Math.sin(cameraYaw) * horizontal, target.y + Math.sin(s.pitch) * distance, target.z + Math.cos(cameraYaw) * horizontal);
         camera.lookAt(target);
         try {
           renderer.render(scene, camera);
@@ -722,6 +741,14 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
 
   useEffect(() => {
     cameraModeRef.current = cameraMode;
+    if (cameraMode === 'MOON') {
+      cameraState.current.yaw = 0;
+      cameraState.current.pitch = 0.16;
+    } else if (previousCameraModeRef.current === 'MOON') {
+      cameraState.current.yaw = 0.65;
+      cameraState.current.pitch = 0.26;
+    }
+    previousCameraModeRef.current = cameraMode;
     if (cameraMode === 'EARTH') cameraState.current.distance = earthCameraDistance(containerRef.current?.clientWidth || 1, containerRef.current?.clientHeight || 1) * earthZoomRatioRef.current;
     if (cameraMode === 'TRACK') cameraState.current.distance = Math.min(cameraState.current.distance, 12);
     if (cameraMode === 'SATELLITE') cameraState.current.distance = Math.min(cameraState.current.distance, 6.5);
@@ -766,7 +793,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
           </div>
           <div className="earth-camera-controls" aria-label="Camera modes">
             {(['TRACK', 'EARTH', 'SATELLITE', 'MOON', 'SYSTEM'] as CameraMode[]).map(mode => <button key={mode} type="button" className={`earth-camera-button ${cameraMode === mode ? 'active' : ''}`} onClick={() => { if (mode === 'MOON' || mode === 'SYSTEM') setShowSpaceEnvironment(true); setCameraMode(mode); }}>{mode}</button>)}
-            <button type="button" className="earth-camera-button" aria-label="Reset camera framing" onClick={() => { const width = containerRef.current?.clientWidth || 1; const height = containerRef.current?.clientHeight || 1; if (cameraMode === 'SYSTEM') systemZoomRatioRef.current = 1; if (cameraMode === 'MOON') moonZoomRatioRef.current = 1; if (cameraMode === 'EARTH') earthZoomRatioRef.current = 1; const distance = cameraMode === 'SATELLITE' ? 5.8 : cameraMode === 'EARTH' ? earthCameraDistance(width, height) : cameraMode === 'MOON' ? moonCameraDistance(width, height) : cameraMode === 'SYSTEM' ? systemCameraDistance(width, height) : 11; cameraState.current = { yaw: 0.65, pitch: 0.26, distance }; }}>RESET</button>
+            <button type="button" className="earth-camera-button" aria-label="Reset camera framing" onClick={() => { const width = containerRef.current?.clientWidth || 1; const height = containerRef.current?.clientHeight || 1; if (cameraMode === 'SYSTEM') systemZoomRatioRef.current = 1; if (cameraMode === 'MOON') moonZoomRatioRef.current = 1; if (cameraMode === 'EARTH') earthZoomRatioRef.current = 1; const distance = cameraMode === 'SATELLITE' ? 5.8 : cameraMode === 'EARTH' ? earthCameraDistance(width, height) : cameraMode === 'MOON' ? moonCameraDistance(width, height) : cameraMode === 'SYSTEM' ? systemCameraDistance(width, height) : 11; cameraState.current = { yaw: cameraMode === 'MOON' ? 0 : 0.65, pitch: cameraMode === 'MOON' ? 0.16 : 0.26, distance }; }}>RESET</button>
             <button type='button' className='earth-camera-button earth-fullscreen-button' aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'} onClick={() => void toggleFullscreen()}>{isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}<span>{isFullscreen ? 'EXIT FULL SCREEN' : 'FULL SCREEN'}</span></button>
           </div>
         </div>

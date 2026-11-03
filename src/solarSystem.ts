@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { moonSynchronousYaw } from './earth3dMath';
+import { MOON_ORBIT_PERIOD_SECONDS, moonSynchronousYaw } from './earth3dMath';
 
 function seededRandom(seed: number) {
   let state = seed >>> 0;
@@ -133,7 +133,7 @@ export function createSpaceEnvironment(moonRadius: number, moonDistance: number)
     moon,
     moonOrbit,
     update(elapsedSeconds: number, displayDistanceScale = 1) {
-      const phase = (elapsedSeconds / (27.321661 * 86400)) * Math.PI * 2;
+      const phase = (elapsedSeconds / MOON_ORBIT_PERIOD_SECONDS) * Math.PI * 2;
       const distanceScale = Number.isFinite(displayDistanceScale)
         ? Math.max(0.01, Math.min(1, displayDistanceScale))
         : 1;

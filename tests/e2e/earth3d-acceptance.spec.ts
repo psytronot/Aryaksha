@@ -533,6 +533,9 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
 
   const timeline = page.getByRole("region", { name: "Mission timeline and scene gallery" });
   await expect(timeline).toBeVisible();
+  const canvasLayer = page.locator(".earth3d-canvas");
+  await expect.poll(() => canvasLayer.evaluate(element => getComputedStyle(element).position)).toBe("relative");
+  await expect.poll(() => timeline.evaluate(element => getComputedStyle(element).zIndex)).toBe("8");
   const clock = timeline.locator(".earth3d-timeline-heading b");
   await expect(clock).toContainText("T+ 0.0 s");
   await timeline.getByRole("button", { name: "Advance simulation by 10 seconds" }).click();
@@ -558,7 +561,16 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   await timeline.getByRole("button", { name: "Moon scene", exact: true }).click();
   await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "MOON", exact: true })).toHaveClass(/active/);
   await expect(timeline.getByRole("button", { name: "Moon scene", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await timeline.getByRole("button", { name: "Earth and Moon scene" }).click();
+  const systemSceneButton = timeline.getByRole("button", { name: "Earth and Moon scene" });
+  await systemSceneButton.scrollIntoViewIfNeeded();
+  await expect(systemSceneButton).toBeInViewport();
+  const systemSceneHitTarget = await systemSceneButton.evaluate(button => {
+    const rect = button.getBoundingClientRect();
+    const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    return hit === button || button.contains(hit);
+  });
+  expect(systemSceneHitTarget).toBe(true);
+  await systemSceneButton.click();
   await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "SYSTEM", exact: true })).toHaveClass(/active/);
   await expect(timeline.getByRole("button", { name: "Earth and Moon scene" })).toHaveAttribute("aria-pressed", "true");
 });
@@ -593,6 +605,63 @@ test("Earth 3D timeline and scene gallery remain touch-usable on mobile", async 
   expect(await slider.evaluate(element => element.getBoundingClientRect().width)).toBeGreaterThan(260);
   const dimensions = await page.evaluate(() => ({ width: window.innerWidth, documentWidth: document.documentElement.scrollWidth }));
   expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.width);
-  await timeline.getByRole("button", { name: "Earth and Moon scene" }).click();
+  const systemSceneButton = timeline.getByRole("button", { name: "Earth and Moon scene", exact: true });
+  await systemSceneButton.evaluate(element => element.scrollIntoView({ block: "center", inline: "center", behavior: "auto" }));
+  await expect(systemSceneButton).toBeInViewport();
+  const systemSceneHit = await systemSceneButton.evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const hit = document.elementFromPoint(x, y);
+    return {
+      x,
+      y,
+      receivesPointer: Boolean(hit && (hit === element || element.contains(hit))),
+      hit: hit?.outerHTML.slice(0, 160) ?? "none"
+    };
+  });
+  expect(systemSceneHit.receivesPointer, `SYSTEM scene hit target: ${systemSceneHit.hit}`).toBe(true);
+  await page.mouse.click(systemSceneHit.x, systemSceneHit.y);
   await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "SYSTEM", exact: true })).toHaveClass(/active/);
+});
+
+
+test('Earth 3D Moon camera tracks the Earth-facing hemisphere on desktop and mobile', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1536, height: 1024 });
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const canvas = page.locator('.earth3d-canvas');
+  const webglCanvas = canvas.locator('canvas');
+  await expect(webglCanvas).toBeVisible({ timeout: 15000 });
+  await page.getByRole('button', { name: 'MOON', exact: true }).click();
+  const facingDot = () => canvas.getAttribute('data-moon-earth-facing-dot').then(value => Number(value));
+  await expect.poll(facingDot, { timeout: 10000 }).toBeGreaterThan(0.999);
+
+  await webglCanvas.scrollIntoViewIfNeeded();
+  const box = await webglCanvas.boundingBox();
+  if (!box) throw new Error('Moon canvas has no measurable desktop bounds.');
+  const dragX = box.x + box.width * 0.48;
+  const dragY = box.y + box.height * 0.5;
+  await webglCanvas.dispatchEvent('pointerdown', { pointerId: 21, pointerType: 'mouse', clientX: dragX, clientY: dragY, button: 0, buttons: 1 });
+  await webglCanvas.dispatchEvent('pointermove', { pointerId: 21, pointerType: 'mouse', clientX: dragX + 60, clientY: dragY, button: 0, buttons: 1 });
+  await webglCanvas.dispatchEvent('pointerup', { pointerId: 21, pointerType: 'mouse', clientX: dragX + 60, clientY: dragY, button: 0, buttons: 0 });
+  await expect.poll(facingDot, { timeout: 10000 }).toBeLessThan(0.999);
+
+  await page.getByRole('button', { name: 'Reset camera framing' }).click();
+  await expect.poll(facingDot, { timeout: 10000 }).toBeGreaterThan(0.999);
+  const timeline = page.getByRole('region', { name: 'Mission timeline and scene gallery' });
+  await timeline.getByRole('button', { name: 'Advance simulation by 10 seconds' }).click();
+  await expect.poll(facingDot, { timeout: 10000 }).toBeGreaterThan(0.999);
+  const workspace = page.locator('.earth3d-workspace');
+  await workspace.evaluate(element => window.scrollTo(0, Math.max(0, window.scrollY + element.getBoundingClientRect().top - 72)));
+  await page.screenshot({ path: testInfo.outputPath('moon-facing-desktop.png'), fullPage: false });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(facingDot, { timeout: 10000 }).toBeGreaterThan(0.999);
+  const dimensions = await page.evaluate(() => ({ width: window.innerWidth, documentWidth: document.documentElement.scrollWidth }));
+  expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.width);
+  await workspace.evaluate(element => window.scrollTo(0, Math.max(0, window.scrollY + element.getBoundingClientRect().top - 72)));
+  await page.screenshot({ path: testInfo.outputPath('moon-facing-mobile.png'), fullPage: false });
 });
