@@ -605,18 +605,33 @@ test('Earth 3D Moon camera tracks the Earth-facing hemisphere on desktop and mob
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
 
   const canvas = page.locator('.earth3d-canvas');
-  await expect(canvas.locator('canvas')).toBeVisible({ timeout: 15000 });
+  const webglCanvas = canvas.locator('canvas');
+  await expect(webglCanvas).toBeVisible({ timeout: 15000 });
   await page.getByRole('button', { name: 'MOON', exact: true }).click();
-  await expect.poll(async () => Number(await canvas.getAttribute('data-moon-earth-facing-dot')), { timeout: 10000 }).toBeGreaterThan(0.999);
+  const facingDot = () => canvas.getAttribute('data-moon-earth-facing-dot').then(value => Number(value));
+  await expect.poll(facingDot, { timeout: 10000 }).toBeGreaterThan(0.999);
 
+  const box = await webglCanvas.boundingBox();
+  if (!box) throw new Error('Moon canvas has no measurable desktop bounds.');
+  await page.mouse.move(box.x + box.width * 0.48, box.y + box.height * 0.5);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.63, box.y + box.height * 0.5, { steps: 4 });
+  await page.mouse.up();
+  await expect.poll(facingDot, { timeout: 10000 }).toBeLessThan(0.999);
+
+  await page.getByRole('button', { name: 'Reset camera framing' }).click();
+  await expect.poll(facingDot, { timeout: 10000 }).toBeGreaterThan(0.999);
   const timeline = page.getByRole('region', { name: 'Mission timeline and scene gallery' });
   await timeline.getByRole('button', { name: 'Advance simulation by 10 seconds' }).click();
-  await expect.poll(async () => Number(await canvas.getAttribute('data-moon-earth-facing-dot')), { timeout: 10000 }).toBeGreaterThan(0.999);
-  await page.screenshot({ path: testInfo.outputPath('moon-facing-desktop.png'), fullPage: true });
+  await expect.poll(facingDot, { timeout: 10000 }).toBeGreaterThan(0.999);
+  const workspace = page.locator('.earth3d-workspace');
+  await workspace.evaluate(element => window.scrollTo(0, Math.max(0, window.scrollY + element.getBoundingClientRect().top - 72)));
+  await page.screenshot({ path: testInfo.outputPath('moon-facing-desktop.png'), fullPage: false });
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect.poll(async () => Number(await canvas.getAttribute('data-moon-earth-facing-dot')), { timeout: 10000 }).toBeGreaterThan(0.999);
+  await expect.poll(facingDot, { timeout: 10000 }).toBeGreaterThan(0.999);
   const dimensions = await page.evaluate(() => ({ width: window.innerWidth, documentWidth: document.documentElement.scrollWidth }));
   expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.width);
-  await page.screenshot({ path: testInfo.outputPath('moon-facing-mobile.png'), fullPage: true });
+  await workspace.evaluate(element => window.scrollTo(0, Math.max(0, window.scrollY + element.getBoundingClientRect().top - 72)));
+  await page.screenshot({ path: testInfo.outputPath('moon-facing-mobile.png'), fullPage: false });
 });
