@@ -1,6 +1,6 @@
 import { router, json, error } from '@appdeploy/sdk';
 import * as satellite from 'satellite.js';
-import { mapOrekitProxyFailure } from './orekitProxyError';
+import { mapOrekitProxyException, mapOrekitProxyFailure } from './orekitProxyError';
 
 const MU = 398600.4418;
 const EARTH_RADIUS = 6378.137;
@@ -113,7 +113,8 @@ export const handler = router({
         }
         return json({ ...result, comparison: { engineAdapter: 'orekit-http', status: 'connected', note: 'Results returned by the independently hosted Orekit service.' } });
       } catch (cause) {
-        return error(cause instanceof Error && cause.name === 'AbortError' ? 'Orekit service timed out after 15 seconds.' : 'Orekit service is configured but unavailable. Check its deployment and logs.', 502);
+        const failure = mapOrekitProxyException(cause);
+        return error(failure.message, failure.status);
       }
     }
     const semiMajorAxisKm = EARTH_RADIUS + altitudeKm;
