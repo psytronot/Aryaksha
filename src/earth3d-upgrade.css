@@ -165,7 +165,7 @@ html.earth3d-active pwa-install {
 
 /* Mission timeline and scene gallery — kept inside the Earth 3D mission-control frame. */
 .earth3d-workspace { grid-template-rows: auto minmax(560px, 1fr) auto auto; }
-.earth3d-timeline { grid-column: 1 / -1; grid-row: 4; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 8px 12px; align-items: center; min-width: 0; padding: 10px 12px; border: 1px solid rgba(173,194,211,.18); border-radius: 9px; background: rgba(4,7,12,.88); }
+.earth3d-timeline { position: relative; z-index: 8; pointer-events: auto; grid-column: 1 / -1; grid-row: 4; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 8px 12px; align-items: center; min-width: 0; padding: 10px 12px; border: 1px solid rgba(173,194,211,.18); border-radius: 9px; background: rgba(4,7,12,.88); }
 .earth3d-timeline-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-width: 0; }
 .earth3d-timeline-heading span { color: #d6aa70; font: 8px ui-monospace,monospace; letter-spacing: .14em; }
 .earth3d-timeline-heading b { color: #e9f2f8; font: 10px ui-monospace,monospace; white-space: nowrap; }
