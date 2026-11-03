@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  cloudRelativeRotation,
   earthCameraDistance,
   EARTH_CAMERA_MARGIN,
   fitCameraDistance,
@@ -238,5 +239,19 @@ describe('Earth-facing lunar camera', () => {
   it('preserves a user orbit offset around the Earth-facing lunar reference', () => {
     const phase = 1.234;
     expect(moonCameraYaw(phase, 0.4) - moonCameraYaw(phase)).toBeCloseTo(0.4, 10);
+  });
+});
+
+describe('Earth cloud rotation relative to the rotating Earth frame', () => {
+  it('produces a 0.985 world-space rotation rate without double-counting the parent rotation', () => {
+    for (const earthRotation of [-6.1, -2.4, -0.2, 0, 1.7, 4.9]) {
+      const worldCloudRotation = earthRotation + cloudRelativeRotation(earthRotation);
+      expect(worldCloudRotation).toBeCloseTo(earthRotation * 0.985, 10);
+    }
+  });
+
+  it('returns a finite neutral rotation for invalid inputs', () => {
+    expect(cloudRelativeRotation(Number.NaN)).toBe(0);
+    expect(cloudRelativeRotation(Number.POSITIVE_INFINITY)).toBe(0);
   });
 });
