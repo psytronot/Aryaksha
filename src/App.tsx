@@ -406,24 +406,10 @@ function OrbitView({ orbit, updateOrbit, maneuverAltitude, setManeuverAltitude, 
 }
 
 function SimulationView({ model, current, seconds, duration, running, setRunning, playback, setPlayback, setSeconds, mission, payload, spacecraft, orbit, footprintAngle }: { model: any[]; current: any; seconds: number; duration: number; running: boolean; setRunning: (v:boolean)=>void; playback:number; setPlayback:(v:number)=>void; setSeconds:(v:number)=>void; mission: Mission; payload: Payload; spacecraft: Spacecraft; orbit: OrbitDesign; footprintAngle:number }) {
-  const speed = Math.hypot(...current.v);
   return <div className="page simulation-page">
     <PageHeader eyebrow="05 · SIMULATION" title="Run the spacecraft, not a picture of it." text="The animation, telemetry and engineering results read from the same propagated state. The current model is deterministic two-body Keplerian propagation; J2, drag, SRP, third-body gravity and operational effects remain outside the model." />
     <div className="simulation-grid">
-      <div className="scene-wrap"><Earth3DScene model={model} current={current} seconds={seconds} name={mission.name} propagator="KEPLER" footprintAngleDeg={footprintAngle} busWidthM={spacecraft.busWidthM} busHeightM={spacecraft.busHeightM} busDepthM={spacecraft.busDepthM} altitudeKm={orbit.altitudeKm} eccentricity={orbit.e} inclinationDeg={orbit.i} raanDeg={orbit.raan} argumentOfPerigeeDeg={orbit.argp} trueAnomalyDeg={orbit.nu} periodMin={orbitalSummary(orbit).period / 60} panelAreaM2={spacecraft.panelAreaM2} /></div>
-      <div className="telemetry-panel">
-        <div className="panel-title"><Gauge size={16} /> LIVE TELEMETRY <span>STATE t</span></div>
-        <Telemetry label="TIME" value={`${seconds.toFixed(1)} s`} />
-        <Telemetry label="ALTITUDE" value={`${current.lla.alt.toFixed(2)} km`} />
-        <Telemetry label="LATITUDE" value={`${current.lla.lat.toFixed(3)}°`} />
-        <Telemetry label="LONGITUDE" value={`${current.lla.lon.toFixed(3)}°`} />
-        <Telemetry label="SPEED" value={`${speed.toFixed(4)} km/s`} />
-        <Telemetry label="ECI X" value={`${current.r[0].toFixed(3)} km`} />
-        <Telemetry label="ECI Y" value={`${current.r[1].toFixed(3)} km`} />
-        <Telemetry label="ECI Z" value={`${current.r[2].toFixed(3)} km`} />
-        <Telemetry label="VX / VY / VZ" value={current.v.map((v:number)=>v.toFixed(4)).join(' / ')} />
-        <div className="model-box"><small>MODEL FIDELITY</small><b>Two-body Keplerian</b><span>Transparent analytical model. No J2, drag, SRP or third-body gravity.</span></div>
-      </div>
+      <div className="scene-wrap"><Earth3DScene model={model} current={current} seconds={seconds} name={mission.name} propagator="KEPLER" objectStatus="SIMULATED" footprintAngleDeg={footprintAngle} busWidthM={spacecraft.busWidthM} busHeightM={spacecraft.busHeightM} busDepthM={spacecraft.busDepthM} altitudeKm={orbit.altitudeKm} eccentricity={orbit.e} inclinationDeg={orbit.i} raanDeg={orbit.raan} argumentOfPerigeeDeg={orbit.argp} trueAnomalyDeg={orbit.nu} periodMin={orbitalSummary(orbit).period / 60} panelAreaM2={spacecraft.panelAreaM2} /></div>
     </div>
     <div className="timeline">
       <button onClick={() => setRunning(!running)}>{running ? <Pause size={15} /> : <Play size={15} />}{running ? 'PAUSE' : 'PLAY'}</button>
@@ -898,7 +884,6 @@ function SelectField({ label, value, options, onChange }: { label:string; value:
 }
 function Stat({ label, value }: { label:string; value:string }) { return <div data-context-label={label} className="stat-row"><span className="result-label">{label}<HelpTip label={label} /></span><b>{value}</b></div>; }
 function Flow({ items }: { items:string[] }) { return <div data-context-label={items.join(' → ')} className="flow">{items.map((item,i)=><div key={item}><span>{String(i+1).padStart(2,'0')}</span><b>{item}</b>{i<items.length-1&&<ArrowRight size={13}/>}</div>)}</div>; }
-function Telemetry({ label, value }: { label:string; value:string }) { return <div data-context-label={label} className="telemetry"><small className="result-label">{label}<HelpTip label={label} /></small><b>{value}</b></div>; }
 function ReportRow({ k, v }: { k:string; v:string }) { return <div data-context-label={k} className="report-row"><span className="result-label">{k}<HelpTip label={k} /></span><b>{v}</b></div>; }
 
 export default App;

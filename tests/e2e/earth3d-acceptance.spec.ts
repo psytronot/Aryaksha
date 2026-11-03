@@ -59,6 +59,44 @@ test('Earth 3D controls remain usable on a narrow mobile viewport', async ({ pag
   await expect(lunarLayer).toBeChecked();
 });
 
+test('AppDeploy PWA install host cannot intercept Earth 3D camera controls', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    const appendInstallHost = () => {
+      const host = document.createElement('pwa-install');
+      host.id = 'pwa-install';
+      Object.assign(host.style, {
+        position: 'fixed',
+        inset: '0',
+        zIndex: '2147483647',
+        pointerEvents: 'auto'
+      });
+      document.body.append(host);
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', appendInstallHost, { once: true });
+    } else {
+      appendInstallHost();
+    }
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page.getByRole('navigation', { name: 'Mobile navigation' })
+    .getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const installHost = page.locator('pwa-install');
+  await expect(installHost).toHaveCount(1);
+  await expect.poll(() => installHost.evaluate(element => getComputedStyle(element).pointerEvents)).toBe('none');
+  await expect.poll(() => page.locator('html').evaluate(element =>
+    element.classList.contains('earth3d-active')
+  )).toBe(true);
+  await expect(installHost).toBeHidden();
+  const system = page.locator('[aria-label="Camera modes"]')
+    .getByRole('button', { name: 'SYSTEM', exact: true });
+  await system.click();
+  await expect(system).toHaveClass(/active/);
+});
+
 test('Earth 3D camera controls are keyboard-operable and fit a mobile viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
@@ -235,11 +273,11 @@ test('Earth 3D SYSTEM and MOON reset, pinch, resize and drag preserve fitted fra
 
   await modes.getByRole('button', { name: 'SYSTEM', exact: true }).click();
   await expect(container).toHaveAttribute('data-camera-mode', 'SYSTEM');
-  await expect.poll(readDistance).toBeGreaterThan(50);
-  await expect.poll(readDistance).toBeLessThan(300);
-  await expect(page.locator('.earth3d-hud-card').filter({ hasText: 'PHYSICAL SCALE' })).toContainText('44.4×');
   const portraitSystemFit = await systemFit();
-  expect(await readDistance()).toBeCloseTo(portraitSystemFit, 1);
+  await expect.poll(readDistance).toBeCloseTo(portraitSystemFit, 1);
+  expect(portraitSystemFit).toBeGreaterThan(systemExtent);
+  expect(portraitSystemFit).toBeLessThan(300);
+  await expect(page.locator('.earth3d-hud-card').filter({ hasText: 'PHYSICAL SCALE' })).toContainText('44.4×');
   const portraitFov = await limitingFov();
   expect(apparentDiameterFraction(earthRadius, portraitSystemFit, portraitFov)).toBeGreaterThan(0.4);
   expect(apparentDiameterFraction(moonRadius, portraitSystemFit, portraitFov)).toBeGreaterThan(0.1);
@@ -292,12 +330,80 @@ test('Earth 3D SYSTEM and MOON reset, pinch, resize and drag preserve fitted fra
   await modes.getByRole('button', { name: 'Reset camera framing', exact: true }).click();
   await expect.poll(readDistance).toBeCloseTo(landscapeMoonFit, 1);
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect.poll(readDistance).toBeGreaterThan(landscapeMoonFit);
+  // Wait for the canvas's ResizeObserver-driven viewport measurement before deriving
+  // the portrait fit. A portrait canvas can have a wider horizontal FOV than the
+  // narrow/tall intermediate-desktop canvas, so distance is not monotonically larger.
+  await expect.poll(async () => {
+    const size = await container.evaluate(element => ({ width: element.clientWidth, height: element.clientHeight }));
+    return await container.getAttribute('data-camera-viewport') === `${size.width}x${size.height}`;
+  }).toBe(true);
   const portraitMoonFit = await moonFit();
   await expect.poll(readDistance).toBeCloseTo(portraitMoonFit, 1);
   expect(pageErrors).toEqual([]);
 });
 
+test('Earth 3D mission-control rails stay outside the globe and support full screen', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    let activeFullscreenElement: Element | null = null;
+    Object.defineProperty(document, 'fullscreenElement', {
+      configurable: true,
+      get: () => activeFullscreenElement
+    });
+    Element.prototype.requestFullscreen = async function () {
+      activeFullscreenElement = this;
+      document.dispatchEvent(new Event('fullscreenchange'));
+    };
+    document.exitFullscreen = async () => {
+      activeFullscreenElement = null;
+      document.dispatchEvent(new Event('fullscreenchange'));
+    };
+  });
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page.getByRole('navigation', { name: 'Mobile navigation' })
+    .getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const workspace = page.locator('.earth3d-workspace');
+  const canvas = page.locator('.earth3d-canvas');
+  const leftRail = page.getByRole('complementary', { name: 'Mission state and orbital details' });
+  const rightRail = page.getByRole('complementary', { name: 'Simulation controls and live telemetry' });
+  await expect(canvas).toBeVisible();
+  await expect(leftRail).toBeVisible();
+  await expect(rightRail).toBeVisible();
+  await expect(page.getByText('SIMULATED MISSION OBJECT')).toBeVisible();
+  await expect(page.locator('.earth3d-source-badge')).toHaveText('SIMULATED');
+  await expect(page.getByText('TRACKING OBJECT')).toHaveCount(0);
+  expect(await leftRail.evaluate(element => element.scrollHeight - element.clientHeight)).toBeLessThanOrEqual(1);
+  expect(await rightRail.evaluate(element => element.scrollHeight - element.clientHeight)).toBeLessThanOrEqual(1);
+  const canvasBox = await canvas.boundingBox();
+  const leftBox = await leftRail.boundingBox();
+  const rightBox = await rightRail.boundingBox();
+  expect(canvasBox).not.toBeNull();
+  expect(leftBox).not.toBeNull();
+  expect(rightBox).not.toBeNull();
+  expect(leftBox!.y).toBeGreaterThanOrEqual(canvasBox!.y + canvasBox!.height - 1);
+  expect(rightBox!.y).toBeGreaterThanOrEqual(leftBox!.y + leftBox!.height - 1);
+
+  await page.getByRole('button', { name: 'Enter full screen' }).click();
+  await expect(page.getByRole('button', { name: 'Exit full screen' })).toBeVisible();
+  await page.getByRole('button', { name: 'Exit full screen' }).click();
+  await expect(page.getByRole('button', { name: 'Enter full screen' })).toBeVisible();
+  await expect(workspace).toBeVisible();
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.waitForTimeout(250);
+  const mediumCanvasBox = await canvas.boundingBox();
+  const mediumLeftBox = await leftRail.boundingBox();
+  const mediumRightBox = await rightRail.boundingBox();
+  expect(mediumCanvasBox).not.toBeNull();
+  expect(mediumLeftBox).not.toBeNull();
+  expect(mediumRightBox).not.toBeNull();
+  expect(mediumCanvasBox!.width).toBeGreaterThan(350);
+  expect(mediumLeftBox!.x + mediumLeftBox!.width).toBeLessThanOrEqual(mediumCanvasBox!.x + 1);
+  expect(mediumRightBox!.y).toBeGreaterThanOrEqual(mediumCanvasBox!.y + mediumCanvasBox!.height - 1);
+});
 test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without shader errors', async ({ page }) => {
   test.setTimeout(90_000);
   const pageErrors: string[] = [];
@@ -334,14 +440,15 @@ test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without sh
 
   await page.setViewportSize({ width: 390, height: 844 });
   await cameraModes.getByRole('button', { name: 'SYSTEM', exact: true }).click();
-  const mobileScene = page.locator('.earth3d-canvas');
+  const mobileScene = page.locator('.earth3d-workspace');
+  const mobileCanvas = page.locator('.earth3d-canvas');
   await mobileScene.scrollIntoViewIfNeeded();
   await page.waitForTimeout(400);
   const mobilePath = test.info().outputPath('earth3d-mobile-system-390x844.png');
   await mobileScene.screenshot({ path: mobilePath, timeout: 60_000, animations: 'disabled' });
   await test.info().attach('earth3d-mobile-system-390x844.png', { path: mobilePath, contentType: 'image/png' });
 
-  const mobileCanvasBounds = await mobileScene.boundingBox();
+  const mobileCanvasBounds = await mobileCanvas.boundingBox();
   expect(mobileCanvasBounds).not.toBeNull();
   const focalPoint = {
     x: mobileCanvasBounds!.x + mobileCanvasBounds!.width / 2,

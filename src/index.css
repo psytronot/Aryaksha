@@ -149,3 +149,9 @@ html,body{min-width:320px;overflow-x:clip}
 /* Keep the floating Context Coach from intercepting workspace navigation. */
 .context-coach.is-open{pointer-events:none!important}
 .context-coach.is-open button{pointer-events:auto!important}
+
+
+/* AppDeploy injects a full-viewport install host; keep its transparent hitbox from blocking app navigation. */
+html.aryaksha-app-active pwa-install {
+  pointer-events: none !important;
+}
