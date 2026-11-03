@@ -33,10 +33,10 @@ export function earthCameraDistance(width: number, height: number, earthRadius =
 }
 
 export function cloudRelativeRotation(earthRotation: number): number {
-  const safeRotation = Number.isFinite(earthRotation) ? earthRotation : 0;
+  if (!Number.isFinite(earthRotation) || earthRotation === 0) return 0;
   // Clouds are children of the rotating Earth group. Apply only the -1.5%
   // relative drift so the world-space rate is 98.5%, not 198.5%.
-  return safeRotation * -0.015;
+  return earthRotation * -0.015;
 }
 
 export function moonSynchronousYaw(phase: number): number {
