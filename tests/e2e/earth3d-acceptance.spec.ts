@@ -611,12 +611,14 @@ test('Earth 3D Moon camera tracks the Earth-facing hemisphere on desktop and mob
   const facingDot = () => canvas.getAttribute('data-moon-earth-facing-dot').then(value => Number(value));
   await expect.poll(facingDot, { timeout: 10000 }).toBeGreaterThan(0.999);
 
+  await webglCanvas.scrollIntoViewIfNeeded();
   const box = await webglCanvas.boundingBox();
   if (!box) throw new Error('Moon canvas has no measurable desktop bounds.');
-  await page.mouse.move(box.x + box.width * 0.48, box.y + box.height * 0.5);
-  await page.mouse.down();
-  await page.mouse.move(box.x + box.width * 0.63, box.y + box.height * 0.5, { steps: 4 });
-  await page.mouse.up();
+  const dragX = box.x + box.width * 0.48;
+  const dragY = box.y + box.height * 0.5;
+  await webglCanvas.dispatchEvent('pointerdown', { pointerId: 21, pointerType: 'mouse', clientX: dragX, clientY: dragY, button: 0, buttons: 1 });
+  await webglCanvas.dispatchEvent('pointermove', { pointerId: 21, pointerType: 'mouse', clientX: dragX + 60, clientY: dragY, button: 0, buttons: 1 });
+  await webglCanvas.dispatchEvent('pointerup', { pointerId: 21, pointerType: 'mouse', clientX: dragX + 60, clientY: dragY, button: 0, buttons: 0 });
   await expect.poll(facingDot, { timeout: 10000 }).toBeLessThan(0.999);
 
   await page.getByRole('button', { name: 'Reset camera framing' }).click();
