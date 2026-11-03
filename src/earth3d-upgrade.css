@@ -155,3 +155,9 @@
 .earth3d-source-badge { font-weight: 700; letter-spacing: .08em; }
 .earth3d-source-badge.simulated { color: #9bd3f3; border-color: rgba(89, 169, 220, .45); background: rgba(41, 101, 145, .16); }
 .earth3d-source-badge.tracked { color: #85e1ad; border-color: rgba(86, 190, 132, .45); background: rgba(40, 117, 79, .16); }
+
+/* AppDeploy's platform-injected install host can span the viewport and steal
+   pointer events even when its visible sheet sits below the Earth 3D controls. */
+body.earth3d-active pwa-install {
+  display: none !important;
+}
