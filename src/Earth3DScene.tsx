@@ -489,6 +489,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       let lastCameraDistance = Number.NaN;
       let lastCameraYaw = Number.NaN;
       let lastCameraPitch = Number.NaN;
+      let lastMoonFacingDiagnosticAt = 0;
       const syncCameraDiagnostics = () => {
         const state = cameraState.current;
         if (!Number.isFinite(lastCameraDistance) || Math.abs(state.distance - lastCameraDistance) > 1e-6) {
@@ -652,13 +653,17 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         const horizontal = Math.cos(s.pitch) * distance;
         const cameraYaw = mode === 'MOON' ? moonCameraYaw(moonPhase, s.yaw) : s.yaw;
         if (mode === 'MOON') {
-          const moonPosition = spaceEnvironment.moon.position;
-          const earthX = -moonPosition.x;
-          const earthZ = -moonPosition.z;
-          const earthLength = Math.hypot(earthX, earthZ) || 1;
-          const cameraX = Math.sin(cameraYaw);
-          const cameraZ = Math.cos(cameraYaw);
-          container.dataset.moonEarthFacingDot = ((cameraX * earthX + cameraZ * earthZ) / earthLength).toFixed(6);
+          const diagnosticTime = performance.now();
+          if (diagnosticTime - lastMoonFacingDiagnosticAt >= 100) {
+            const moonPosition = spaceEnvironment.moon.position;
+            const earthX = -moonPosition.x;
+            const earthZ = -moonPosition.z;
+            const earthLength = Math.hypot(earthX, earthZ) || 1;
+            const cameraX = Math.sin(cameraYaw);
+            const cameraZ = Math.cos(cameraYaw);
+            container.dataset.moonEarthFacingDot = ((cameraX * earthX + cameraZ * earthZ) / earthLength).toFixed(6);
+            lastMoonFacingDiagnosticAt = diagnosticTime;
+          }
         } else {
           delete container.dataset.moonEarthFacingDot;
         }
