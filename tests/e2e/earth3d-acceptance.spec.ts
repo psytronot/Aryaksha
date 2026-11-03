@@ -602,7 +602,23 @@ test("Earth 3D timeline and scene gallery remain touch-usable on mobile", async 
   expect(await slider.evaluate(element => element.getBoundingClientRect().width)).toBeGreaterThan(260);
   const dimensions = await page.evaluate(() => ({ width: window.innerWidth, documentWidth: document.documentElement.scrollWidth }));
   expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.width);
-  await timeline.getByRole("button", { name: "Earth and Moon scene" }).click();
+  const systemSceneButton = timeline.getByRole("button", { name: "Earth and Moon scene", exact: true });
+  await systemSceneButton.evaluate(element => element.scrollIntoView({ block: "center", inline: "center", behavior: "auto" }));
+  await expect(systemSceneButton).toBeInViewport();
+  const systemSceneHit = await systemSceneButton.evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const hit = document.elementFromPoint(x, y);
+    return {
+      x,
+      y,
+      receivesPointer: Boolean(hit && (hit === element || element.contains(hit))),
+      hit: hit?.outerHTML.slice(0, 160) ?? "none"
+    };
+  });
+  expect(systemSceneHit.receivesPointer, `SYSTEM scene hit target: ${systemSceneHit.hit}`).toBe(true);
+  await page.mouse.click(systemSceneHit.x, systemSceneHit.y);
   await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "SYSTEM", exact: true })).toHaveClass(/active/);
 });
 
