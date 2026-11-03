@@ -596,3 +596,27 @@ test("Earth 3D timeline and scene gallery remain touch-usable on mobile", async 
   await timeline.getByRole("button", { name: "Earth and Moon scene" }).click();
   await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "SYSTEM", exact: true })).toHaveClass(/active/);
 });
+
+
+test('Earth 3D Moon camera tracks the Earth-facing hemisphere on desktop and mobile', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1536, height: 1024 });
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const canvas = page.locator('.earth3d-canvas');
+  await expect(canvas.locator('canvas')).toBeVisible({ timeout: 15000 });
+  await page.getByRole('button', { name: 'MOON', exact: true }).click();
+  await expect.poll(async () => Number(await canvas.getAttribute('data-moon-earth-facing-dot')), { timeout: 10000 }).toBeGreaterThan(0.999);
+
+  const timeline = page.getByRole('region', { name: 'Mission timeline and scene gallery' });
+  await timeline.getByRole('button', { name: 'Advance simulation by 10 seconds' }).click();
+  await expect.poll(async () => Number(await canvas.getAttribute('data-moon-earth-facing-dot')), { timeout: 10000 }).toBeGreaterThan(0.999);
+  await page.screenshot({ path: testInfo.outputPath('moon-facing-desktop.png'), fullPage: true });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(async () => Number(await canvas.getAttribute('data-moon-earth-facing-dot')), { timeout: 10000 }).toBeGreaterThan(0.999);
+  const dimensions = await page.evaluate(() => ({ width: window.innerWidth, documentWidth: document.documentElement.scrollWidth }));
+  expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.width);
+  await page.screenshot({ path: testInfo.outputPath('moon-facing-mobile.png'), fullPage: true });
+});
