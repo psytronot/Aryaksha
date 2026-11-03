@@ -292,7 +292,13 @@ test('Earth 3D SYSTEM and MOON reset, pinch, resize and drag preserve fitted fra
   await modes.getByRole('button', { name: 'Reset camera framing', exact: true }).click();
   await expect.poll(readDistance).toBeCloseTo(landscapeMoonFit, 1);
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect.poll(readDistance).toBeGreaterThan(landscapeMoonFit);
+  // Wait for the canvas's ResizeObserver-driven viewport measurement before deriving
+  // the portrait fit. A portrait canvas can have a wider horizontal FOV than the
+  // narrow/tall intermediate-desktop canvas, so distance is not monotonically larger.
+  await expect.poll(async () => {
+    const size = await container.evaluate(element => ({ width: element.clientWidth, height: element.clientHeight }));
+    return container.getAttribute('data-camera-viewport') === `${size.width}x${size.height}`;
+  }).toBe(true);
   const portraitMoonFit = await moonFit();
   await expect.poll(readDistance).toBeCloseTo(portraitMoonFit, 1);
   expect(pageErrors).toEqual([]);
