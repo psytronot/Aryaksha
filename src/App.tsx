@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity, ArrowRight, Battery, BookOpen, Calculator, Check, CircleHelp, Cpu, Download,
-  Gauge, Globe2, Info, Layers3, Orbit, Pause, Play, Radio, RefreshCw, Rocket,
+  Gauge, Globe2, Info, Layers3, Orbit, Play, Radio, RefreshCw, Rocket,
   Satellite, Search, Settings2, Target, Thermometer, TriangleAlert, Wrench, Zap
 } from 'lucide-react';
 const Earth3DScene = lazy(() => import('./Earth3DScene'));
@@ -409,15 +409,7 @@ function SimulationView({ model, current, seconds, duration, running, setRunning
   return <div className="page simulation-page">
     <PageHeader eyebrow="05 · SIMULATION" title="Run the spacecraft, not a picture of it." text="The animation, telemetry and engineering results read from the same propagated state. The current model is deterministic two-body Keplerian propagation; J2, drag, SRP, third-body gravity and operational effects remain outside the model." />
     <div className="simulation-grid">
-      <div className="scene-wrap"><Earth3DScene model={model} current={current} seconds={seconds} name={mission.name} propagator="KEPLER" objectStatus="SIMULATED" footprintAngleDeg={footprintAngle} busWidthM={spacecraft.busWidthM} busHeightM={spacecraft.busHeightM} busDepthM={spacecraft.busDepthM} altitudeKm={orbit.altitudeKm} eccentricity={orbit.e} inclinationDeg={orbit.i} raanDeg={orbit.raan} argumentOfPerigeeDeg={orbit.argp} trueAnomalyDeg={orbit.nu} periodMin={orbitalSummary(orbit).period / 60} panelAreaM2={spacecraft.panelAreaM2} /></div>
-    </div>
-    <div className="timeline">
-      <button onClick={() => setRunning(!running)}>{running ? <Pause size={15} /> : <Play size={15} />}{running ? 'PAUSE' : 'PLAY'}</button>
-      <button onClick={() => setSeconds(Math.max(0, seconds - 10))}>−10s</button>
-      <input aria-label="Simulation timeline" type="range" min="0" max={duration} step="1" value={seconds} onChange={e => setSeconds(Number(e.target.value))} />
-      <button onClick={() => setSeconds(Math.min(duration, seconds + 10))}>+10s</button>
-      <select aria-label="Simulation playback speed" value={playback} onChange={e => setPlayback(Number(e.target.value))}><option value="1">1×</option><option value="10">10×</option><option value="20">20×</option><option value="60">60×</option><option value="120">120×</option></select>
-      <span>{(duration/60).toFixed(1)} min scenario</span>
+      <div className="scene-wrap"><Earth3DScene model={model} current={current} seconds={seconds} name={mission.name} propagator="KEPLER" objectStatus="SIMULATED" footprintAngleDeg={footprintAngle} busWidthM={spacecraft.busWidthM} busHeightM={spacecraft.busHeightM} busDepthM={spacecraft.busDepthM} altitudeKm={orbit.altitudeKm} eccentricity={orbit.e} inclinationDeg={orbit.i} raanDeg={orbit.raan} argumentOfPerigeeDeg={orbit.argp} trueAnomalyDeg={orbit.nu} periodMin={orbitalSummary(orbit).period / 60} panelAreaM2={spacecraft.panelAreaM2} running={running} setRunning={setRunning} playback={playback} setPlayback={setPlayback} duration={duration} setSeconds={setSeconds} /></div>
     </div>
     <GroundTrackMap model={model} current={current} />
     <div className="state-sheet">

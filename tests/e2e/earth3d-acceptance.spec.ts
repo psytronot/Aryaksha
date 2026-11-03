@@ -524,3 +524,75 @@ test('Earth 3D releases its WebGL context on unmount and remounts cleanly', asyn
   await expect.poll(() => page.evaluate(() => Boolean((window as any).__earth3dRemountContext && !(window as any).__earth3dRemountContext.isContextLost())), { timeout: 10000 }).toBe(true);
   expect(pageErrors).toEqual([]);
 });
+
+test("Earth 3D mission timeline and scene gallery control the shared simulation state", async ({ page }) => {
+  await page.setViewportSize({ width: 1536, height: 1024 });
+  await page.addInitScript(() => localStorage.setItem("orbital-lab-coach-enabled", "false"));
+  await page.goto("/");
+  await page.getByRole("button", { name: "Simulation", exact: true }).click();
+
+  const timeline = page.getByRole("region", { name: "Mission timeline and scene gallery" });
+  await expect(timeline).toBeVisible();
+  const clock = timeline.locator(".earth3d-timeline-heading b");
+  await expect(clock).toContainText("T+ 0.0 s");
+  await timeline.getByRole("button", { name: "Advance simulation by 10 seconds" }).click();
+  await expect(clock).toContainText("T+ 10.0 s");
+
+  await timeline.getByRole("button", { name: "Play simulation" }).click();
+  await expect(timeline.getByRole("button", { name: "Pause simulation" })).toBeVisible();
+  await timeline.getByRole("button", { name: "Pause simulation" }).click();
+  await timeline.getByRole("button", { name: "Reset simulation time" }).click();
+  await expect(clock).toContainText("T+ 0.0 s");
+
+  const slider = timeline.getByRole("slider", { name: "Simulation timeline" });
+  await slider.focus();
+  await slider.press("ArrowRight");
+  await expect(clock).toContainText("T+ 0.1 s");
+  await slider.press("Home");
+  await expect(clock).toContainText("T+ 0.0 s");
+
+  const speed = timeline.getByRole("combobox", { name: "Simulation playback speed" });
+  await speed.selectOption("60");
+  await expect(speed).toHaveValue("60");
+
+  await timeline.getByRole("button", { name: "Moon scene", exact: true }).click();
+  await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "MOON", exact: true })).toHaveClass(/active/);
+  await expect(timeline.getByRole("button", { name: "Moon scene", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await timeline.getByRole("button", { name: "Earth and Moon scene" }).click();
+  await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "SYSTEM", exact: true })).toHaveClass(/active/);
+  await expect(timeline.getByRole("button", { name: "Earth and Moon scene" })).toHaveAttribute("aria-pressed", "true");
+});
+
+test("Earth 3D Earth scene shortcut selects the Earth camera", async ({ page }) => {
+  await page.setViewportSize({ width: 1536, height: 1024 });
+  await page.addInitScript(() => localStorage.setItem("orbital-lab-coach-enabled", "false"));
+  await page.goto("/");
+  await page.getByRole("button", { name: "Simulation", exact: true }).click();
+  const timeline = page.getByRole("region", { name: "Mission timeline and scene gallery" });
+  await timeline.getByRole("button", { name: "Earth scene", exact: true }).click();
+  await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "EARTH", exact: true })).toHaveClass(/active/);
+  await expect(timeline.getByRole("button", { name: "Earth scene", exact: true })).toHaveAttribute("aria-pressed", "true");
+});
+
+test("Earth 3D timeline and scene gallery remain touch-usable on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem("orbital-lab-coach-enabled", "false"));
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  await page.getByRole("navigation", { name: "Mobile navigation" })
+    .getByRole("button", { name: "Simulation", exact: true }).click();
+
+  const timeline = page.getByRole("region", { name: "Mission timeline and scene gallery" });
+  await timeline.scrollIntoViewIfNeeded();
+  await expect(timeline).toBeVisible();
+  await expect(timeline.getByRole("button", { name: "Earth scene" })).toBeVisible();
+  await expect(timeline.getByRole("button", { name: "Moon scene", exact: true })).toBeVisible();
+  await expect(timeline.getByRole("button", { name: "Earth and Moon scene" })).toBeVisible();
+  const slider = timeline.getByRole("slider", { name: "Simulation timeline" });
+  await expect(slider).toBeVisible();
+  expect(await slider.evaluate(element => element.getBoundingClientRect().width)).toBeGreaterThan(260);
+  const dimensions = await page.evaluate(() => ({ width: window.innerWidth, documentWidth: document.documentElement.scrollWidth }));
+  expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.width);
+  await timeline.getByRole("button", { name: "Earth and Moon scene" }).click();
+  await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "SYSTEM", exact: true })).toHaveClass(/active/);
+});

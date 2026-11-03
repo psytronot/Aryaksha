@@ -162,3 +162,44 @@ html.earth3d-active pwa-install {
   display: none !important;
   pointer-events: none !important;
 }
+
+/* Mission timeline and scene gallery — kept inside the Earth 3D mission-control frame. */
+.earth3d-workspace { grid-template-rows: auto minmax(560px, 1fr) auto auto; }
+.earth3d-timeline { grid-column: 1 / -1; grid-row: 4; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 8px 12px; align-items: center; min-width: 0; padding: 10px 12px; border: 1px solid rgba(173,194,211,.18); border-radius: 9px; background: rgba(4,7,12,.88); }
+.earth3d-timeline-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-width: 0; }
+.earth3d-timeline-heading span { color: #d6aa70; font: 8px ui-monospace,monospace; letter-spacing: .14em; }
+.earth3d-timeline-heading b { color: #e9f2f8; font: 10px ui-monospace,monospace; white-space: nowrap; }
+.earth3d-scene-gallery { display: flex; gap: 6px; min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; }
+.earth3d-gallery-item { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; min-height: 34px; padding: 4px 7px; border: 1px solid rgba(173,194,211,.18); border-radius: 6px; background: rgba(8,13,20,.82); color: #aebdca; cursor: pointer; font: 7px ui-monospace,monospace; letter-spacing: .08em; }
+.earth3d-gallery-item.active { border-color: rgba(216,169,103,.7); color: #f2d3a4; background: rgba(216,169,103,.1); }
+.earth3d-gallery-thumb { display: block; width: 27px; height: 20px; flex: 0 0 auto; border: 1px solid rgba(180,199,215,.22); border-radius: 50%; }
+.earth3d-gallery-thumb[data-scene="earth"] { background: radial-gradient(circle at 38% 36%, #70b9d2 0 10%, #1e7092 28%, #0b3150 62%, #03070c 78%); }
+.earth3d-gallery-thumb[data-scene="moon"] { background: radial-gradient(circle at 42% 38%, #c6c5bd 0 18%, #777871 52%, #24282c 76%); }
+.earth3d-gallery-thumb[data-scene="system"] { background: radial-gradient(circle at 34% 50%, #2d7da6 0 19%, transparent 21%), radial-gradient(circle at 72% 55%, #b3b2a8 0 8%, transparent 10%), #040a12; }
+.earth3d-time-range { grid-column: 1 / -1; width: 100%; min-width: 0; margin: 0; accent-color: #d6aa70; cursor: pointer; }
+.earth3d-timeline-actions { grid-column: 1 / -1; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.earth3d-timeline-actions button, .earth3d-playback-speed select { min-height: 30px; padding: 5px 9px; border: 1px solid rgba(173,194,211,.2); border-radius: 5px; background: rgba(8,13,20,.9); color: #dce8f1; font: 8px ui-monospace,monospace; cursor: pointer; }
+.earth3d-timeline-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.earth3d-timeline-actions button:disabled { opacity: .55; cursor: default; }
+.earth3d-playback-speed { display: inline-flex; align-items: center; gap: 6px; color: #d6aa70; font: 8px ui-monospace,monospace; }
+.earth3d-timeline-actions > span { color: #7f91a2; font: 7px ui-monospace,monospace; }
+.earth3d-workspace:fullscreen { grid-template-rows: auto minmax(0, 1fr) auto auto; }
+@media (max-width: 1100px) and (min-width: 801px) {
+  .earth3d-workspace { grid-template-rows: auto minmax(480px, 1fr) auto auto auto; }
+  .earth3d-bottom-bar { grid-row: 4; }
+  .earth3d-timeline { grid-row: 5; }
+}
+@media (max-width: 800px) {
+  .earth3d-workspace { grid-template-rows: auto minmax(320px, 46svh) auto auto auto auto; }
+  .earth3d-bottom-bar { grid-row: 5; }
+  .earth3d-timeline { grid-column: 1; grid-row: 6; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 9px; }
+  .earth3d-timeline-heading, .earth3d-scene-gallery, .earth3d-time-range, .earth3d-timeline-actions { grid-column: 1; }
+  .earth3d-timeline-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+  .earth3d-timeline-actions button { width: 100%; min-width: 0; padding: 5px 3px; }
+  .earth3d-playback-speed { grid-column: 1 / -1; justify-content: space-between; }
+  .earth3d-playback-speed select { min-width: 110px; }
+}
+@media (max-width: 500px) {
+  .earth3d-timeline-heading span { font-size: 7px; }
+  .earth3d-gallery-item { min-height: 32px; padding: 3px 6px; }
+}
