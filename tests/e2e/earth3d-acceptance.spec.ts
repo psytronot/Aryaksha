@@ -543,13 +543,22 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   await timeline.getByRole("button", { name: "Reset simulation time" }).click();
   await expect(clock).toContainText("T+ 0.0 s");
 
+  const slider = timeline.getByRole("slider", { name: "Simulation timeline" });
+  await slider.focus();
+  await slider.press("ArrowRight");
+  await expect(clock).toContainText("T+ 0.1 s");
+  await slider.press("Home");
+  await expect(clock).toContainText("T+ 0.0 s");
+
   const speed = timeline.getByRole("combobox", { name: "Simulation playback speed" });
   await speed.selectOption("60");
   await expect(speed).toHaveValue("60");
 
-  await timeline.getByRole("button", { name: "Moon scene" }).click();
+  await timeline.getByRole("button", { name: "Earth scene", exact: true }).click();
+  await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "EARTH", exact: true })).toHaveClass(/active/);
+  await timeline.getByRole("button", { name: "Moon scene", exact: true }).click();
   await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "MOON", exact: true })).toHaveClass(/active/);
-  await expect(timeline.getByRole("button", { name: "Moon scene" })).toHaveAttribute("aria-pressed", "true");
+  await expect(timeline.getByRole("button", { name: "Moon scene", exact: true })).toHaveAttribute("aria-pressed", "true");
   await timeline.getByRole("button", { name: "Earth and Moon scene" }).click();
   await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "SYSTEM", exact: true })).toHaveClass(/active/);
   await expect(timeline.getByRole("button", { name: "Earth and Moon scene" })).toHaveAttribute("aria-pressed", "true");
@@ -566,7 +575,7 @@ test("Earth 3D timeline and scene gallery remain touch-usable on mobile", async 
   await timeline.scrollIntoViewIfNeeded();
   await expect(timeline).toBeVisible();
   await expect(timeline.getByRole("button", { name: "Earth scene" })).toBeVisible();
-  await expect(timeline.getByRole("button", { name: "Moon scene" })).toBeVisible();
+  await expect(timeline.getByRole("button", { name: "Moon scene", exact: true })).toBeVisible();
   await expect(timeline.getByRole("button", { name: "Earth and Moon scene" })).toBeVisible();
   const slider = timeline.getByRole("slider", { name: "Simulation timeline" });
   await expect(slider).toBeVisible();
