@@ -533,6 +533,9 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
 
   const timeline = page.getByRole("region", { name: "Mission timeline and scene gallery" });
   await expect(timeline).toBeVisible();
+  const canvasLayer = page.locator(".earth3d-canvas");
+  await expect.poll(() => canvasLayer.evaluate(element => getComputedStyle(element).position)).toBe("relative");
+  await expect.poll(() => timeline.evaluate(element => getComputedStyle(element).zIndex)).toBe("8");
   const clock = timeline.locator(".earth3d-timeline-heading b");
   await expect(clock).toContainText("T+ 0.0 s");
   await timeline.getByRole("button", { name: "Advance simulation by 10 seconds" }).click();
