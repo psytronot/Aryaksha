@@ -29,6 +29,17 @@ type Earth3DSceneProps = {
   trueAnomalyDeg?: number;
   periodMin?: number;
   panelAreaM2?: number;
+  missionType?: string;
+  missionTarget?: string;
+  payloadName?: string;
+  payloadMassKg?: number;
+  payloadPowerW?: number;
+  spacecraftDryMassKg?: number;
+  selectedPreset?: string;
+  onApplyPreset?: (name: string, altitudeKm: number, inclinationDeg: number) => void;
+  onUpdateOrbit?: (patch: { altitudeKm?: number; i?: number; raan?: number }) => void;
+  onOpenMissionSetup?: () => void;
+  onOpenOrbitDesign?: () => void;
   running: boolean;
   setRunning: (value: boolean) => void;
   playback: number;
@@ -38,6 +49,14 @@ type Earth3DSceneProps = {
 };
 
 type CameraMode = 'TRACK' | 'EARTH' | 'SATELLITE' | 'MOON' | 'SYSTEM';
+
+type MissionSetupPreset = { label: string; name: string; altitudeKm: number; inclinationDeg: number; detail: string };
+const MISSION_SETUP_PRESETS: MissionSetupPreset[] = [
+  { label: 'ISS', name: 'ISS-class', altitudeKm: 420, inclinationDeg: 51.6, detail: '~420 km LEO' },
+  { label: 'POLAR', name: 'Weather / Polar', altitudeKm: 820, inclinationDeg: 98.7, detail: '~820 km polar reference' },
+  { label: 'SUN-SYNC', name: 'Sun-Synchronous Reference', altitudeKm: 550, inclinationDeg: 97.6, detail: '~550 km SSO reference' },
+  { label: 'GEO', name: 'GEO Communications', altitudeKm: 35786, inclinationDeg: 0, detail: '35,786 km GEO reference' },
+];
 
 function systemCameraDistance(width: number, height: number) {
   const earthRadius = 5.15;
@@ -199,7 +218,7 @@ function scenePosition(r: number[], scale: number) {
   return new THREE.Vector3(r[0] * scale, r[2] * scale, r[1] * scale);
 }
 
-export default function Earth3DScene({ model, current, seconds, name, propagator, objectStatus = 'SIMULATED', footprintAngleDeg = 0.52, busWidthM = 0.1, busHeightM = 0.2, busDepthM = 0.1, altitudeKm = 550, eccentricity = 0, inclinationDeg = 0, raanDeg = 0, argumentOfPerigeeDeg = 0, trueAnomalyDeg = 0, periodMin = 95, panelAreaM2 = 0.6, running, setRunning, playback, setPlayback, duration, setSeconds }: Earth3DSceneProps) {
+export default function Earth3DScene({ model, current, seconds, name, propagator, objectStatus = 'SIMULATED', footprintAngleDeg = 0.52, busWidthM = 0.1, busHeightM = 0.2, busDepthM = 0.1, altitudeKm = 550, eccentricity = 0, inclinationDeg = 0, raanDeg = 0, argumentOfPerigeeDeg = 0, trueAnomalyDeg = 0, periodMin = 95, panelAreaM2 = 0.6, missionType = 'Earth Observation', missionTarget = '—', payloadName = 'Payload', payloadMassKg = 0, payloadPowerW = 0, spacecraftDryMassKg = 0, selectedPreset = 'Sun-Synchronous Reference', onApplyPreset, onUpdateOrbit, onOpenMissionSetup, onOpenOrbitDesign, running, setRunning, playback, setPlayback, duration, setSeconds }: Earth3DSceneProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
   const modelRef = useRef(model);
@@ -226,6 +245,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   const [imageryState, setImageryState] = useState<'loading' | 'nasa' | 'partial' | 'fallback'>('loading');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mobileHudOpen, setMobileHudOpen] = useState(false);
+  const [missionSetupTab, setMissionSetupTab] = useState<'presets' | 'custom'>('presets');
   const [imageryStatus, setImageryStatus] = useState('Loading NASA Blue Marble and Black Marble imagery…');
   const [wallTime, setWallTime] = useState(() => new Date());
   const cameraState = useRef({ yaw: 0.65, pitch: 0.26, distance: 11 });
@@ -773,7 +793,9 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
     }
   };
 
-  const dayNight = dayNightSnapshot(Number(current?.lla?.lat), Number(current?.lla?.lon), new Date(current?.time || Date.now()));
+  const simulationUtc = new Date(current?.time || '2026-01-01T00:00:00.000Z');
+  const simulationUtcLabel = Number.isFinite(simulationUtc.getTime()) ? simulationUtc.toISOString().replace('T', ' ').replace('Z', ' UTC') : 'UTC unavailable';
+  const dayNight = dayNightSnapshot(Number(current?.lla?.lat), Number(current?.lla?.lon), simulationUtc);
   const speed = Math.hypot(...(current?.v || [0, 0, 0]));
   const maxBusDimensionM = Math.max(0.01, busWidthM, busHeightM, busDepthM);
   const earthDiameterKm = 2 * 6378.137;
@@ -799,13 +821,54 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
             <button type="button" className="earth-camera-button earth-mobile-data-toggle" aria-label={mobileHudOpen ? 'Hide mission data panels' : 'Show mission data panels'} aria-expanded={mobileHudOpen} aria-controls="earth3d-left-hud earth3d-right-hud" onClick={() => setMobileHudOpen(value => !value)}>DATA</button>
           </div>
         </div>
-        <div id="earth3d-left-hud" className="earth3d-left-hud" data-mobile-open={mobileHudOpen ? "true" : "false"} role="complementary" aria-label="Mission state and orbital details">
+        <div id="earth3d-left-hud" className="earth3d-left-hud" data-mobile-open={mobileHudOpen ? "true" : "false"} role="complementary" aria-label="Mission setup, state and orbital details">
+          <div className="earth3d-hud-card earth3d-mission-setup-card" data-testid="earth3d-mission-setup">
+            <div className="earth3d-card-heading"><small>MISSION SETUP</small><span>{missionType}</span></div>
+            <b className="earth3d-mission-setup-name">{name || 'MySat-1'}</b>
+            <span className="earth3d-mission-setup-target">{missionTarget} · {payloadName}</span>
+            <div className="earth3d-mission-setup-tabs" role="tablist" aria-label="Mission setup mode">
+              <button type="button" role="tab" aria-selected={missionSetupTab === 'presets'} className={missionSetupTab === 'presets' ? 'active' : ''} onClick={() => setMissionSetupTab('presets')}>QUICK PRESETS</button>
+              <button type="button" role="tab" aria-selected={missionSetupTab === 'custom'} className={missionSetupTab === 'custom' ? 'active' : ''} onClick={() => setMissionSetupTab('custom')}>CUSTOM ORBIT</button>
+            </div>
+            {missionSetupTab === 'presets' ? (
+              <div className="earth3d-mission-preset-list">
+                {MISSION_SETUP_PRESETS.map(preset => (
+                  <button key={preset.name} type="button" aria-pressed={selectedPreset === preset.name} className={selectedPreset === preset.name ? 'active' : ''} onClick={() => onApplyPreset?.(preset.name, preset.altitudeKm, preset.inclinationDeg)}>
+                    <span>{preset.label}</span><small>{preset.detail}</small>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="earth3d-custom-orbit">
+                <label>ALTITUDE · KM<input aria-label="Mission setup altitude" type="number" min="120" max="35786" step="1" value={altitudeKm} onChange={event => { const value = Number(event.currentTarget.value); if (Number.isFinite(value) && value >= 120 && value <= 35786) onUpdateOrbit?.({ altitudeKm: value }); }} /></label>
+                <label>INCLINATION · DEG<input aria-label="Mission setup inclination" type="number" min="0" max="180" step="0.1" value={inclinationDeg} onChange={event => { const value = Number(event.currentTarget.value); if (Number.isFinite(value) && value >= 0 && value <= 180) onUpdateOrbit?.({ i: value }); }} /></label>
+                <label>RAAN · DEG<input aria-label="Mission setup RAAN" type="number" min="0" max="360" step="0.1" value={raanDeg} onChange={event => { const value = Number(event.currentTarget.value); if (Number.isFinite(value) && value >= 0 && value <= 360) onUpdateOrbit?.({ raan: value }); }} /></label>
+                <small>Edits update the existing two-body orbit state; J2 and drag are not propagated.</small>
+              </div>
+            )}
+            <div className="earth3d-mission-setup-actions">
+              <button type="button" aria-label="Edit mission requirements" onClick={() => onOpenMissionSetup?.()}>MISSION</button>
+              <button type="button" aria-label="Open full orbit design" onClick={() => onOpenOrbitDesign?.()}>ORBIT</button>
+              <button type="button" className="primary-action" aria-label={running ? 'Simulation already running' : 'Start simulation'} onClick={() => setRunning(true)} disabled={running}>{running ? 'RUNNING' : 'START SIMULATION'}</button>
+            </div>
+            <div className="earth3d-mission-setup-meta"><span>PAYLOAD {payloadMassKg.toFixed(1)} kg · {payloadPowerW.toFixed(1)} W</span><span>DRY MASS {spacecraftDryMassKg.toFixed(1)} kg</span></div>
+          </div>
           <div className="earth3d-hud-card"><small>POSITION / WGS84</small><b>{Number(current?.lla?.lat || 0).toFixed(3)}°</b><b>{Number(current?.lla?.lon || 0).toFixed(3)}°</b><span>ALT {Number(current?.lla?.alt || 0).toFixed(1)} km</span></div>
           <div className="earth3d-hud-card"><small>FLIGHT STATE</small><span>t+ {Number(seconds || 0).toFixed(1)} s</span><span>V {speed.toFixed(3)} km/s</span><span>{dayNight.isDay ? 'DAY SIDE' : 'NIGHT SIDE'} · {dayNight.localSolar}</span></div>
           <div className="earth3d-hud-card"><small>PHYSICAL SCALE · REFERENCE VALUES</small><span>EARTH RADIUS 6,378.137 km (WGS-84 equatorial)</span><span>MOON RADIUS 1,737.4 km · 0.2727 R⊕</span><span>EARTH–MOON CENTRES 384,400 km · 60.3 R⊕ mean</span>{cameraMode === 'SYSTEM' && <span>SYSTEM DISPLAY: CENTRE SEPARATION COMPRESSED TO {(SYSTEM_DISPLAY_DISTANCE_RATIO * 100).toFixed(2)}% ({(1 / SYSTEM_DISPLAY_DISTANCE_RATIO).toFixed(1)}×) FOR VISIBILITY; BODY RADII RETAINED; NOT TO SCALE</span>}<span>SUN RADIUS 695,700 km · 109.2 R⊕</span><span>SUN DISTANCE 149.6 million km · 1 AU mean</span><span>SPACECRAFT SIZE IS EXAGGERATED FOR VISIBILITY</span><span>ORBIT {inclinationDeg.toFixed(2)}° inc · e {eccentricity.toFixed(4)}</span></div>
           <div className="earth3d-hud-card"><small>ORBITAL ELEMENTS</small><span>RAAN {raanDeg.toFixed(2)}°</span><span>ARG PERIAPSIS {argumentOfPerigeeDeg.toFixed(2)}°</span><span>TRUE ANOMALY {trueAnomalyDeg.toFixed(2)}°</span><span>PERIOD {periodMin.toFixed(2)} min</span><span>RANGE FROM EARTH CENTRE {(6378.137 + Number(current?.lla?.alt ?? altitudeKm)).toFixed(2)} km</span></div>
         </div>
         <div id="earth3d-right-hud" className="earth3d-right-hud" data-mobile-open={mobileHudOpen ? "true" : "false"} role="complementary" aria-label="Simulation controls and live telemetry">
+          <div className="earth3d-hud-card earth3d-simulation-controls-card" data-testid="earth3d-simulation-controls">
+            <small>SIMULATION CONTROLS</small>
+            <div className="earth3d-control-actions">
+              <button type="button" className="earth3d-play-control" aria-label={running ? 'Pause simulation' : 'Play simulation'} onClick={() => setRunning(!running)}>{running ? <Pause size={13} /> : <Play size={13} />}<span>{running ? 'PAUSE' : 'PLAY'}</span></button>
+              <div className="earth3d-speed-presets" role="group" aria-label="Simulation playback speed">
+                {[1, 10, 60].map(rate => <button key={rate} type="button" aria-label={`Set playback speed ${rate}x`} aria-pressed={playback === rate} className={playback === rate ? 'active' : ''} onClick={() => setPlayback(rate)}>{rate}×</button>)}
+              </div>
+            </div>
+            <div className="earth3d-simulation-clock"><small>SIMULATION TIME (UTC)</small><b>{simulationUtcLabel}</b><span>T+ {Number(seconds || 0).toFixed(1)} s</span></div>
+          </div>
           <div className="earth3d-hud-card earth3d-telemetry-card" aria-label="Live telemetry">
             <small>LIVE TELEMETRY</small>
             <div className="earth3d-telemetry-row"><span>TIME</span><b>{Number(seconds || 0).toFixed(1)} s</b></div>
@@ -834,11 +897,9 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
           </div>
           <input className="earth3d-time-range" aria-label="Simulation timeline" type="range" min={0} max={Math.max(1, duration)} step={0.1} value={Math.max(0, Math.min(duration, seconds))} onChange={event => setSeconds(Number(event.currentTarget.value))} />
           <div className="earth3d-timeline-actions">
-            <button type="button" aria-label={running ? "Pause simulation" : "Play simulation"} onClick={() => setRunning(!running)}>{running ? <Pause size={12} /> : <Play size={12} />}<span>{running ? "PAUSE" : "PLAY"}</span></button>
             <button type="button" aria-label="Rewind simulation by 10 seconds" onClick={() => setSeconds(Math.max(0, seconds - 10))}>−10 s</button>
             <button type="button" aria-label="Advance simulation by 10 seconds" onClick={() => setSeconds(Math.min(duration, seconds + 10))}>+10 s</button>
             <button type="button" aria-label="Reset simulation time" onClick={() => { setSeconds(0); setRunning(false); }}>RESET TIME</button>
-            <label className="earth3d-playback-speed">SPEED <select aria-label="Simulation playback speed" value={playback} onChange={event => setPlayback(Number(event.target.value))}><option value={1}>1×</option><option value={10}>10×</option><option value={20}>20×</option><option value={60}>60×</option><option value={120}>120×</option></select></label>
             <span>PERIOD {periodMin.toFixed(1)} min</span>
           </div>
         </div>
