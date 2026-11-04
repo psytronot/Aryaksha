@@ -365,6 +365,7 @@ test('Earth 3D mission-control rails stay outside the globe and support full scr
   await page.getByRole('button', { name: 'Open navigation' }).click();
   await page.getByRole('navigation', { name: 'Mobile navigation' })
     .getByRole('button', { name: 'Simulation', exact: true }).click();
+  await page.getByRole('button', { name: 'Show mission data panels' }).click();
 
   const workspace = page.locator('.earth3d-workspace');
   const canvas = page.locator('.earth3d-canvas');
