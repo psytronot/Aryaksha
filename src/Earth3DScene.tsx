@@ -864,7 +864,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
             <div className="earth3d-control-actions">
               <button type="button" className="earth3d-play-control" aria-label={running ? 'Pause simulation' : 'Play simulation'} onClick={() => setRunning(!running)}>{running ? <Pause size={13} /> : <Play size={13} />}<span>{running ? 'PAUSE' : 'PLAY'}</span></button>
               <div className="earth3d-speed-presets" role="group" aria-label="Simulation playback speed">
-                {[1, 10, 60].map(rate => <button key={rate} type="button" aria-label={`Set playback speed ${rate}x`} aria-pressed={playback === rate} className={playback === rate ? 'active' : ''} onClick={() => setPlayback(rate)}>{rate}×</button>)}
+                {[1, 10, 20, 60, 120].map(rate => <button key={rate} type="button" aria-label={`Set playback speed ${rate}x`} aria-pressed={playback === rate} className={playback === rate ? 'active' : ''} onClick={() => setPlayback(rate)}>{rate}×</button>)}
               </div>
             </div>
             <div className="earth3d-simulation-clock"><small>SIMULATION TIME (UTC)</small><b>{simulationUtcLabel}</b><span>T+ {Number(seconds || 0).toFixed(1)} s</span></div>
