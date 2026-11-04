@@ -1,4 +1,13 @@
 import { expect, test } from '@playwright/test';
+async function scrollEarthWorkspaceToTop(page: import('@playwright/test').Page) {
+  const workspace = page.locator('.earth3d-workspace');
+  await expect(workspace).toBeVisible();
+  await workspace.evaluate(element => {
+    const top = window.scrollY + element.getBoundingClientRect().top - 72;
+    window.scrollTo(0, Math.max(0, top));
+  });
+}
+
 import { EARTH_CAMERA_MARGIN, fitCameraDistance, MOON_CAMERA_MARGIN, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO } from '../../src/earth3dMath';
 
 test('Earth 3D exposes responsive camera modes and lunar layer controls', async ({ page }) => {
@@ -172,18 +181,23 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   });
   expect(frameCount).toBeGreaterThan(0);
 
-  // Shrink the viewport: the Earth canvas lives inside a deliberately
-  // bounded workspace, so widening the browser does not necessarily widen it.
+  // A narrow viewport collapses the desktop side rails into a single column.
+  // The canvas may therefore grow relative to its desktop centre column; verify
+  // that it fills the available mobile workspace without horizontal overflow.
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect.poll(() => canvas.evaluate(element => element.getBoundingClientRect().width)).toBeLessThan(initial.cssWidth);
   const resized = await canvas.evaluate((element: HTMLCanvasElement) => {
     const rect = element.getBoundingClientRect();
+    const workspace = element.closest('.earth3d-workspace') as HTMLElement;
+    const workspaceRect = workspace.getBoundingClientRect();
+    const workspaceStyle = getComputedStyle(workspace);
+    const horizontalPadding = parseFloat(workspaceStyle.paddingLeft) + parseFloat(workspaceStyle.paddingRight);
     const gl = element.getContext('webgl2') ?? element.getContext('webgl');
     return {
       width: element.width,
       height: element.height,
       cssWidth: rect.width,
       cssHeight: rect.height,
+      availableWidth: workspaceRect.width - horizontalPadding,
       drawingBufferWidth: gl?.drawingBufferWidth ?? 0,
       drawingBufferHeight: gl?.drawingBufferHeight ?? 0
     };
@@ -192,7 +206,8 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   expect(resized.height).toBeGreaterThan(0);
   expect(resized.drawingBufferWidth).toBeGreaterThan(0);
   expect(resized.drawingBufferHeight).toBeGreaterThan(0);
-  expect(resized.cssWidth).toBeLessThan(initial.cssWidth);
+  expect(resized.cssWidth).toBeGreaterThanOrEqual(320);
+  expect(resized.cssWidth).toBeLessThanOrEqual(resized.availableWidth + 1);
   expect(resized.cssWidth).toBeGreaterThan(0);
   expect(resized.cssHeight).toBeGreaterThan(0);
 
@@ -369,7 +384,7 @@ test('Earth 3D mission-control rails stay outside the globe and support full scr
 
   const workspace = page.locator('.earth3d-workspace');
   const canvas = page.locator('.earth3d-canvas');
-  const leftRail = page.getByRole('complementary', { name: 'Mission state and orbital details' });
+  const leftRail = page.getByRole('complementary', { name: 'Mission setup, state and orbital details' });
   const rightRail = page.getByRole('complementary', { name: 'Simulation controls and live telemetry' });
   await expect(canvas).toBeVisible();
   await expect(leftRail).toBeVisible();
@@ -559,6 +574,8 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   await expect(clock).toContainText("T+ 0.0 s");
 
   const speed = simulationControls.getByRole("group", { name: "Simulation playback speed" });
+  await scrollEarthWorkspaceToTop(page);
+  await expect(speed.getByRole("button", { name: "Set playback speed 60x" })).toBeInViewport();
   await speed.getByRole("button", { name: "Set playback speed 60x" }).click();
   await expect(speed.getByRole("button", { name: "Set playback speed 60x" })).toHaveAttribute("aria-pressed", "true");
 
@@ -777,9 +794,14 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   await expect(bottom.getByText('98.20°', { exact: true })).toBeVisible();
 
   await setup.getByRole('button', { name: 'Start simulation' }).click();
-  await expect(controls.getByRole('button', { name: 'Pause simulation' })).toBeVisible();
-  await controls.getByRole('button', { name: 'Pause simulation' }).click();
-  await controls.getByRole('group', { name: 'Simulation playback speed' }).getByRole('button', { name: 'Set playback speed 60x' }).click();
+  const pauseControl = controls.getByRole('button', { name: 'Pause simulation' });
+  await expect(pauseControl).toBeVisible();
+  await scrollEarthWorkspaceToTop(page);
+  await expect(pauseControl).toBeInViewport();
+  await pauseControl.click();
+  const desktopSpeed = controls.getByRole('group', { name: 'Simulation playback speed' });
+  await expect(desktopSpeed.getByRole('button', { name: 'Set playback speed 60x' })).toBeInViewport();
+  await desktopSpeed.getByRole('button', { name: 'Set playback speed 60x' }).click();
   await expect(controls.getByRole('group', { name: 'Simulation playback speed' }).getByRole('button', { name: 'Set playback speed 60x' })).toHaveAttribute('aria-pressed', 'true');
 
   const missionScreenshot = testInfo.outputPath('earth3d-reference-dashboard-desktop-1536x1024.png');
