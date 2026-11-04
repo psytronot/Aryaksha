@@ -225,6 +225,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   const [errorState, setErrorState] = useState('');
   const [imageryState, setImageryState] = useState<'loading' | 'nasa' | 'partial' | 'fallback'>('loading');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [mobileHudOpen, setMobileHudOpen] = useState(false);
   const [imageryStatus, setImageryStatus] = useState('Loading NASA Blue Marble and Black Marble imagery…');
   const [wallTime, setWallTime] = useState(() => new Date());
   const cameraState = useRef({ yaw: 0.65, pitch: 0.26, distance: 11 });
@@ -795,15 +796,16 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
             {(['TRACK', 'EARTH', 'SATELLITE', 'MOON', 'SYSTEM'] as CameraMode[]).map(mode => <button key={mode} type="button" className={`earth-camera-button ${cameraMode === mode ? 'active' : ''}`} onClick={() => { if (mode === 'MOON' || mode === 'SYSTEM') setShowSpaceEnvironment(true); setCameraMode(mode); }}>{mode}</button>)}
             <button type="button" className="earth-camera-button" aria-label="Reset camera framing" onClick={() => { const width = containerRef.current?.clientWidth || 1; const height = containerRef.current?.clientHeight || 1; if (cameraMode === 'SYSTEM') systemZoomRatioRef.current = 1; if (cameraMode === 'MOON') moonZoomRatioRef.current = 1; if (cameraMode === 'EARTH') earthZoomRatioRef.current = 1; const distance = cameraMode === 'SATELLITE' ? 5.8 : cameraMode === 'EARTH' ? earthCameraDistance(width, height) : cameraMode === 'MOON' ? moonCameraDistance(width, height) : cameraMode === 'SYSTEM' ? systemCameraDistance(width, height) : 11; cameraState.current = { yaw: cameraMode === 'MOON' ? 0 : 0.65, pitch: cameraMode === 'MOON' ? 0.16 : 0.26, distance }; }}>RESET</button>
             <button type='button' className='earth-camera-button earth-fullscreen-button' aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'} onClick={() => void toggleFullscreen()}>{isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}<span>{isFullscreen ? 'EXIT FULL SCREEN' : 'FULL SCREEN'}</span></button>
+            <button type="button" className="earth-camera-button earth-mobile-data-toggle" aria-label={mobileHudOpen ? 'Hide mission data panels' : 'Show mission data panels'} aria-expanded={mobileHudOpen} aria-controls="earth3d-left-hud earth3d-right-hud" onClick={() => setMobileHudOpen(value => !value)}>DATA</button>
           </div>
         </div>
-        <div className="earth3d-left-hud" role="complementary" aria-label="Mission state and orbital details">
+        <div id="earth3d-left-hud" className="earth3d-left-hud" data-mobile-open={mobileHudOpen ? "true" : "false"} role="complementary" aria-label="Mission state and orbital details">
           <div className="earth3d-hud-card"><small>POSITION / WGS84</small><b>{Number(current?.lla?.lat || 0).toFixed(3)}°</b><b>{Number(current?.lla?.lon || 0).toFixed(3)}°</b><span>ALT {Number(current?.lla?.alt || 0).toFixed(1)} km</span></div>
           <div className="earth3d-hud-card"><small>FLIGHT STATE</small><span>t+ {Number(seconds || 0).toFixed(1)} s</span><span>V {speed.toFixed(3)} km/s</span><span>{dayNight.isDay ? 'DAY SIDE' : 'NIGHT SIDE'} · {dayNight.localSolar}</span></div>
-          <div className="earth3d-hud-card"><small>PHYSICAL SCALE · REFERENCE VALUES</small><span>EARTH RADIUS 6,378.137 km (WGS-84 equatorial)</span><span>MOON RADIUS 1,737.4 km · 0.2727 R⊕</span><span>EARTH–MOON CENTRES 384,400 km · 60.3 R⊕ mean</span>{cameraMode === 'SYSTEM' && <span>SYSTEM DISPLAY: CENTRE SEPARATION COMPRESSED TO 2.25% (44.4×) FOR VISIBILITY; BODY RADII RETAINED; NOT TO SCALE</span>}<span>SUN RADIUS 695,700 km · 109.2 R⊕</span><span>SUN DISTANCE 149.6 million km · 1 AU mean</span><span>SPACECRAFT SIZE IS EXAGGERATED FOR VISIBILITY</span><span>ORBIT {inclinationDeg.toFixed(2)}° inc · e {eccentricity.toFixed(4)}</span></div>
+          <div className="earth3d-hud-card"><small>PHYSICAL SCALE · REFERENCE VALUES</small><span>EARTH RADIUS 6,378.137 km (WGS-84 equatorial)</span><span>MOON RADIUS 1,737.4 km · 0.2727 R⊕</span><span>EARTH–MOON CENTRES 384,400 km · 60.3 R⊕ mean</span>{cameraMode === 'SYSTEM' && <span>SYSTEM DISPLAY: CENTRE SEPARATION COMPRESSED TO {(SYSTEM_DISPLAY_DISTANCE_RATIO * 100).toFixed(2)}% ({(1 / SYSTEM_DISPLAY_DISTANCE_RATIO).toFixed(1)}×) FOR VISIBILITY; BODY RADII RETAINED; NOT TO SCALE</span>}<span>SUN RADIUS 695,700 km · 109.2 R⊕</span><span>SUN DISTANCE 149.6 million km · 1 AU mean</span><span>SPACECRAFT SIZE IS EXAGGERATED FOR VISIBILITY</span><span>ORBIT {inclinationDeg.toFixed(2)}° inc · e {eccentricity.toFixed(4)}</span></div>
           <div className="earth3d-hud-card"><small>ORBITAL ELEMENTS</small><span>RAAN {raanDeg.toFixed(2)}°</span><span>ARG PERIAPSIS {argumentOfPerigeeDeg.toFixed(2)}°</span><span>TRUE ANOMALY {trueAnomalyDeg.toFixed(2)}°</span><span>PERIOD {periodMin.toFixed(2)} min</span><span>RANGE FROM EARTH CENTRE {(6378.137 + Number(current?.lla?.alt ?? altitudeKm)).toFixed(2)} km</span></div>
         </div>
-        <div className="earth3d-right-hud" role="complementary" aria-label="Simulation controls and live telemetry">
+        <div id="earth3d-right-hud" className="earth3d-right-hud" data-mobile-open={mobileHudOpen ? "true" : "false"} role="complementary" aria-label="Simulation controls and live telemetry">
           <div className="earth3d-hud-card earth3d-telemetry-card" aria-label="Live telemetry">
             <small>LIVE TELEMETRY</small>
             <div className="earth3d-telemetry-row"><span>TIME</span><b>{Number(seconds || 0).toFixed(1)} s</b></div>
@@ -821,7 +823,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         </div>
         <div className="earth3d-bottom-bar">
           <span><i className="legend-spacecraft" /> SPACECRAFT</span><span><i className="legend-orbit" /> ORBIT</span><span><i className="legend-footprint" /> FOOTPRINT · FOV GEOMETRY</span><span><i className="legend-vector" /> VECTORS</span>
-          <span className="earth3d-help">DRAG TO ORBIT · WHEEL TO ZOOM · SYSTEM FRAMES EARTH + MOON · TRACK FOLLOWS SATELLITE</span>
+          <span className="earth3d-help">DRAG TO ORBIT · WHEEL TO ZOOM · SYSTEM FRAMES EARTH + MOON · TRACK FOLLOWS SATELLITE</span>{cameraMode === "SYSTEM" && <span className="earth3d-scale-note" data-testid="earth3d-scale-note">SCHEMATIC SYSTEM · {(1 / SYSTEM_DISPLAY_DISTANCE_RATIO).toFixed(1)}× CENTRE-DISTANCE COMPRESSION · PHYSICAL RADII RETAINED · NOT TO SCALE</span>}
         </div>
         <div className="earth3d-timeline" role="region" aria-label="Mission timeline and scene gallery" data-testid="earth3d-timeline">
           <div className="earth3d-timeline-heading"><span>MISSION TIMELINE / SCENE GALLERY</span><b>T+ {Number(seconds || 0).toFixed(1)} s</b></div>

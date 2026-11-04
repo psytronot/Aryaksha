@@ -54,6 +54,7 @@ test('Earth 3D controls remain usable on a narrow mobile viewport', async ({ pag
   await cameraModes.getByRole('button', { name: 'MOON', exact: true }).click();
   await expect(cameraModes.getByRole('button', { name: 'MOON', exact: true })).toHaveClass(/active/);
 
+  await page.getByRole('button', { name: 'Show mission data panels' }).click();
   const lunarLayer = page.getByRole('checkbox', { name: 'Show Moon and lunar orbit' });
   await expect(lunarLayer).toBeVisible();
   await expect(lunarLayer).toBeChecked();
@@ -364,6 +365,7 @@ test('Earth 3D mission-control rails stay outside the globe and support full scr
   await page.getByRole('button', { name: 'Open navigation' }).click();
   await page.getByRole('navigation', { name: 'Mobile navigation' })
     .getByRole('button', { name: 'Simulation', exact: true }).click();
+  await page.getByRole('button', { name: 'Show mission data panels' }).click();
 
   const workspace = page.locator('.earth3d-workspace');
   const canvas = page.locator('.earth3d-canvas');
@@ -664,4 +666,72 @@ test('Earth 3D Moon camera tracks the Earth-facing hemisphere on desktop and mob
   expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.width);
   await workspace.evaluate(element => window.scrollTo(0, Math.max(0, window.scrollY + element.getBoundingClientRect().top - 72)));
   await page.screenshot({ path: testInfo.outputPath('moon-facing-mobile.png'), fullPage: false });
+});
+
+
+test('mobile Earth–Moon mission data panels collapse without hiding scale disclosure', async ({ page }) => {
+  test.setTimeout(60_000);
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page.getByRole('navigation', { name: 'Mobile navigation' })
+    .getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const modes = page.locator('[aria-label="Camera modes"]');
+  await modes.getByRole('button', { name: 'SYSTEM', exact: true }).click();
+  const canvas = page.locator('.earth3d-canvas');
+  const workspace = page.locator('.earth3d-workspace');
+  const leftHud = page.locator('#earth3d-left-hud');
+  const rightHud = page.locator('#earth3d-right-hud');
+  const toggle = page.getByRole('button', { name: 'Show mission data panels' });
+
+  await expect(canvas.locator('canvas')).toBeVisible();
+  await expect(toggle).toBeVisible();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(leftHud).toBeHidden();
+  await expect(rightHud).toBeHidden();
+  await expect(page.getByTestId('earth3d-scale-note')).toBeVisible();
+  await expect(page.getByTestId('earth3d-scale-note')).toContainText('44.4×');
+  const collapsedDistance = Number(await canvas.getAttribute('data-camera-distance'));
+  expect(Number.isFinite(collapsedDistance)).toBe(true);
+
+  const focusPath = test.info().outputPath('earth3d-mobile-system-focus-390x844.png');
+  await workspace.screenshot({ path: focusPath, animations: 'disabled' });
+  await test.info().attach('earth3d-mobile-system-focus-390x844.png', { path: focusPath, contentType: 'image/png' });
+
+  await toggle.click();
+  const closeToggle = page.getByRole('button', { name: 'Hide mission data panels' });
+  await expect(closeToggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(leftHud).toBeVisible();
+  await expect(rightHud).toBeVisible();
+  await expect(leftHud.getByText('PHYSICAL SCALE · REFERENCE VALUES')).toBeVisible();
+  await expect(rightHud.getByText('LIVE TELEMETRY')).toBeVisible();
+  const canvasBounds = await canvas.boundingBox();
+  const leftBounds = await leftHud.boundingBox();
+  const rightBounds = await rightHud.boundingBox();
+  expect(canvasBounds).not.toBeNull();
+  expect(leftBounds).not.toBeNull();
+  expect(rightBounds).not.toBeNull();
+  expect(leftBounds!.y).toBeGreaterThanOrEqual(canvasBounds!.y + canvasBounds!.height - 1);
+  expect(rightBounds!.y).toBeGreaterThanOrEqual(canvasBounds!.y + canvasBounds!.height - 1);
+  expect(Number(await canvas.getAttribute('data-camera-distance'))).toBeCloseTo(collapsedDistance, 6);
+
+  const expandedPath = test.info().outputPath('earth3d-mobile-system-data-open-390x844.png');
+  await workspace.screenshot({ path: expandedPath, animations: 'disabled' });
+  await test.info().attach('earth3d-mobile-system-data-open-390x844.png', { path: expandedPath, contentType: 'image/png' });
+
+  const widths = await page.evaluate(() => ({
+    viewport: document.documentElement.clientWidth,
+    document: document.documentElement.scrollWidth
+  }));
+  expect(widths.document).toBeLessThanOrEqual(widths.viewport);
+
+  await closeToggle.click();
+  await expect(leftHud).toBeHidden();
+  await expect(rightHud).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Show mission data panels' })).toHaveAttribute('aria-expanded', 'false');
+  expect(pageErrors).toEqual([]);
 });

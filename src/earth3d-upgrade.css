@@ -203,3 +203,38 @@ html.earth3d-active pwa-install {
   .earth3d-timeline-heading span { font-size: 7px; }
   .earth3d-gallery-item { min-height: 32px; padding: 3px 6px; }
 }
+
+
+/* Mobile focus mode: keep the Earth–Moon canvas primary and expose dense HUD
+   panels on demand. Desktop side rails remain continuously visible. */
+.earth-mobile-data-toggle { display: none; }
+.earth3d-scale-note { display: none; }
+@media (max-width: 800px) {
+  .earth-mobile-data-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .earth3d-left-hud[data-mobile-open="false"],
+  .earth3d-right-hud[data-mobile-open="false"] {
+    display: none;
+  }
+  .earth3d-left-hud[data-mobile-open="true"] {
+    display: grid;
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .earth3d-right-hud[data-mobile-open="true"] {
+    display: grid;
+    grid-column: 1;
+    grid-row: 4;
+  }
+  .earth3d-scale-note {
+    display: block;
+    flex: 1 0 100%;
+    color: #d6aa70;
+    font: 7px/1.5 ui-monospace, monospace;
+    letter-spacing: .08em;
+    overflow-wrap: anywhere;
+  }
+}
