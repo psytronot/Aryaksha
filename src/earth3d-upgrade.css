@@ -309,3 +309,5 @@ html.earth3d-active pwa-install {
   .earth3d-simulation-clock b { font-size:7px; }
   .earth3d-bottom-metrics > div { padding:8px; }
 }
+
+.earth3d-speed-presets { grid-template-columns:repeat(5,minmax(0,1fr)); }
