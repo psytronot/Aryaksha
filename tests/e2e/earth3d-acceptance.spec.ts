@@ -147,6 +147,7 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   });
 
   const navigationStart = Date.now();
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
@@ -170,6 +171,7 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   expect(initial.height).toBeGreaterThan(0);
   expect(initial.drawingBufferWidth).toBeGreaterThan(0);
   expect(initial.drawingBufferHeight).toBeGreaterThan(0);
+  expect(initial.cssWidth).toBeGreaterThanOrEqual(320);
 
   const frameCount = await canvas.evaluate(async () => {
     let frames = 0;
@@ -190,6 +192,7 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   // The canvas may therefore grow relative to its desktop centre column; verify
   // that it fills the available mobile workspace without horizontal overflow.
   await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(() => canvas.evaluate(element => element.getBoundingClientRect().width)).toBeGreaterThanOrEqual(320);
   const resized = await canvas.evaluate((element: HTMLCanvasElement) => {
     const rect = element.getBoundingClientRect();
     const workspace = element.closest('.earth3d-workspace') as HTMLElement;
