@@ -144,12 +144,15 @@
   .earth3d-help { display: none; }
 }
 @media (max-width: 500px) {
-  .earth3d-workspace { grid-template-rows: auto minmax(300px, 44svh) auto auto auto; }
+  .earth3d-workspace { grid-template-rows: auto minmax(300px, 44svh) auto auto auto; padding: 6px; }
   .earth3d-canvas { min-height: 300px; height: 44svh; max-height: 400px; }
   .earth3d-left-hud, .earth3d-right-hud { max-height: none; overflow: visible; }
   .earth3d-hud-card { padding: 8px; font-size: 7px; }
   .earth3d-bottom-bar { padding: 7px; font-size: 6px; }
   .earth-camera-button { font-size: 8px; }
+  .main:has(.simulation-page) { padding-left: 8px; padding-right: 8px; }
+  .simulation-page { padding-left: 0; padding-right: 0; }
+  .simulation-page > .page-header { margin-left: 12px; margin-right: 12px; }
 }
 
 .earth3d-source-badge { font-weight: 700; letter-spacing: .08em; }
