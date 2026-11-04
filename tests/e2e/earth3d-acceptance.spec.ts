@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { EARTH_CAMERA_MARGIN, fitCameraDistance, MOON_CAMERA_MARGIN, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO } from '../../src/earth3dMath';
+
 async function scrollEarthWorkspaceToTop(page: import('@playwright/test').Page) {
   const workspace = page.locator('.earth3d-workspace');
   await expect(workspace).toBeVisible();
@@ -8,7 +10,6 @@ async function scrollEarthWorkspaceToTop(page: import('@playwright/test').Page) 
   });
 }
 
-import { EARTH_CAMERA_MARGIN, fitCameraDistance, MOON_CAMERA_MARGIN, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO } from '../../src/earth3dMath';
 
 test('Earth 3D exposes responsive camera modes and lunar layer controls', async ({ page }) => {
   const pageErrors: string[] = [];
