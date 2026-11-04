@@ -534,7 +534,9 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   await page.getByRole("button", { name: "Simulation", exact: true }).click();
 
   const timeline = page.getByRole("region", { name: "Mission timeline and scene gallery" });
+  const simulationControls = page.getByTestId("earth3d-simulation-controls");
   await expect(timeline).toBeVisible();
+  await expect(simulationControls).toBeVisible();
   const canvasLayer = page.locator(".earth3d-canvas");
   await expect.poll(() => canvasLayer.evaluate(element => getComputedStyle(element).position)).toBe("relative");
   await expect.poll(() => timeline.evaluate(element => getComputedStyle(element).zIndex)).toBe("8");
@@ -543,9 +545,9 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   await timeline.getByRole("button", { name: "Advance simulation by 10 seconds" }).click();
   await expect(clock).toContainText("T+ 10.0 s");
 
-  await timeline.getByRole("button", { name: "Play simulation" }).click();
-  await expect(timeline.getByRole("button", { name: "Pause simulation" })).toBeVisible();
-  await timeline.getByRole("button", { name: "Pause simulation" }).click();
+  await simulationControls.getByRole("button", { name: "Play simulation" }).click();
+  await expect(simulationControls.getByRole("button", { name: "Pause simulation" })).toBeVisible();
+  await simulationControls.getByRole("button", { name: "Pause simulation" }).click();
   await timeline.getByRole("button", { name: "Reset simulation time" }).click();
   await expect(clock).toContainText("T+ 0.0 s");
 
@@ -556,9 +558,9 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   await slider.press("Home");
   await expect(clock).toContainText("T+ 0.0 s");
 
-  const speed = timeline.getByRole("combobox", { name: "Simulation playback speed" });
-  await speed.selectOption("60");
-  await expect(speed).toHaveValue("60");
+  const speed = simulationControls.getByRole("group", { name: "Simulation playback speed" });
+  await speed.getByRole("button", { name: "Set playback speed 60x" }).click();
+  await expect(speed.getByRole("button", { name: "Set playback speed 60x" })).toHaveAttribute("aria-pressed", "true");
 
   await timeline.getByRole("button", { name: "Moon scene", exact: true }).click();
   await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "MOON", exact: true })).toHaveClass(/active/);
@@ -733,5 +735,100 @@ test('mobile Earth–Moon mission data panels collapse without hiding scale disc
   await expect(leftHud).toBeHidden();
   await expect(rightHud).toBeHidden();
   await expect(page.getByRole('button', { name: 'Show mission data panels' })).toHaveAttribute('aria-expanded', 'false');
+  expect(pageErrors).toEqual([]);
+});
+
+
+test('Earth 3D reference dashboard connects mission setup, controls and derived data on desktop', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1536, height: 1024 });
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const setup = page.getByTestId('earth3d-mission-setup');
+  const controls = page.getByTestId('earth3d-simulation-controls');
+  const bottom = page.getByTestId('earth3d-bottom-panels');
+  await expect(setup).toBeVisible();
+  await expect(setup.getByText('MISSION SETUP', { exact: true })).toBeVisible();
+  await expect(controls).toBeVisible();
+  await expect(controls.getByText('SIMULATION CONTROLS', { exact: true })).toBeVisible();
+  await expect(page.getByText('LIVE TELEMETRY', { exact: true })).toBeVisible();
+  await expect(bottom.getByText('2D Ground Track', { exact: true })).toBeVisible();
+  await expect(bottom.getByText('Orbit Parameters', { exact: true })).toBeVisible();
+  await expect(bottom.getByText('Mission Info', { exact: true })).toBeVisible();
+  await expect(bottom.getByText('SIMULATED · KEPLER', { exact: true })).toBeVisible();
+
+  const preset = setup.getByRole('button', { name: /ISS.*420 km LEO/ });
+  await preset.click();
+  await expect(preset).toHaveAttribute('aria-pressed', 'true');
+  await expect(bottom.getByText('420.0 km', { exact: true })).toBeVisible();
+
+  await setup.getByRole('tab', { name: 'CUSTOM ORBIT' }).click();
+  const altitude = setup.getByRole('spinbutton', { name: 'Mission setup altitude' });
+  await altitude.fill('600');
+  await expect(altitude).toHaveValue('600');
+  const inclination = setup.getByRole('spinbutton', { name: 'Mission setup inclination' });
+  await inclination.fill('98.2');
+  await expect(inclination).toHaveValue('98.2');
+  const raan = setup.getByRole('spinbutton', { name: 'Mission setup RAAN' });
+  await raan.fill('15');
+  await expect(raan).toHaveValue('15');
+  await expect(bottom.getByText('600.0 km', { exact: true })).toBeVisible();
+
+  const missionScreenshot = testInfo.outputPath('earth3d-reference-dashboard-desktop-1536x1024.png');
+  await page.locator('.simulation-page').screenshot({ path: missionScreenshot, animations: 'disabled' });
+  await testInfo.attach('earth3d-reference-dashboard-desktop-1536x1024.png', { path: missionScreenshot, contentType: 'image/png' });
+
+  await setup.getByRole('button', { name: 'Edit mission requirements' }).click();
+  await expect(page.getByRole('heading', { name: 'Start with the engineering problem.' })).toBeVisible();
+  expect(pageErrors).toEqual([]);
+});
+
+test('Earth 3D reference dashboard reflows to a globe-first mobile layout', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page.getByRole('navigation', { name: 'Mobile navigation' })
+    .getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const canvas = page.locator('.earth3d-canvas');
+  const setup = page.getByTestId('earth3d-mission-setup');
+  const controls = page.getByTestId('earth3d-simulation-controls');
+  const bottom = page.getByTestId('earth3d-bottom-panels');
+  await expect(canvas.locator('canvas')).toBeVisible();
+  await expect(setup).toBeHidden();
+  await expect(controls).toBeHidden();
+  await page.getByRole('button', { name: 'Show mission data panels' }).click();
+  await expect(setup).toBeVisible();
+  await expect(controls).toBeVisible();
+  await expect(bottom.getByText('2D Ground Track', { exact: true })).toBeVisible();
+  await expect(bottom.getByText('Orbit Parameters', { exact: true })).toBeVisible();
+  await expect(bottom.getByText('Mission Info', { exact: true })).toBeVisible();
+
+  const layout = await bottom.evaluate(element => ({
+    columns: getComputedStyle(element).gridTemplateColumns.split(' ').length,
+    viewport: document.documentElement.clientWidth,
+    document: document.documentElement.scrollWidth
+  }));
+  expect(layout.columns).toBe(1);
+  expect(layout.document).toBeLessThanOrEqual(layout.viewport);
+  const canvasBounds = await canvas.boundingBox();
+  const setupBounds = await setup.boundingBox();
+  expect(canvasBounds).not.toBeNull();
+  expect(setupBounds).not.toBeNull();
+  expect(setupBounds!.y).toBeGreaterThanOrEqual(canvasBounds!.y + canvasBounds!.height - 1);
+
+  const mobileScreenshot = testInfo.outputPath('earth3d-reference-dashboard-mobile-390x844.png');
+  await page.locator('.simulation-page').screenshot({ path: mobileScreenshot, animations: 'disabled' });
+  await testInfo.attach('earth3d-reference-dashboard-mobile-390x844.png', { path: mobileScreenshot, contentType: 'image/png' });
+
+  await setup.getByRole('tab', { name: 'CUSTOM ORBIT' }).click();
+  await setup.getByRole('spinbutton', { name: 'Mission setup altitude' }).fill('650');
+  await expect(setup.getByRole('spinbutton', { name: 'Mission setup altitude' })).toHaveValue('650');
   expect(pageErrors).toEqual([]);
 });
