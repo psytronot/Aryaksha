@@ -774,7 +774,7 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   const raan = setup.getByRole('spinbutton', { name: 'Mission setup RAAN' });
   await raan.fill('15');
   await expect(raan).toHaveValue('15');
-  await expect(bottom.getByText('600.0 km', { exact: true })).toBeVisible();
+  await expect(bottom.getByText('98.20°', { exact: true })).toBeVisible();
 
   await setup.getByRole('button', { name: 'Start simulation' }).click();
   await expect(controls.getByRole('button', { name: 'Pause simulation' })).toBeVisible();
