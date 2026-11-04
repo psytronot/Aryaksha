@@ -4,14 +4,15 @@ import { EARTH_CAMERA_MARGIN, fitCameraDistance, MOON_CAMERA_MARGIN, SYSTEM_CAME
 async function scrollEarthWorkspaceToTop(page: import('@playwright/test').Page) {
   const workspace = page.locator('.earth3d-workspace');
   await expect(workspace).toBeVisible();
-  const targetTop = await workspace.evaluate(element =>
-    Math.max(0, window.scrollY + element.getBoundingClientRect().top - 72)
-  );
-  await page.evaluate(top => window.scrollTo({ top, behavior: 'instant' }), targetTop);
-  await expect.poll(
-    () => page.evaluate(top => Math.abs(window.scrollY - top), targetTop),
-    { timeout: 5000 }
-  ).toBeLessThanOrEqual(2);
+  await workspace.scrollIntoViewIfNeeded();
+  await expect.poll(async () => (await workspace.boundingBox())?.y ?? Infinity, { timeout: 5000 })
+    .toBeLessThanOrEqual(72);
+}
+
+async function disableContextCoach(page: import('@playwright/test').Page) {
+  const coachOn = page.getByRole('button', { name: /COACH ON/i });
+  if (await coachOn.count()) await coachOn.click();
+  await expect(page.getByRole('button', { name: /COACH OFF/i })).toHaveAttribute('aria-pressed', 'false');
 }
 
 
@@ -153,6 +154,12 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
   const canvas = page.locator('.earth3d-canvas canvas');
   await expect(canvas).toBeVisible();
+  const workspace = page.locator('.earth3d-workspace');
+  await expect.poll(() => workspace.evaluate(element =>
+    getComputedStyle(element).gridTemplateColumns.trim().split(/\\s+/).length
+  )).toBe(2);
+  await expect.poll(() => canvas.evaluate(element => element.getBoundingClientRect().width))
+    .toBeGreaterThanOrEqual(320);
 
   const initial = await canvas.evaluate((element: HTMLCanvasElement) => {
     const gl = element.getContext('webgl2') ?? element.getContext('webgl');
@@ -659,6 +666,7 @@ test('Earth 3D Moon camera tracks the Earth-facing hemisphere on desktop and mob
   await page.setViewportSize({ width: 1536, height: 1024 });
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   await page.goto('/');
+  await disableContextCoach(page);
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
 
   const canvas = page.locator('.earth3d-canvas');
@@ -770,6 +778,7 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   const pageErrors: string[] = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/');
+  await disableContextCoach(page);
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
 
   const setup = page.getByTestId('earth3d-mission-setup');
@@ -802,7 +811,7 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   await expect(bottom.getByText('98.20°', { exact: true })).toBeVisible();
 
   await setup.getByRole('button', { name: 'Start simulation' }).click();
-  const pauseControl = controls.getByRole('button', { name: 'Pause simulation' });
+  const pauseControl = page.getByRole('button', { name: 'Pause simulation' });
   await expect(pauseControl).toBeVisible();
   await scrollEarthWorkspaceToTop(page);
   await expect(pauseControl).toBeInViewport();
@@ -830,6 +839,7 @@ test('Earth 3D reference dashboard reflows to a globe-first mobile layout', asyn
   const pageErrors: string[] = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/');
+  await disableContextCoach(page);
   await page.getByRole('button', { name: 'Open navigation' }).click();
   await page.getByRole('navigation', { name: 'Mobile navigation' })
     .getByRole('button', { name: 'Simulation', exact: true }).click();
