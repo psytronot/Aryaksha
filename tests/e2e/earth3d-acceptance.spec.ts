@@ -54,6 +54,7 @@ test('Earth 3D controls remain usable on a narrow mobile viewport', async ({ pag
   await cameraModes.getByRole('button', { name: 'MOON', exact: true }).click();
   await expect(cameraModes.getByRole('button', { name: 'MOON', exact: true })).toHaveClass(/active/);
 
+  await page.getByRole('button', { name: 'Show mission data panels' }).click();
   const lunarLayer = page.getByRole('checkbox', { name: 'Show Moon and lunar orbit' });
   await expect(lunarLayer).toBeVisible();
   await expect(lunarLayer).toBeChecked();
