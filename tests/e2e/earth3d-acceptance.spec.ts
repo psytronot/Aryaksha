@@ -763,9 +763,8 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   const preset = setup.getByRole('button', { name: /ISS.*420 km LEO/ });
   await preset.click();
   await expect(preset).toHaveAttribute('aria-pressed', 'true');
-  await expect(bottom.getByText('420.0 km', { exact: true })).toBeVisible();
-
   await setup.getByRole('tab', { name: 'CUSTOM ORBIT' }).click();
+  await expect(setup.getByRole('spinbutton', { name: 'Mission setup altitude' })).toHaveValue('420');
   const altitude = setup.getByRole('spinbutton', { name: 'Mission setup altitude' });
   await altitude.fill('600');
   await expect(altitude).toHaveValue('600');
@@ -777,11 +776,20 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   await expect(raan).toHaveValue('15');
   await expect(bottom.getByText('600.0 km', { exact: true })).toBeVisible();
 
+  await setup.getByRole('button', { name: 'Start simulation' }).click();
+  await expect(controls.getByRole('button', { name: 'Pause simulation' })).toBeVisible();
+  await controls.getByRole('button', { name: 'Pause simulation' }).click();
+  await controls.getByRole('group', { name: 'Simulation playback speed' }).getByRole('button', { name: 'Set playback speed 60x' }).click();
+  await expect(controls.getByRole('group', { name: 'Simulation playback speed' }).getByRole('button', { name: 'Set playback speed 60x' })).toHaveAttribute('aria-pressed', 'true');
+
   const missionScreenshot = testInfo.outputPath('earth3d-reference-dashboard-desktop-1536x1024.png');
   await page.locator('.simulation-page').screenshot({ path: missionScreenshot, animations: 'disabled' });
   await testInfo.attach('earth3d-reference-dashboard-desktop-1536x1024.png', { path: missionScreenshot, contentType: 'image/png' });
 
-  await setup.getByRole('button', { name: 'Edit mission requirements' }).click();
+  await setup.getByRole('button', { name: 'Open full orbit design' }).click();
+  await expect(page.getByRole('heading', { name: 'Make the orbital mechanics visible.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await page.getByTestId('earth3d-mission-setup').getByRole('button', { name: 'Edit mission requirements' }).click();
   await expect(page.getByRole('heading', { name: 'Start with the engineering problem.' })).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
