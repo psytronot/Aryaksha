@@ -151,6 +151,7 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   const navigationStart = Date.now();
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
+  await disableContextCoach(page);
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
   const canvas = page.locator('.earth3d-canvas canvas');
