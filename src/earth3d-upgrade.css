@@ -311,3 +311,7 @@ html.earth3d-active pwa-install {
 }
 
 .earth3d-speed-presets { grid-template-columns:repeat(5,minmax(0,1fr)); }
+
+@media(min-width:1101px) {
+  .earth3d-workspace { grid-template-columns:minmax(230px,260px) minmax(0,1fr) minmax(245px,275px); }
+}
