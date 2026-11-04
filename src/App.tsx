@@ -109,7 +109,7 @@ function App() {
     window.setTimeout(() => setNotice(''), 2800);
   };
 
-  const updateOrbit = (patch: Partial<OrbitDesign>) => setOrbit(current => ({ ...current, ...patch, a: EARTH_RADIUS + (patch.altitudeKm ?? current.altitudeKm) }));
+  const updateOrbit = (patch: Partial<OrbitDesign>) => { setSelectedPreset('Custom Orbit'); setOrbit(current => ({ ...current, ...patch, a: EARTH_RADIUS + (patch.altitudeKm ?? current.altitudeKm) })); };
 
   const applyPreset = (name: string, altitude: number, inclination: number) => {
     setSelectedPreset(name);
