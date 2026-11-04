@@ -238,3 +238,74 @@ html.earth3d-active pwa-install {
     overflow-wrap: anywhere;
   }
 }
+
+
+/* Reference dashboard increment: mission setup, simulation controls and lower data cards. */
+.earth3d-card-heading { display:flex; justify-content:space-between; align-items:center; gap:6px; }
+.earth3d-card-heading > span { color:var(--muted); font:7px ui-monospace,monospace; text-align:right; }
+.earth3d-mission-setup-name { display:block; color:#f1f4f6; font-size:12px!important; }
+.earth3d-mission-setup-target { color:var(--muted); font:7px/1.45 ui-monospace,monospace; overflow-wrap:anywhere; }
+.earth3d-mission-setup-tabs { display:grid; grid-template-columns:1fr 1fr; gap:4px; border-bottom:1px solid var(--line); padding-bottom:5px; }
+.earth3d-mission-setup-tabs button { min-width:0; padding:6px 3px; border:1px solid transparent; background:transparent; color:var(--muted); font:7px ui-monospace,monospace; letter-spacing:.04em; }
+.earth3d-mission-setup-tabs button.active { border-color:rgba(216,169,103,.55); color:#f2d3a4; background:rgba(216,169,103,.08); }
+.earth3d-mission-preset-list { display:grid; gap:4px; }
+.earth3d-mission-preset-list button { display:flex; justify-content:space-between; align-items:center; gap:5px; min-width:0; padding:6px 7px; border:1px solid rgba(180,199,215,.14); background:rgba(255,255,255,.015); color:#e8eef3; text-align:left; }
+.earth3d-mission-preset-list button.active { border-color:rgba(81,221,255,.55); background:rgba(81,221,255,.07); }
+.earth3d-mission-preset-list button span { font:700 7px ui-monospace,monospace; letter-spacing:.06em; }
+.earth3d-mission-preset-list button small { color:var(--muted); font:6px ui-monospace,monospace; text-align:right; letter-spacing:0; }
+.earth3d-custom-orbit { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.earth3d-custom-orbit label { display:grid; gap:3px; color:var(--muted); font:6px ui-monospace,monospace; letter-spacing:.06em; }
+.earth3d-custom-orbit label:first-child { grid-column:1/-1; }
+.earth3d-custom-orbit input { width:100%; min-width:0; height:29px; padding:0 6px; border:1px solid rgba(180,199,215,.2); border-radius:4px; background:#070b10; color:#fff; font:8px ui-monospace,monospace; }
+.earth3d-custom-orbit > small { grid-column:1/-1; color:var(--muted); font:6px/1.45 ui-monospace,monospace; letter-spacing:0; }
+.earth3d-mission-setup-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; }
+.earth3d-mission-setup-actions button { min-width:0; min-height:27px; padding:4px; border:1px solid rgba(180,199,215,.18); background:rgba(255,255,255,.025); color:#dce8f1; font:7px ui-monospace,monospace; }
+.earth3d-mission-setup-actions .primary-action { grid-column:1/-1; border-color:rgba(81,221,255,.4); background:rgba(0,102,204,.45); color:#fff; }
+.earth3d-mission-setup-actions button:disabled { opacity:.65; cursor:default; }
+.earth3d-mission-setup-meta { display:grid; gap:2px; border-top:1px solid var(--line); padding-top:6px; color:var(--muted); font:6px ui-monospace,monospace; }
+.earth3d-control-actions { display:grid; gap:7px; }
+.earth3d-play-control { display:flex; align-items:center; justify-content:center; gap:6px; min-height:34px; border:1px solid rgba(81,221,255,.4); background:rgba(0,102,204,.55); color:#fff; font:8px ui-monospace,monospace; }
+.earth3d-speed-presets { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; }
+.earth3d-speed-presets button { min-height:28px; border:1px solid rgba(180,199,215,.18); background:rgba(255,255,255,.025); color:var(--muted); font:8px ui-monospace,monospace; }
+.earth3d-speed-presets button.active { border-color:rgba(81,221,255,.55); background:rgba(81,221,255,.09); color:#fff; }
+.earth3d-simulation-clock { display:grid; gap:4px; border-top:1px solid var(--line); padding-top:7px; }
+.earth3d-simulation-clock b { color:#fff; font:8px ui-monospace,monospace; overflow-wrap:anywhere; }
+.earth3d-simulation-clock span { color:var(--muted); font:7px ui-monospace,monospace; }
+.earth3d-bottom-panels { display:grid; grid-template-columns:minmax(0,1.12fr) minmax(0,1fr) minmax(0,.95fr); gap:12px; margin-top:12px; align-items:stretch; }
+.earth3d-bottom-panel,.earth3d-bottom-panels > section { min-width:0; }
+.earth3d-bottom-panels .card { height:100%; min-width:0; padding:16px; }
+.earth3d-ground-track-panel .card { display:flex; flex-direction:column; }
+.earth3d-ground-track-panel .ground-track-wrap { flex:1; min-height:0; }
+.earth3d-ground-track-panel .ground-track-svg { aspect-ratio:2.05/1; }
+.earth3d-bottom-metrics { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+.earth3d-bottom-metrics > div { min-width:0; padding:10px; border:1px solid rgba(180,199,215,.12); border-radius:7px; background:rgba(255,255,255,.018); }
+.earth3d-bottom-metrics small,.earth3d-mission-info-grid small { display:block; color:var(--cyan); font:7px ui-monospace,monospace; letter-spacing:.08em; }
+.earth3d-bottom-metrics b { display:block; margin-top:5px; color:#fff; font:10px ui-monospace,monospace; overflow-wrap:anywhere; }
+.earth3d-card-note { margin:10px 0 0; color:var(--muted); font:8px/1.5 ui-monospace,monospace; }
+.earth3d-mission-info { display:grid; gap:10px; }
+.earth3d-mission-identity { display:grid; gap:4px; border-bottom:1px solid var(--line); padding-bottom:9px; }
+.earth3d-mission-identity b { color:#fff; font-size:13px; }
+.earth3d-mission-identity span { color:var(--muted); font-size:9px; }
+.earth3d-mission-info-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 8px; }
+.earth3d-mission-info-grid > div { display:grid; gap:4px; min-width:0; }
+.earth3d-mission-info-grid b { color:#fff; font:8px ui-monospace,monospace; overflow-wrap:anywhere; }
+.earth3d-mission-info-grid span { color:var(--muted); font:7px/1.45 ui-monospace,monospace; overflow-wrap:anywhere; }
+.earth3d-mission-info-footer { display:flex; flex-wrap:wrap; gap:5px 8px; border-top:1px solid var(--line); padding-top:8px; color:var(--muted); font:7px ui-monospace,monospace; }
+.earth3d-mission-info-footer b { color:#fff; }
+@media(max-width:1100px) and (min-width:801px) {
+  .earth3d-bottom-panels { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .earth3d-ground-track-panel { grid-column:1/-1; }
+}
+@media(max-width:800px) {
+  .earth3d-left-hud .earth3d-mission-setup-card { grid-column:1/-1; }
+  .earth3d-bottom-panels { grid-template-columns:minmax(0,1fr); }
+  .earth3d-bottom-panels .card { padding:14px; }
+  .earth3d-ground-track-panel .ground-track-svg { aspect-ratio:1.75/1; }
+}
+@media(max-width:500px) {
+  .earth3d-mission-preset-list button { min-height:34px; }
+  .earth3d-custom-orbit input { min-height:36px; font-size:16px; }
+  .earth3d-mission-setup-actions button { min-height:34px; }
+  .earth3d-simulation-clock b { font-size:7px; }
+  .earth3d-bottom-metrics > div { padding:8px; }
+}
