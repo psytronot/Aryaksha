@@ -814,6 +814,12 @@ test('Earth 3D reference dashboard reflows to a globe-first mobile layout', asyn
   await page.getByRole('button', { name: 'Show mission data panels' }).click();
   await expect(setup).toBeVisible();
   await expect(controls).toBeVisible();
+  await controls.getByRole('button', { name: 'Play simulation' }).click();
+  await expect(controls.getByRole('button', { name: 'Pause simulation' })).toBeVisible();
+  await controls.getByRole('button', { name: 'Pause simulation' }).click();
+  const mobileSpeed = controls.getByRole('group', { name: 'Simulation playback speed' });
+  await mobileSpeed.getByRole('button', { name: 'Set playback speed 10x' }).click();
+  await expect(mobileSpeed.getByRole('button', { name: 'Set playback speed 10x' })).toHaveAttribute('aria-pressed', 'true');
   await expect(bottom.getByText('2D Ground Track', { exact: true })).toBeVisible();
   await expect(bottom.getByText('Orbit Parameters', { exact: true })).toBeVisible();
   await expect(bottom.getByText('Mission Info', { exact: true })).toBeVisible();
