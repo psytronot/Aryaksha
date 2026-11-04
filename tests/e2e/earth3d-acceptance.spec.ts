@@ -4,10 +4,14 @@ import { EARTH_CAMERA_MARGIN, fitCameraDistance, MOON_CAMERA_MARGIN, SYSTEM_CAME
 async function scrollEarthWorkspaceToTop(page: import('@playwright/test').Page) {
   const workspace = page.locator('.earth3d-workspace');
   await expect(workspace).toBeVisible();
-  await workspace.evaluate(element => {
-    const top = window.scrollY + element.getBoundingClientRect().top - 72;
-    window.scrollTo(0, Math.max(0, top));
-  });
+  const targetTop = await workspace.evaluate(element =>
+    Math.max(0, window.scrollY + element.getBoundingClientRect().top - 72)
+  );
+  await page.evaluate(top => window.scrollTo({ top, behavior: 'instant' }), targetTop);
+  await expect.poll(
+    () => page.evaluate(top => Math.abs(window.scrollY - top), targetTop),
+    { timeout: 5000 }
+  ).toBeLessThanOrEqual(2);
 }
 
 
@@ -832,6 +836,7 @@ test('Earth 3D reference dashboard reflows to a globe-first mobile layout', asyn
   const controls = page.getByTestId('earth3d-simulation-controls');
   const bottom = page.getByTestId('earth3d-bottom-panels');
   await expect(canvas.locator('canvas')).toBeVisible();
+  await expect(page.locator('[aria-label="Camera modes"]').getByRole('button', { name: 'EARTH', exact: true })).toHaveClass(/active/);
   await expect(setup).toBeHidden();
   await expect(controls).toBeHidden();
   await page.getByRole('button', { name: 'Show mission data panels' }).click();
