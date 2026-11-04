@@ -225,7 +225,8 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   const currentRef = useRef(current);
   const designRef = useRef({ busWidthM, busHeightM, busDepthM, panelAreaM2 });
   const secondsRef = useRef(seconds);
-  const cameraModeRef = useRef<CameraMode>('TRACK');
+  const initialCameraMode: CameraMode = typeof window !== 'undefined' && window.matchMedia('(max-width: 800px)').matches ? 'EARTH' : 'TRACK';
+  const cameraModeRef = useRef<CameraMode>(initialCameraMode);
   const previousCameraModeRef = useRef<CameraMode>('TRACK');  const showFootprintRef = useRef(true);
   const showVectorsRef = useRef(true);
   const showAxesRef = useRef(false);
@@ -234,7 +235,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   const selectedSatelliteRef = useRef('design');
   const footprintAngleRef = useRef(footprintAngleDeg);
   const frameRef = useRef<number | null>(null);
-  const [cameraMode, setCameraMode] = useState<CameraMode>('TRACK');
+  const [cameraMode, setCameraMode] = useState<CameraMode>(initialCameraMode);
   const [showFootprint, setShowFootprint] = useState(true);
   const [showVectors, setShowVectors] = useState(true);
   const [showAxes, setShowAxes] = useState(false);
