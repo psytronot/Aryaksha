@@ -21,6 +21,7 @@ test('Earth 3D exposes responsive camera modes and lunar layer controls', async 
   page.on('pageerror', error => pageErrors.push(error.message));
 
   await page.goto('/');
+  await disableContextCoach(page);
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
 
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible({ timeout: 15_000 });
@@ -156,7 +157,7 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   await expect(canvas).toBeVisible();
   const workspace = page.locator('.earth3d-workspace');
   await expect.poll(() => workspace.evaluate(element =>
-    getComputedStyle(element).gridTemplateColumns.trim().split(/\\s+/).length
+    getComputedStyle(element).gridTemplateColumns.trim().split(/\s+/).length
   )).toBe(2);
   await expect.poll(() => canvas.evaluate(element => element.getBoundingClientRect().width))
     .toBeGreaterThanOrEqual(320);
@@ -561,6 +562,7 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   await page.setViewportSize({ width: 1536, height: 1024 });
   await page.addInitScript(() => localStorage.setItem("orbital-lab-coach-enabled", "false"));
   await page.goto("/");
+  await disableContextCoach(page);
   await page.getByRole("button", { name: "Simulation", exact: true }).click();
 
   const timeline = page.getByRole("region", { name: "Mission timeline and scene gallery" });
@@ -816,7 +818,7 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   await scrollEarthWorkspaceToTop(page);
   await expect(pauseControl).toBeInViewport();
   await pauseControl.click();
-  const desktopSpeed = controls.getByRole('group', { name: 'Simulation playback speed' });
+  const desktopSpeed = page.getByRole('group', { name: 'Simulation playback speed' });
   await expect(desktopSpeed.getByRole('button', { name: 'Set playback speed 60x' })).toBeInViewport();
   await desktopSpeed.getByRole('button', { name: 'Set playback speed 60x' }).click();
   await expect(controls.getByRole('group', { name: 'Simulation playback speed' }).getByRole('button', { name: 'Set playback speed 60x' })).toHaveAttribute('aria-pressed', 'true');
