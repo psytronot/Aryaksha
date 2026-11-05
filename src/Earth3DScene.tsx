@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Maximize2, Minimize2, Pause, Play } from 'lucide-react';
 import { dayNightSnapshot, greenwichMeanSiderealAngle, solarEciDirection } from './daynight';
@@ -57,6 +57,58 @@ const MISSION_SETUP_PRESETS: MissionSetupPreset[] = [
   { label: 'SUN-SYNC', name: 'Sun-Synchronous Reference', altitudeKm: 550, inclinationDeg: 97.6, detail: '~550 km SSO reference' },
   { label: 'GEO', name: 'GEO Communications', altitudeKm: 35786, inclinationDeg: 0, detail: '35,786 km GEO reference' },
 ];
+
+type SimulationControlsProps = {
+  running: boolean;
+  setRunning: (value: boolean) => void;
+  playback: number;
+  setPlayback: (value: number) => void;
+  simulationTimeRef: { current: string };
+  secondsRef: { current: number };
+  periodMin: number;
+};
+
+const SimulationControls = memo(function SimulationControls({
+  running,
+  setRunning,
+  playback,
+  setPlayback,
+  simulationTimeRef,
+  secondsRef,
+  periodMin,
+}: SimulationControlsProps) {
+  const [simulationUtcLabel, setSimulationUtcLabel] = useState('2026-01-01 00:00:00.000 UTC');
+  const [elapsedSeconds, setElapsedSeconds] = useState(secondsRef.current);
+
+  useEffect(() => {
+    const updateClock = () => {
+      const date = new Date(simulationTimeRef.current || '2026-01-01T00:00:00.000Z');
+      setSimulationUtcLabel(
+        Number.isFinite(date.getTime())
+          ? date.toISOString().replace('T', ' ').replace('Z', ' UTC')
+          : 'UTC unavailable'
+      );
+      setElapsedSeconds(secondsRef.current);
+    };
+    updateClock();
+    const timer = window.setInterval(updateClock, 1000);
+    return () => window.clearInterval(timer);
+  }, [simulationTimeRef, secondsRef]);
+
+  return (
+    <div className="earth3d-hud-card earth3d-simulation-controls-card" data-testid="earth3d-simulation-controls">
+      <small>SIMULATION CONTROLS</small>
+      <div className="earth3d-control-actions">
+        <button type="button" className="earth3d-play-control" aria-label={running ? 'Pause simulation' : 'Play simulation'} onClick={() => setRunning(!running)}>{running ? <Pause size={13} /> : <Play size={13} />}<span>{running ? 'PAUSE' : 'PLAY'}</span></button>
+        <div className="earth3d-speed-presets" role="group" aria-label="Simulation playback speed">
+          {[1, 10, 20, 60, 120].map(rate => <button key={rate} type="button" aria-label={`Set playback speed ${rate}x`} aria-pressed={playback === rate} className={playback === rate ? 'active' : ''} onClick={() => setPlayback(rate)}>{rate}×</button>)}
+        </div>
+      </div>
+      <div className="earth3d-simulation-clock"><small>SIMULATION TIME (UTC)</small><b>{simulationUtcLabel}</b><span>T+ {Number(elapsedSeconds || 0).toFixed(1)} s</span></div>
+      <div className="earth3d-timeline-actions"><span>PERIOD {periodMin.toFixed(1)} min</span></div>
+    </div>
+  );
+});
 
 function systemCameraDistance(width: number, height: number) {
   const earthRadius = 5.15;
@@ -225,6 +277,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   const currentRef = useRef(current);
   const designRef = useRef({ busWidthM, busHeightM, busDepthM, panelAreaM2 });
   const secondsRef = useRef(seconds);
+  const simulationTimeRef = useRef<string>('2026-01-01T00:00:00.000Z');
   const initialCameraMode: CameraMode = typeof window !== 'undefined' && window.matchMedia('(max-width: 800px)').matches ? 'EARTH' : 'TRACK';
   const cameraModeRef = useRef<CameraMode>(initialCameraMode);
   const previousCameraModeRef = useRef<CameraMode>('TRACK');  const showFootprintRef = useRef(true);
@@ -256,6 +309,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
 
   modelRef.current = model;
   currentRef.current = current;
+  simulationTimeRef.current = String(current?.time || '2026-01-01T00:00:00.000Z');
   designRef.current = { busWidthM, busHeightM, busDepthM, panelAreaM2 };
 
   useEffect(() => {
@@ -794,8 +848,6 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
     }
   };
 
-  const simulationUtc = new Date(current?.time || '2026-01-01T00:00:00.000Z');
-  const simulationUtcLabel = Number.isFinite(simulationUtc.getTime()) ? simulationUtc.toISOString().replace('T', ' ').replace('Z', ' UTC') : 'UTC unavailable';
   const dayNight = dayNightSnapshot(Number(current?.lla?.lat), Number(current?.lla?.lon), simulationUtc);
   const speed = Math.hypot(...(current?.v || [0, 0, 0]));
   const maxBusDimensionM = Math.max(0.01, busWidthM, busHeightM, busDepthM);
@@ -860,16 +912,15 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
           <div className="earth3d-hud-card"><small>ORBITAL ELEMENTS</small><span>RAAN {raanDeg.toFixed(2)}°</span><span>ARG PERIAPSIS {argumentOfPerigeeDeg.toFixed(2)}°</span><span>TRUE ANOMALY {trueAnomalyDeg.toFixed(2)}°</span><span>PERIOD {periodMin.toFixed(2)} min</span><span>RANGE FROM EARTH CENTRE {(6378.137 + Number(current?.lla?.alt ?? altitudeKm)).toFixed(2)} km</span></div>
         </div>
         <div id="earth3d-right-hud" className="earth3d-right-hud" data-mobile-open={mobileHudOpen ? "true" : "false"} role="complementary" aria-label="Simulation controls and live telemetry">
-          <div className="earth3d-hud-card earth3d-simulation-controls-card" data-testid="earth3d-simulation-controls">
-            <small>SIMULATION CONTROLS</small>
-            <div className="earth3d-control-actions">
-              <button type="button" className="earth3d-play-control" aria-label={running ? 'Pause simulation' : 'Play simulation'} onClick={() => setRunning(!running)}>{running ? <Pause size={13} /> : <Play size={13} />}<span>{running ? 'PAUSE' : 'PLAY'}</span></button>
-              <div className="earth3d-speed-presets" role="group" aria-label="Simulation playback speed">
-                {[1, 10, 20, 60, 120].map(rate => <button key={rate} type="button" aria-label={`Set playback speed ${rate}x`} aria-pressed={playback === rate} className={playback === rate ? 'active' : ''} onClick={() => setPlayback(rate)}>{rate}×</button>)}
-              </div>
-            </div>
-            <div className="earth3d-simulation-clock"><small>SIMULATION TIME (UTC)</small><b>{simulationUtcLabel}</b><span>T+ {Number(seconds || 0).toFixed(1)} s</span></div>
-          </div>
+          <SimulationControls
+            running={running}
+            setRunning={setRunning}
+            playback={playback}
+            setPlayback={setPlayback}
+            simulationTimeRef={simulationTimeRef}
+            secondsRef={secondsRef}
+            periodMin={periodMin}
+          />
           <div className="earth3d-hud-card earth3d-telemetry-card" aria-label="Live telemetry">
             <small>LIVE TELEMETRY</small>
             <div className="earth3d-telemetry-row"><span>TIME</span><b>{Number(seconds || 0).toFixed(1)} s</b></div>
