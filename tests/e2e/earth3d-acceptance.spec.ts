@@ -831,7 +831,17 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   await setup.getByRole('button', { name: 'Open full orbit design' }).click();
   await expect(page.getByRole('heading', { name: 'Make the orbital mechanics visible.' })).toBeVisible();
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
-  await page.getByTestId('earth3d-mission-setup').getByRole('button', { name: 'Edit mission requirements' }).click();
+  // The Orbit workspace can leave the document scrolled near its previous
+  // lower controls. Restore the document viewport before exercising the
+  // mission-setup action; retain a normal, hit-tested Playwright click.
+  await page.evaluate(() => {
+    document.documentElement.style.scrollBehavior = 'auto';
+    window.scrollTo(0, 0);
+  });
+  const editMission = page.getByTestId('earth3d-mission-setup')
+    .getByRole('button', { name: 'Edit mission requirements' });
+  await expect(editMission).toBeInViewport();
+  await editMission.click();
   await expect(page.getByRole('heading', { name: 'Start with the engineering problem.' })).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
