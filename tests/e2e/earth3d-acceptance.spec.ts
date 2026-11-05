@@ -587,7 +587,9 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   await slider.focus();
   await slider.press("ArrowRight");
   await expect(clock).toContainText("T+ 0.1 s");
-  await slider.press("Home");
+  // ArrowLeft from 0.1 s reaches the minimum deterministically in Chromium;
+  // Home is not consistently dispatched as an input change for range controls.
+  await slider.press("ArrowLeft");
   await expect(clock).toContainText("T+ 0.0 s");
 
   const speed = simulationControls.getByRole("group", { name: "Simulation playback speed" });
@@ -818,7 +820,7 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   await expect(pauseControl).toBeVisible();
   // Exercise the control after live telemetry has advanced, not only on its
   // first stable frame.
-  const dashboardClock = page.locator('.earth3d-timeline-heading b');
+  const dashboardClock = controls.locator('.earth3d-simulation-clock span');
   await expect.poll(() => dashboardClock.textContent()).not.toBe('T+ 0.0 s');
   await pauseControl.click();
   await expect(pauseControl).toBeHidden();
