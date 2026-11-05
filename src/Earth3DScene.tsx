@@ -65,7 +65,6 @@ type SimulationControlsProps = {
   setPlayback: (value: number) => void;
   simulationTimeRef: { current: string };
   secondsRef: { current: number };
-  periodMin: number;
 };
 
 const SimulationControls = memo(function SimulationControls({
@@ -75,7 +74,6 @@ const SimulationControls = memo(function SimulationControls({
   setPlayback,
   simulationTimeRef,
   secondsRef,
-  periodMin,
 }: SimulationControlsProps) {
   const [simulationUtcLabel, setSimulationUtcLabel] = useState('2026-01-01 00:00:00.000 UTC');
   const [elapsedSeconds, setElapsedSeconds] = useState(secondsRef.current);
@@ -105,7 +103,6 @@ const SimulationControls = memo(function SimulationControls({
         </div>
       </div>
       <div className="earth3d-simulation-clock"><small>SIMULATION TIME (UTC)</small><b>{simulationUtcLabel}</b><span>T+ {Number(elapsedSeconds || 0).toFixed(1)} s</span></div>
-      <div className="earth3d-timeline-actions"><span>PERIOD {periodMin.toFixed(1)} min</span></div>
     </div>
   );
 });
@@ -919,7 +916,6 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
             setPlayback={setPlayback}
             simulationTimeRef={simulationTimeRef}
             secondsRef={secondsRef}
-            periodMin={periodMin}
           />
           <div className="earth3d-hud-card earth3d-telemetry-card" aria-label="Live telemetry">
             <small>LIVE TELEMETRY</small>
