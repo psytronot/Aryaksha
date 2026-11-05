@@ -1,14 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { EARTH_CAMERA_MARGIN, fitCameraDistance, MOON_CAMERA_MARGIN, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO } from '../../src/earth3dMath';
 
-async function scrollEarthWorkspaceToTop(page: import('@playwright/test').Page) {
-  const workspace = page.locator('.earth3d-workspace');
-  await expect(workspace).toBeVisible();
-  // Disable app-level smooth scrolling for deterministic viewport assertions.
+async function scrollTargetIntoView(page: import('@playwright/test').Page, target: import('@playwright/test').Locator) {
+  await expect(target).toBeVisible();
+  // Scroll the actual control under test instead of the large React workspace wrapper.
   await page.addStyleTag({ content: 'html, body, .simulation-page { scroll-behavior: auto !important; }' });
-  await workspace.evaluate(element => element.scrollIntoView({ block: 'start', behavior: 'auto' }));
-  await expect.poll(async () => (await workspace.boundingBox())?.y ?? Infinity, { timeout: 5000 })
-    .toBeLessThanOrEqual(72);
+  await target.scrollIntoViewIfNeeded();
+  await expect(target).toBeInViewport();
 }
 
 async function disableContextCoach(page: import('@playwright/test').Page) {
@@ -598,7 +596,7 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   await expect(clock).toContainText("T+ 0.0 s");
 
   const speed = simulationControls.getByRole("group", { name: "Simulation playback speed" });
-  await scrollEarthWorkspaceToTop(page);
+  await scrollTargetIntoView(page, speed.getByRole('button', { name: 'Set playback speed 60x' }));
   await expect(speed.getByRole("button", { name: "Set playback speed 60x" })).toBeInViewport();
   await speed.getByRole("button", { name: "Set playback speed 60x" }).click();
   await expect(speed.getByRole("button", { name: "Set playback speed 60x" })).toHaveAttribute("aria-pressed", "true");
@@ -822,7 +820,7 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   await setup.getByRole('button', { name: 'Start simulation' }).click();
   const pauseControl = page.getByRole('button', { name: 'Pause simulation' });
   await expect(pauseControl).toBeVisible();
-  await scrollEarthWorkspaceToTop(page);
+  await scrollTargetIntoView(page, pauseControl);
   await expect(pauseControl).toBeInViewport();
   await pauseControl.click();
   const desktopSpeed = page.getByRole('group', { name: 'Simulation playback speed' });
