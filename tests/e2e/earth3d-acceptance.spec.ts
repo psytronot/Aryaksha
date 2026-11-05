@@ -4,7 +4,9 @@ import { EARTH_CAMERA_MARGIN, fitCameraDistance, MOON_CAMERA_MARGIN, SYSTEM_CAME
 async function scrollEarthWorkspaceToTop(page: import('@playwright/test').Page) {
   const workspace = page.locator('.earth3d-workspace');
   await expect(workspace).toBeVisible();
-  await workspace.scrollIntoViewIfNeeded();
+  // Disable app-level smooth scrolling for deterministic viewport assertions.
+  await page.addStyleTag({ content: 'html, body, .simulation-page { scroll-behavior: auto !important; }' });
+  await workspace.evaluate(element => element.scrollIntoView({ block: 'start', behavior: 'auto' }));
   await expect.poll(async () => (await workspace.boundingBox())?.y ?? Infinity, { timeout: 5000 })
     .toBeLessThanOrEqual(72);
 }
@@ -12,7 +14,11 @@ async function scrollEarthWorkspaceToTop(page: import('@playwright/test').Page) 
 async function disableContextCoach(page: import('@playwright/test').Page) {
   const coachOn = page.getByRole('button', { name: /COACH ON/i });
   if (await coachOn.count()) await coachOn.click();
-  await expect(page.getByRole('button', { name: /COACH OFF/i })).toHaveAttribute('aria-pressed', 'false');
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('orbital-lab-coach-enabled')))
+    .toBe('false');
+  const coachOff = page.getByRole('button', { name: /COACH OFF/i });
+  // The setting is intentionally hidden in the compact mobile header.
+  if (await coachOff.count()) await expect(coachOff).toHaveAttribute('aria-pressed', 'false');
 }
 
 
