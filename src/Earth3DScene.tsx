@@ -845,6 +845,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
     }
   };
 
+  const simulationUtc = new Date(current?.time || '2026-01-01T00:00:00.000Z');
   const dayNight = dayNightSnapshot(Number(current?.lla?.lat), Number(current?.lla?.lon), simulationUtc);
   const speed = Math.hypot(...(current?.v || [0, 0, 0]));
   const maxBusDimensionM = Math.max(0.01, busWidthM, busHeightM, busDepthM);
