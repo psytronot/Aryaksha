@@ -1,0 +1,48 @@
+name: AppDeploy nine-scenario browser acceptance
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/appdeploy-acceptance.yml'
+      - 'playwright.appdeploy.config.ts'
+      - 'tests/e2e/appdeploy-acceptance.spec.ts'
+      - 'tests/tests.json'
+  schedule:
+    - cron: '17 2 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: appdeploy-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  live-appdeploy-acceptance:
+    name: Execute nine AppDeploy acceptance scenarios
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Execute desktop and mobile AppDeploy acceptance scenarios
+        env:
+          APPDEPLOY_BASE_URL: https://orbital-lab-lq22ug.v2.appdeploy.ai/
+        run: npx playwright test --config=playwright.appdeploy.config.ts
+      - name: Upload AppDeploy acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: appdeploy-nine-scenario-browser-evidence
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
