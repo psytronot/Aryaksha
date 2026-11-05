@@ -576,6 +576,9 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
 
   await simulationControls.getByRole("button", { name: "Play simulation" }).click();
   await expect(simulationControls.getByRole("button", { name: "Pause simulation" })).toBeVisible();
+  // Let several 250 ms simulation ticks reach the scene before exercising
+  // the playback controls; their hit targets must remain stable while telemetry advances.
+  await expect.poll(() => clock.textContent()).not.toBe("T+ 10.0 s");
   await simulationControls.getByRole("button", { name: "Pause simulation" }).click();
   await timeline.getByRole("button", { name: "Reset simulation time" }).click();
   await expect(clock).toContainText("T+ 0.0 s");
@@ -813,8 +816,10 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   await setup.getByRole('button', { name: 'Start simulation' }).click();
   const pauseControl = page.getByRole('button', { name: 'Pause simulation' });
   await expect(pauseControl).toBeVisible();
-  // Stop the live clock before testing the side-rail control so the 3D scene
-  // cannot continuously shift the dashboard while Playwright resolves it.
+  // Exercise the control after live telemetry has advanced, not only on its
+  // first stable frame.
+  const dashboardClock = page.locator('.earth3d-timeline-heading b');
+  await expect.poll(() => dashboardClock.textContent()).not.toBe('T+ 0.0 s');
   await pauseControl.click();
   await expect(pauseControl).toBeHidden();
   const desktopSpeed = page.getByRole('group', { name: 'Simulation playback speed' });
