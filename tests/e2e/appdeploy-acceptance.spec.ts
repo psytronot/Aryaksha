@@ -307,13 +307,17 @@ test.describe('Mobile AppDeploy acceptance scenarios', () => {
     await openWorkspace(page, 'Mission Analysis');
     await page.getByRole('spinbutton', { name: 'Altitude above Earth in kilometres' }).fill('120');
     await page.getByRole('spinbutton', { name: 'Orbit eccentricity' }).fill('0.99');
+    const analysisResponse = page.waitForResponse(response =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname.endsWith('/api/mission-analysis/orbit'),
+      { timeout: 25_000 }
+    );
     await page.getByRole('button', { name: 'Run analysis', exact: true }).click();
-
-    await expect.poll(async () => {
-      const text = await page.locator('body').innerText();
-      return /Network Error|periapsis.*intersects Earth|intersects Earth.*periapsis/i.test(text);
-    }, { timeout: 120_000 }).toBe(true);
-    await expect(page.getByText(/periapsis.*intersects Earth|intersects Earth.*periapsis/i)).toBeVisible();
+    const response = await analysisResponse;
+    const payload = await response.json().catch(() => null) as { error?: string; message?: string } | null;
+    const message = payload?.error ?? payload?.message ?? '';
+    expect(response.status(), `Expected controlled Earth-intersection HTTP 400, received HTTP ${response.status()} with ${JSON.stringify(payload)}`).toBe(400);
+    expect(message).toMatch(/periapsis.*intersects Earth|intersects Earth.*periapsis/i);
     await expect(page.getByText(/Analysis completed/)).toHaveCount(0);
   });
 });
