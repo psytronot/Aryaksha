@@ -67,14 +67,14 @@ type SimulationControlsProps = {
   secondsRef: { current: number };
 };
 
-const SimulationControls = memo(function SimulationControls({
-  running,
-  setRunning,
-  playback,
-  setPlayback,
-  simulationTimeRef,
-  secondsRef,
-}: SimulationControlsProps) {
+type SimulationClockProps = {
+  simulationTimeRef: { current: string };
+  secondsRef: { current: number };
+};
+
+// Keep the one-second display clock isolated from the interactive playback
+// controls. Updating telemetry must not detach their DOM hit targets.
+const SimulationClock = memo(function SimulationClock({ simulationTimeRef, secondsRef }: SimulationClockProps) {
   const [simulationUtcLabel, setSimulationUtcLabel] = useState('2026-01-01 00:00:00.000 UTC');
   const [elapsedSeconds, setElapsedSeconds] = useState(secondsRef.current);
 
@@ -93,6 +93,17 @@ const SimulationControls = memo(function SimulationControls({
     return () => window.clearInterval(timer);
   }, [simulationTimeRef, secondsRef]);
 
+  return <div className="earth3d-simulation-clock"><small>SIMULATION TIME (UTC)</small><b>{simulationUtcLabel}</b><span>T+ {Number(elapsedSeconds || 0).toFixed(1)} s</span></div>;
+});
+
+const SimulationControls = memo(function SimulationControls({
+  running,
+  setRunning,
+  playback,
+  setPlayback,
+  simulationTimeRef,
+  secondsRef,
+}: SimulationControlsProps) {
   return (
     <div className="earth3d-hud-card earth3d-simulation-controls-card" data-testid="earth3d-simulation-controls">
       <small>SIMULATION CONTROLS</small>
@@ -102,7 +113,25 @@ const SimulationControls = memo(function SimulationControls({
           {[1, 10, 20, 60, 120].map(rate => <button key={rate} type="button" aria-label={`Set playback speed ${rate}x`} aria-pressed={playback === rate} className={playback === rate ? 'active' : ''} onClick={() => setPlayback(rate)}>{rate}×</button>)}
         </div>
       </div>
-      <div className="earth3d-simulation-clock"><small>SIMULATION TIME (UTC)</small><b>{simulationUtcLabel}</b><span>T+ {Number(elapsedSeconds || 0).toFixed(1)} s</span></div>
+      <SimulationClock simulationTimeRef={simulationTimeRef} secondsRef={secondsRef} />
+    </div>
+  );
+});
+
+type SceneGalleryProps = {
+  cameraMode: CameraMode;
+  setCameraMode: (mode: CameraMode) => void;
+  setShowSpaceEnvironment: (visible: boolean) => void;
+};
+
+// The scene buttons are intentionally independent of the 4 Hz simulation
+// timeline updates so their DOM nodes remain stable during hit-testing/clicks.
+const SceneGallery = memo(function SceneGallery({ cameraMode, setCameraMode, setShowSpaceEnvironment }: SceneGalleryProps) {
+  return (
+    <div className="earth3d-scene-gallery" aria-label="Scene gallery">
+      <button type="button" className={`earth3d-gallery-item ${cameraMode === "EARTH" ? "active" : ""}`} aria-label="Earth scene" aria-pressed={cameraMode === "EARTH"} onClick={() => setCameraMode("EARTH")}><span className="earth3d-gallery-thumb" data-scene="earth" aria-hidden="true" /><b>EARTH</b></button>
+      <button type="button" className={`earth3d-gallery-item ${cameraMode === "MOON" ? "active" : ""}`} aria-label="Moon scene" aria-pressed={cameraMode === "MOON"} onClick={() => { setShowSpaceEnvironment(true); setCameraMode("MOON"); }}><span className="earth3d-gallery-thumb" data-scene="moon" aria-hidden="true" /><b>MOON</b></button>
+      <button type="button" className={`earth3d-gallery-item ${cameraMode === "SYSTEM" ? "active" : ""}`} aria-label="Earth and Moon scene" aria-pressed={cameraMode === "SYSTEM"} onClick={() => { setShowSpaceEnvironment(true); setCameraMode("SYSTEM"); }}><span className="earth3d-gallery-thumb" data-scene="system" aria-hidden="true" /><b>EARTH + MOON</b></button>
     </div>
   );
 });
@@ -939,11 +968,11 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         </div>
         <div className="earth3d-timeline" role="region" aria-label="Mission timeline and scene gallery" data-testid="earth3d-timeline">
           <div className="earth3d-timeline-heading"><span>MISSION TIMELINE / SCENE GALLERY</span><b>T+ {Number(seconds || 0).toFixed(1)} s</b></div>
-          <div className="earth3d-scene-gallery" aria-label="Scene gallery">
-            <button type="button" className={`earth3d-gallery-item ${cameraMode === "EARTH" ? "active" : ""}`} aria-label="Earth scene" aria-pressed={cameraMode === "EARTH"} onClick={() => setCameraMode("EARTH")}><span className="earth3d-gallery-thumb" data-scene="earth" aria-hidden="true" /><b>EARTH</b></button>
-            <button type="button" className={`earth3d-gallery-item ${cameraMode === "MOON" ? "active" : ""}`} aria-label="Moon scene" aria-pressed={cameraMode === "MOON"} onClick={() => { setShowSpaceEnvironment(true); setCameraMode("MOON"); }}><span className="earth3d-gallery-thumb" data-scene="moon" aria-hidden="true" /><b>MOON</b></button>
-            <button type="button" className={`earth3d-gallery-item ${cameraMode === "SYSTEM" ? "active" : ""}`} aria-label="Earth and Moon scene" aria-pressed={cameraMode === "SYSTEM"} onClick={() => { setShowSpaceEnvironment(true); setCameraMode("SYSTEM"); }}><span className="earth3d-gallery-thumb" data-scene="system" aria-hidden="true" /><b>EARTH + MOON</b></button>
-          </div>
+          <SceneGallery
+            cameraMode={cameraMode}
+            setCameraMode={setCameraMode}
+            setShowSpaceEnvironment={setShowSpaceEnvironment}
+          />
           <input className="earth3d-time-range" aria-label="Simulation timeline" type="range" min={0} max={Math.max(1, duration)} step={0.1} value={Math.max(0, Math.min(duration, seconds))} onChange={event => setSeconds(Number(event.currentTarget.value))} />
           <div className="earth3d-timeline-actions">
             <button type="button" aria-label="Rewind simulation by 10 seconds" onClick={() => setSeconds(Math.max(0, seconds - 10))}>−10 s</button>
