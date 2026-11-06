@@ -863,7 +863,11 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   await expect(controls.getByRole('group', { name: 'Simulation playback speed' }).getByRole('button', { name: 'Set playback speed 60x' })).toHaveAttribute('aria-pressed', 'true');
 
   const missionScreenshot = testInfo.outputPath('earth3d-reference-dashboard-desktop-1536x1024.png');
-  await page.locator('.simulation-page').screenshot({ path: missionScreenshot, animations: 'disabled' });
+  // Capture the actual 1536×1024 browser viewport. Element screenshots wait for
+  // layout stability; the continuously rendered WebGL canvas never becomes
+  // stable, so that API can consume the entire E2E timeout.
+  await page.getByRole('heading', { name: 'Run the spacecraft, not a picture of it.' }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: missionScreenshot, animations: 'disabled' });
   await testInfo.attach('earth3d-reference-dashboard-desktop-1536x1024.png', { path: missionScreenshot, contentType: 'image/png' });
 
   await setup.getByRole('button', { name: 'Open full orbit design' }).click();
@@ -930,7 +934,11 @@ test('Earth 3D reference dashboard reflows to a globe-first mobile layout', asyn
   expect(setupBounds!.y).toBeGreaterThanOrEqual(canvasBounds!.y + canvasBounds!.height - 1);
 
   const mobileScreenshot = testInfo.outputPath('earth3d-reference-dashboard-mobile-390x844.png');
-  await page.locator('.simulation-page').screenshot({ path: mobileScreenshot, animations: 'disabled' });
+  // Keep this as a viewport capture (390×844), not a full-height element image.
+  // The WebGL canvas remains animated, so page.screenshot avoids the element
+  // stability wait while preserving the actual mobile composition.
+  await page.getByRole('heading', { name: 'Run the spacecraft, not a picture of it.' }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: mobileScreenshot, animations: 'disabled' });
   await testInfo.attach('earth3d-reference-dashboard-mobile-390x844.png', { path: mobileScreenshot, contentType: 'image/png' });
 
   await setup.getByRole('tab', { name: 'CUSTOM ORBIT' }).click();
