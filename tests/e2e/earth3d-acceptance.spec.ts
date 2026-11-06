@@ -981,11 +981,17 @@ test('Earth 3D keeps renderer geometry and texture counts stable across desktop 
 
   const container = page.locator('.earth3d-canvas');
   await expect(container).toBeVisible();
-  const readResources = async () => container.evaluate(element => ({
-    geometries: Number(element.getAttribute('data-renderer-geometries')),
-    textures: Number(element.getAttribute('data-renderer-textures')),
-    pixelRatio: Number(element.getAttribute('data-renderer-pixel-ratio'))
-  }));
+  const readResources = async () => container.evaluate(element => {
+    const read = (name: string) => {
+      const value = element.getAttribute(name);
+      return value === null ? Number.NaN : Number(value);
+    };
+    return {
+      geometries: read('data-renderer-geometries'),
+      textures: read('data-renderer-textures'),
+      pixelRatio: read('data-renderer-pixel-ratio')
+    };
+  });
 
   await expect.poll(async () => {
     const values = await readResources();
@@ -1010,4 +1016,5 @@ test('Earth 3D keeps renderer geometry and texture counts stable across desktop 
   const mobileAfter = await readResources();
   expect(mobileAfter.geometries).toBe(mobileBefore.geometries);
   expect(mobileAfter.textures).toBe(mobileBefore.textures);
+  expect(mobileAfter.pixelRatio).toBeLessThanOrEqual(1.25);
 });
