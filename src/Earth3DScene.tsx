@@ -430,7 +430,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       const earth = new THREE.Group();
       let earthTexture: THREE.Texture = makeEarthTexture();
       let nightTexture: THREE.Texture = makeFallbackNightLightsTexture();
-      let cloudTexture = makeCloudTexture();
+      let cloudTexture: THREE.Texture = makeCloudTexture();
       const earthMaterial = new THREE.MeshPhongMaterial({ map: earthTexture, emissive: 0xffffff, emissiveMap: nightTexture, emissiveIntensity: 1.25, specular: 0x5d889c, shininess: 22 });
       const earthSunUniform = { value: new THREE.Vector3(1, 0, 0) };
       applyEarthNightLightMask(earthMaterial, earthSunUniform);
