@@ -255,3 +255,13 @@ describe('Earth cloud rotation relative to the rotating Earth frame', () => {
     expect(cloudRelativeRotation(Number.POSITIVE_INFINITY)).toBe(0);
   });
 });
+
+
+describe('Solar ECI direction reusable output', () => {
+  it('writes into a caller-owned vector without replacing its identity', () => {
+    const target = { x: 0, y: 0, z: 0 };
+    const result = solarEciDirection(new Date('2026-06-21T00:00:00.000Z'), target);
+    expect(result).toBe(target);
+    expect(Math.hypot(result.x, result.y, result.z)).toBeCloseTo(1, 10);
+  });
+});
