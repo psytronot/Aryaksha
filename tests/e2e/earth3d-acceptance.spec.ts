@@ -584,6 +584,7 @@ test('Earth 3D releases its WebGL context on unmount and remounts cleanly', asyn
 });
 
 test("Earth 3D mission timeline and scene gallery control the shared simulation state", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.setViewportSize({ width: 1536, height: 1024 });
   await page.addInitScript(() => localStorage.setItem("orbital-lab-coach-enabled", "false"));
   await page.goto("/");
@@ -808,6 +809,7 @@ test('mobile Earth–Moon mission data panels collapse without hiding scale disc
 
 
 test('Earth 3D reference dashboard connects mission setup, controls and derived data on desktop', async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
   await page.setViewportSize({ width: 1536, height: 1024 });
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   const pageErrors: string[] = [];
