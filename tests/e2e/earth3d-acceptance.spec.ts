@@ -868,6 +868,14 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   await expect(desktopSpeed60).toBeInViewport();
   await expect(controls.getByRole('group', { name: 'Simulation playback speed' }).getByRole('button', { name: 'Set playback speed 60x' })).toHaveAttribute('aria-pressed', 'true');
 
+  // Capture the dashboard with the full Earth disc, not the default TRACK
+  // close-up. This is the reference screenshot's primary visual acceptance view.
+  const earthCamera = page.locator('.earth-camera-controls').getByRole('button', { name: 'EARTH', exact: true });
+  await earthCamera.click();
+  const canvasContainer = page.locator('.earth3d-canvas');
+  await expect(canvasContainer).toHaveAttribute('data-camera-mode', 'EARTH');
+  await expect.poll(async () => Number(await canvasContainer.getAttribute('data-camera-distance'))).toBeGreaterThan(5.15);
+
   const missionScreenshot = testInfo.outputPath('earth3d-reference-dashboard-desktop-1536x1024.png');
   // Capture the actual 1536×1024 browser viewport. Element screenshots wait for
   // layout stability; the continuously rendered WebGL canvas never becomes
@@ -963,4 +971,43 @@ test('Earth 3D reference dashboard reflows to a globe-first mobile layout', asyn
   await setup.getByRole('spinbutton', { name: 'Mission setup altitude' }).fill('650');
   await expect(setup.getByRole('spinbutton', { name: 'Mission setup altitude' })).toHaveValue('650');
   expect(pageErrors).toEqual([]);
+});
+
+
+test('Earth 3D keeps renderer geometry and texture counts stable across desktop and mobile frames', async ({ page }) => {
+  await page.setViewportSize({ width: 1536, height: 1024 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const container = page.locator('.earth3d-canvas');
+  await expect(container).toBeVisible();
+  const readResources = async () => container.evaluate(element => ({
+    geometries: Number(element.getAttribute('data-renderer-geometries')),
+    textures: Number(element.getAttribute('data-renderer-textures')),
+    pixelRatio: Number(element.getAttribute('data-renderer-pixel-ratio'))
+  }));
+
+  await expect.poll(async () => {
+    const values = await readResources();
+    return Number.isFinite(values.geometries) && Number.isFinite(values.textures) && Number.isFinite(values.pixelRatio);
+  }).toBe(true);
+
+  await expect.poll(() => container.getAttribute('data-earth-imagery-state')).toMatch(/nasa|partial|fallback/);
+  await page.waitForTimeout(1200);
+  const desktopBefore = await readResources();
+  expect(desktopBefore.geometries).toBeGreaterThan(0);
+  expect(desktopBefore.textures).toBeGreaterThan(0);
+  expect(desktopBefore.pixelRatio).toBeLessThanOrEqual(1.75);
+  await page.waitForTimeout(1200);
+  const desktopAfter = await readResources();
+  expect(desktopAfter.geometries).toBe(desktopBefore.geometries);
+  expect(desktopAfter.textures).toBe(desktopBefore.textures);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(async () => (await readResources()).pixelRatio).toBeLessThanOrEqual(1.25);
+  const mobileBefore = await readResources();
+  await page.waitForTimeout(1200);
+  const mobileAfter = await readResources();
+  expect(mobileAfter.geometries).toBe(mobileBefore.geometries);
+  expect(mobileAfter.textures).toBe(mobileBefore.textures);
 });
