@@ -46,14 +46,35 @@ export function solarSubpoint(date: Date) {
   return { lat: dec / DEG, lon, ra, dec };
 }
 
-export function solarEciDirection(date: Date) {
-  const sun = solarSubpoint(date);
+export interface SolarEciDirection {
+  x: number;
+  y: number;
+  z: number;
+}
+
+/**
+ * Geocentric Sun unit vector in conventional ECI axes.
+ * Supplying target lets the render loop reuse one result object per frame.
+ */
+export function solarEciDirection(date: Date, target?: SolarEciDirection): SolarEciDirection {
+  const jd = date.getTime() / 86400000 + 2440587.5;
+  const T = (jd - 2451545) / 36525;
+  const L0 = ((280.46646 + 36000.76983 * T + 0.0003032 * T * T) % 360 + 360) % 360;
+  const M = ((357.52911 + 35999.05029 * T - 0.0001537 * T * T) % 360 + 360) % 360;
+  const Mr = M * DEG;
+  const C = (1.914602 - 0.004817 * T) * Math.sin(Mr)
+    + 0.019993 * Math.sin(2 * Mr)
+    + 0.000289 * Math.sin(3 * Mr);
+  const lambda = (L0 + C) * DEG;
+  const eps = (23.439291 - 0.0130042 * T) * DEG;
+  const ra = Math.atan2(Math.cos(eps) * Math.sin(lambda), Math.cos(lambda));
+  const dec = Math.asin(Math.sin(eps) * Math.sin(lambda));
+  const output = target ?? { x: 0, y: 0, z: 0 };
   // Conventional ECI axes: x/y lie in the equatorial plane; z points north.
-  return {
-    x: Math.cos(sun.dec) * Math.cos(sun.ra),
-    y: Math.cos(sun.dec) * Math.sin(sun.ra),
-    z: Math.sin(sun.dec),
-  };
+  output.x = Math.cos(dec) * Math.cos(ra);
+  output.y = Math.cos(dec) * Math.sin(ra);
+  output.z = Math.sin(dec);
+  return output;
 }
 
 export function dayNightSnapshot(lat: number, lon: number, date: Date) {

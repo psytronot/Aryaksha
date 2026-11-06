@@ -552,6 +552,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         camera.updateProjectionMatrix();
         renderer.setPixelRatio(pixelRatioForViewport());
         renderer.setSize(width, height, false);
+        container.dataset.rendererPixelRatio = renderer.getPixelRatio().toFixed(2);
         container.dataset.cameraViewport = `${width}x${height}`;
         if (cameraModeRef.current === 'SYSTEM') cameraState.current.distance = Math.max(2, Math.min(2600, systemCameraDistance(width, height) * systemZoomRatioRef.current));
         if (cameraModeRef.current === 'MOON') cameraState.current.distance = Math.max(2, Math.min(2600, moonCameraDistance(width, height) * moonZoomRatioRef.current));
@@ -664,15 +665,37 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       };
       updateOrbit();
 
+      // Reuse all transient frame vectors/matrices. The scene topology is static
+      // between explicit spacecraft-model changes; animation must not allocate
+      // new Three.js math objects every requestAnimationFrame.
+      const markerVector = new THREE.Vector3();
+      const radial = new THREE.Vector3();
+      const velocity = new THREE.Vector3();
+      const satelliteTangent = new THREE.Vector3();
+      const satelliteSide = new THREE.Vector3();
+      const satelliteBasis = new THREE.Matrix4();
+      const ground = new THREE.Vector3();
+      const fallbackDirection = new THREE.Vector3(0, 1, 0);
+      const velocityDirection = new THREE.Vector3();
+      const nadirDirection = new THREE.Vector3();
+      const cameraOrigin = new THREE.Vector3();
+      const cameraTarget = new THREE.Vector3();
+      const simulationDate = new Date(0);
+      const sunVectorScratch = { x: 0, y: 0, z: 0 };
+      let lastResourceDiagnosticsAt = Number.NEGATIVE_INFINITY;
+
       const animate = () => {
         if (!mounted) return;
         const state = currentRef.current;
-        const markerVector = scenePosition(state.r, scale);
-        const radial = markerVector.clone().normalize();
-        const velocity = new THREE.Vector3(state.v[0] * scale, state.v[2] * scale, state.v[1] * scale);
-        const tangent = velocity.lengthSq() > 1e-10 ? velocity.clone().sub(radial.clone().multiplyScalar(velocity.dot(radial))).normalize() : new THREE.Vector3(0, 1, 0);
-        const side = new THREE.Vector3().crossVectors(radial, tangent).normalize();
-        const basis = new THREE.Matrix4().makeBasis(side, tangent, radial);
+        markerVector.set(state.r[0] * scale, state.r[2] * scale, state.r[1] * scale);
+        radial.copy(markerVector).normalize();
+        velocity.set(state.v[0] * scale, state.v[2] * scale, state.v[1] * scale);
+        const velocityMagnitudeSq = velocity.lengthSq();
+        satelliteTangent.copy(velocity);
+        if (velocityMagnitudeSq > 1e-10) satelliteTangent.addScaledVector(radial, -velocity.dot(radial)).normalize();
+        else satelliteTangent.copy(fallbackDirection);
+        satelliteSide.crossVectors(radial, satelliteTangent).normalize();
+        satelliteBasis.makeBasis(satelliteSide, satelliteTangent, radial);
         if (appliedSatellitePreset !== selectedSatelliteRef.current) {          const preset = selectedSatelliteRef.current;
           const dimensions: Record<string, [number, number, number, number]> = {
             design: [busWidthM, busHeightM, busDepthM, panelAreaM2],
@@ -690,11 +713,10 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
           appliedSatellitePreset = preset;
         }
         satellite.root.position.copy(markerVector);
-        satellite.root.quaternion.setFromRotationMatrix(basis);
-        satellite.root.rotation.y += 0.008;
+        satellite.root.quaternion.setFromRotationMatrix(satelliteBasis);
         (satellite.beacon.material as THREE.MeshBasicMaterial).opacity = 0.5 + 0.5 * (0.5 + 0.5 * Math.sin(performance.now() * 0.008));
 
-        const ground = radial.clone().multiplyScalar(earthRadius * 1.012);
+        ground.copy(radial).multiplyScalar(earthRadius * 1.012);
         groundPoint.position.copy(ground);
         nadirPosition.setXYZ(0, ground.x, ground.y, ground.z);
         nadirPosition.setXYZ(1, markerVector.x, markerVector.y, markerVector.z);
@@ -702,10 +724,13 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         updateFootprint(footprintPosition, radial, earthRadius * 1.018, footprintAngleRef.current, footprintTangent, footprintBitangent, footprintUnitCircle);
         footprint.visible = showFootprintRef.current;
         velocityArrow.position.copy(markerVector);
-        velocityArrow.setDirection(velocity.lengthSq() > 1e-10 ? velocity.normalize() : new THREE.Vector3(0, 1, 0));
+        if (velocityMagnitudeSq > 1e-10) velocityDirection.copy(velocity).normalize();
+        else velocityDirection.copy(fallbackDirection);
+        velocityArrow.setDirection(velocityDirection);
         velocityArrow.setLength(Math.max(1.1, Math.min(2.5, 1.1 + Math.hypot(...state.v) * 0.16)), 0.2, 0.11);
         nadirArrow.position.copy(markerVector);
-        nadirArrow.setDirection(radial.clone().multiplyScalar(-1));
+        nadirDirection.copy(radial).negate();
+        nadirArrow.setDirection(nadirDirection);
         nadirArrow.setLength(1.55, 0.21, 0.11);
         velocityArrow.visible = showVectorsRef.current;
         nadirArrow.visible = showVectorsRef.current;
@@ -713,15 +738,16 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         grid.visible = showGridRef.current;
         container.dataset.gridVisible = String(grid.visible);
         const simSeconds = secondsRef.current;
-        const date = new Date(state.time || Date.now());
+        const parsedTimestamp = state.time ? Date.parse(state.time) : Date.now();
+        simulationDate.setTime(Number.isFinite(parsedTimestamp) ? parsedTimestamp : Date.now());
         // The Earth-fixed texture frame rotates into ECI by -GMST in this Y-up scene.
         // Use the absolute simulation epoch, not elapsed seconds from an arbitrary zero.
-        const earthRotation = -greenwichMeanSiderealAngle(date);
+        const earthRotation = -greenwichMeanSiderealAngle(simulationDate);
         earth.rotation.y = earthRotation;
         clouds.rotation.y = cloudRelativeRotation(earthRotation);
         starField.rotation.y += 0.00002;
 
-        const sunVector = solarEciDirection(date);
+        const sunVector = solarEciDirection(simulationDate, sunVectorScratch);
         // Keep solar illumination in the same scene frame as ECI-to-scene spacecraft coordinates.
         earthSunUniform.value.set(sunVector.x, sunVector.z, sunVector.y).normalize();
         sun.position.copy(earthSunUniform.value).multiplyScalar(30);
@@ -733,23 +759,22 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         syncCameraDiagnostics();
         scene.fog = mode === 'SYSTEM' ? null : sceneFog;
         const s = cameraState.current;
-        const origin = new THREE.Vector3();
-        let target = origin;
+        cameraTarget.copy(cameraOrigin);
         let distance = s.distance;
         if (mode === 'SATELLITE') {
-          target = markerVector.clone();
+          cameraTarget.copy(markerVector);
           distance = Math.min(s.distance, 6.5);
         } else if (mode === 'MOON') {
-          target = spaceEnvironment.moon.position.clone();
+          cameraTarget.copy(spaceEnvironment.moon.position);
           distance = s.distance;
         } else if (mode === 'TRACK') {
-          target = markerVector.clone().lerp(origin, 0.26);
+          cameraTarget.copy(markerVector).lerp(cameraOrigin, 0.26);
           distance = Math.min(s.distance, 12.5);
         } else if (mode === 'SYSTEM') {
-          target = origin;
+          cameraTarget.copy(cameraOrigin);
           distance = s.distance;
         } else {
-          target = origin;
+          cameraTarget.copy(cameraOrigin);
           distance = Math.max(s.distance, 12);
         }
         const horizontal = Math.cos(s.pitch) * distance;
@@ -769,10 +794,17 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         } else {
           delete container.dataset.moonEarthFacingDot;
         }
-        camera.position.set(target.x + Math.sin(cameraYaw) * horizontal, target.y + Math.sin(s.pitch) * distance, target.z + Math.cos(cameraYaw) * horizontal);
-        camera.lookAt(target);
+        camera.position.set(cameraTarget.x + Math.sin(cameraYaw) * horizontal, cameraTarget.y + Math.sin(s.pitch) * distance, cameraTarget.z + Math.cos(cameraYaw) * horizontal);
+        camera.lookAt(cameraTarget);
         try {
           renderer.render(scene, camera);
+          const diagnosticTime = performance.now();
+          if (diagnosticTime - lastResourceDiagnosticsAt >= 1000) {
+            container.dataset.rendererGeometries = String(renderer.info.memory.geometries);
+            container.dataset.rendererTextures = String(renderer.info.memory.textures);
+            container.dataset.rendererPixelRatio = renderer.getPixelRatio().toFixed(2);
+            lastResourceDiagnosticsAt = diagnosticTime;
+          }
         } catch (error) {
           setErrorState(error instanceof Error ? error.message : 'The WebGL renderer stopped unexpectedly.');
           if (frameRef.current !== null) {
