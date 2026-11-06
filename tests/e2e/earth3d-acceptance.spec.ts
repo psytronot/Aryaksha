@@ -866,7 +866,7 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   // Capture the actual 1536×1024 browser viewport. Element screenshots wait for
   // layout stability; the continuously rendered WebGL canvas never becomes
   // stable, so that API can consume the entire E2E timeout.
-  await page.getByRole('heading', { name: 'Run the spacecraft, not a picture of it.' }).scrollIntoViewIfNeeded();
+  await page.getByRole('region', { name: 'Interactive 3D Earth with trackable spacecraft' }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: missionScreenshot, animations: 'disabled' });
   await testInfo.attach('earth3d-reference-dashboard-desktop-1536x1024.png', { path: missionScreenshot, contentType: 'image/png' });
 
@@ -937,7 +937,7 @@ test('Earth 3D reference dashboard reflows to a globe-first mobile layout', asyn
   // Keep this as a viewport capture (390×844), not a full-height element image.
   // The WebGL canvas remains animated, so page.screenshot avoids the element
   // stability wait while preserving the actual mobile composition.
-  await page.getByRole('heading', { name: 'Run the spacecraft, not a picture of it.' }).scrollIntoViewIfNeeded();
+  await page.getByRole('region', { name: 'Interactive 3D Earth with trackable spacecraft' }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: mobileScreenshot, animations: 'disabled' });
   await testInfo.attach('earth3d-reference-dashboard-mobile-390x844.png', { path: mobileScreenshot, contentType: 'image/png' });
 
