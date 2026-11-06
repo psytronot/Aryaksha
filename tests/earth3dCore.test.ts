@@ -6,6 +6,7 @@ import {
   EARTH_CAMERA_MARGIN,
   fitCameraDistance,
   MOON_CAMERA_MARGIN,
+  MOON_TEXTURE_CENTER_ROTATION_RAD,
   NIGHT_LIGHT_TWILIGHT_END,
   NIGHT_LIGHT_TWILIGHT_START,
   nightLightFactor,
@@ -16,6 +17,7 @@ import {
 } from '../src/earth3dMath';
 import { applyEarthNightLightMask, makeFallbackNightLightsTexture } from '../src/earthVisuals';
 import { EARTH_IMAGERY_SOURCES, loadEarthImagery } from '../src/earthImagery';
+import { cloudAlphaFromLuminance, loadPlanetaryImagery, PLANETARY_IMAGERY_SOURCES } from '../src/planetaryImagery';
 import { disposeObjectResources, updateFootprint } from '../src/earth3dGeometry';
 import { greenwichMeanSiderealAngle, solarEciDirection, solarSubpoint } from '../src/daynight';
 import { eciToEcef } from '../src/orbit';
@@ -224,6 +226,41 @@ describe('Earth 3D reusable geometry and disposal', () => {
 });
 
 
+describe('NASA cloud and lunar imagery source and fallback behavior', () => {
+  it('pins CPC cloud, LROC color and LOLA elevation sources with provenance', () => {
+    expect(PLANETARY_IMAGERY_SOURCES.clouds.id).toBe('nasa-noaa-cpc-clouds-2014-06-02');
+    expect(PLANETARY_IMAGERY_SOURCES.clouds.url).toContain('flat_cpc_clouds_8192x4096.01000_print.jpg');
+    expect(PLANETARY_IMAGERY_SOURCES.clouds.credit).toContain('NOAA Climate Prediction Center');
+    expect(PLANETARY_IMAGERY_SOURCES.clouds.historicalDate).toBe('2014-06-02T00:00:00Z');
+    expect(PLANETARY_IMAGERY_SOURCES.moonColor.id).toBe('nasa-lroc-color-2025');
+    expect(PLANETARY_IMAGERY_SOURCES.moonColor.url).toContain('lroc_color_2k.jpg');
+    expect(PLANETARY_IMAGERY_SOURCES.moonElevation.id).toBe('nasa-lola-elevation-2019');
+    expect(PLANETARY_IMAGERY_SOURCES.moonElevation.url).toContain('ldem_3_8bit.jpg');
+  });
+
+  it('turns the white cloud-map background transparent while retaining darker cloud detail', () => {
+    expect(cloudAlphaFromLuminance(255)).toBe(0);
+    expect(cloudAlphaFromLuminance(252)).toBe(0);
+    expect(cloudAlphaFromLuminance(245)).toBeGreaterThan(0);
+    expect(cloudAlphaFromLuminance(220)).toBeGreaterThan(cloudAlphaFromLuminance(245));
+    expect(cloudAlphaFromLuminance(0)).toBe(220);
+    expect(cloudAlphaFromLuminance(Number.NaN)).toBe(0);
+  });
+
+  it('retains deterministic fallback layers when NASA SVS requests fail CORS or network validation', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('CORS blocked')));
+    try {
+      const result = await loadPlanetaryImagery(new AbortController().signal);
+      expect(result.clouds).toBeNull();
+      expect(result.moonColor).toBeNull();
+      expect(result.moonElevation).toBeNull();
+      expect(Object.keys(result.failures).sort()).toEqual(['clouds', 'moonColor', 'moonElevation']);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
 describe('Earth-facing lunar camera', () => {
   it('keeps the camera on the Earth-facing side at multiple lunar orbital phases', () => {
     for (let i = 0; i < 32; i += 1) {
@@ -233,6 +270,17 @@ describe('Earth-facing lunar camera', () => {
       const earthDirection = { x: -Math.cos(phase), z: -Math.sin(phase) };
       const dot = cameraDirection.x * earthDirection.x + cameraDirection.z * earthDirection.z;
       expect(dot).toBeCloseTo(1, 10);
+    }
+  });
+
+  it('keeps the NASA 0° lunar texture meridian facing Earth across orbital phases', () => {
+    const yAxis = new THREE.Vector3(0, 1, 0);
+    const textureCenterLocal = new THREE.Vector3(1, 0, 0).applyAxisAngle(yAxis, MOON_TEXTURE_CENTER_ROTATION_RAD);
+    for (let i = 0; i < 32; i += 1) {
+      const phase = i * Math.PI / 16;
+      const textureCenterWorld = textureCenterLocal.clone().applyAxisAngle(yAxis, moonSynchronousYaw(phase));
+      const earthDirection = new THREE.Vector3(-Math.cos(phase), 0, -Math.sin(phase));
+      expect(textureCenterWorld.dot(earthDirection)).toBeCloseTo(1, 10);
     }
   });
 

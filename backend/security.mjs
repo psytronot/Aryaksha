@@ -17,7 +17,7 @@ export function securityHeaders(_req, res, next) {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
-    "connect-src 'self' https://celestrak.org https://assets.science.nasa.gov",
+    "connect-src 'self' https://celestrak.org https://assets.science.nasa.gov https://svs.gsfc.nasa.gov",
     "worker-src 'self' blob:"
   ].join('; '));
   next();

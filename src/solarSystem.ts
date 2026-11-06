@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { MOON_ORBIT_PERIOD_SECONDS, moonSynchronousYaw } from './earth3dMath';
+import { MOON_ORBIT_PERIOD_SECONDS, MOON_TEXTURE_CENTER_ROTATION_RAD, moonSynchronousYaw } from './earth3dMath';
 
 function seededRandom(seed: number) {
   let state = seed >>> 0;
@@ -104,18 +104,15 @@ function createLunarTexture() {
 
 export function createSpaceEnvironment(moonRadius: number, moonDistance: number) {
   const group = new THREE.Group();
-  const lunarTexture = createLunarTexture();
-  const moon = new THREE.Mesh(
-    new THREE.SphereGeometry(moonRadius, 96, 64),
-    new THREE.MeshStandardMaterial({
-      map: lunarTexture,
-      bumpMap: lunarTexture,
-      bumpScale: moonRadius * 0.16,
-      color: 0xc9c9c9,
-      roughness: 1,
-      metalness: 0
-    })
-  );
+  let lunarColorTexture: THREE.Texture = createLunarTexture();
+  let lunarElevationTexture: THREE.Texture | null = null;
+  let disposed = false;
+  const moonMaterial = new THREE.MeshStandardMaterial({
+    map: lunarColorTexture, color: 0xffffff, roughness: 1, metalness: 0
+  });
+  const moonGeometry = new THREE.SphereGeometry(moonRadius, 96, 64);
+  moonGeometry.rotateY(MOON_TEXTURE_CENTER_ROTATION_RAD);
+  const moon = new THREE.Mesh(moonGeometry, moonMaterial);
   moon.name = 'Moon';
 
   const moonOrbit = new THREE.Line(
@@ -145,8 +142,30 @@ export function createSpaceEnvironment(moonRadius: number, moonDistance: number)
       moonOrbit.scale.setScalar(distanceScale);
       moon.rotation.y = moonSynchronousYaw(phase);
     },
+    setLunarColorTexture(texture: THREE.Texture) {
+      if (disposed) { texture.dispose(); return; }
+      if (texture === lunarColorTexture) return;
+      const previous = lunarColorTexture;
+      lunarColorTexture = texture;
+      moonMaterial.map = texture;
+      moonMaterial.needsUpdate = true;
+      previous.dispose();
+    },
+    setLunarElevationTexture(texture: THREE.Texture) {
+      if (disposed) { texture.dispose(); return; }
+      if (texture === lunarElevationTexture) return;
+      const previous = lunarElevationTexture;
+      lunarElevationTexture = texture;
+      moonMaterial.bumpMap = texture;
+      moonMaterial.bumpScale = moonRadius * 0.018;
+      moonMaterial.needsUpdate = true;
+      previous?.dispose();
+    },
     dispose() {
-      lunarTexture.dispose();
+      if (disposed) return;
+      disposed = true;
+      lunarColorTexture.dispose();
+      lunarElevationTexture?.dispose();
       const geometries = new Set<THREE.BufferGeometry>();
       const materials = new Set<THREE.Material>();
       group.traverse((object) => {

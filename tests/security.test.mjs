@@ -24,7 +24,7 @@ describe('API security middleware', () => {
     expect(result.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
     expect(result.headers['permissions-policy']).toBe('camera=(), microphone=(), geolocation=()');
     expect(result.headers['content-security-policy-report-only']).toContain("default-src 'self'");
-    expect(result.headers['content-security-policy-report-only']).toContain("connect-src 'self' https://celestrak.org https://assets.science.nasa.gov");
+    expect(result.headers['content-security-policy-report-only']).toContain("connect-src 'self' https://celestrak.org https://assets.science.nasa.gov https://svs.gsfc.nasa.gov");
     expect(result.headers['content-security-policy-report-only']).toContain("object-src 'none'");
   });
 

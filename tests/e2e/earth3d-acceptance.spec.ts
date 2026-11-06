@@ -481,6 +481,12 @@ test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without sh
   await expect(page.getByTestId('earth-imagery-status')).toHaveAttribute('data-imagery-state', 'nasa', { timeout: 30_000 });
   await expect(page.getByTestId('earth-imagery-status')).toContainText('NASA Blue Marble');
   await expect(page.getByTestId('earth-imagery-status')).toContainText('NASA Black Marble');
+  const imageryCanvas = page.locator('.earth3d-canvas');
+  await expect(imageryCanvas).toHaveAttribute('data-earth-imagery-cloud', 'nasa-noaa-cpc-clouds-2014-06-02', { timeout: 30_000 });
+  await expect(imageryCanvas).toHaveAttribute('data-earth-imagery-moon-color', 'nasa-lroc-color-2025', { timeout: 30_000 });
+  await expect(imageryCanvas).toHaveAttribute('data-earth-imagery-moon-elevation', 'nasa-lola-elevation-2019', { timeout: 30_000 });
+  await expect(page.getByTestId('earth-imagery-status')).toContainText('NASA/NOAA CPC clouds');
+  await expect(page.getByTestId('earth-imagery-status')).toContainText('NASA LROC Moon');
   const cameraModes = page.locator('[aria-label="Camera modes"]');
   await cameraModes.getByRole('button', { name: 'EARTH', exact: true }).click();
   await page.waitForTimeout(400);
@@ -531,6 +537,7 @@ test('Earth 3D uses deterministic local textures when NASA imagery is blocked by
   const pageErrors: string[] = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.route('https://assets.science.nasa.gov/**', route => route.abort('blockedbyclient'));
+  await page.route('https://svs.gsfc.nasa.gov/**', route => route.abort('blockedbyclient'));
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   await page.goto('/');
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
@@ -547,6 +554,11 @@ test('Earth 3D uses deterministic local textures when NASA imagery is blocked by
     albedo: 'cartographic-fallback',
     nightLights: 'transparent-fallback'
   });
+  await expect(page.locator('.earth3d-canvas')).toHaveAttribute('data-earth-imagery-cloud', 'procedural-cloud-fallback');
+  await expect(page.locator('.earth3d-canvas')).toHaveAttribute('data-earth-imagery-moon-color', 'procedural-lunar-fallback');
+  await expect(page.locator('.earth3d-canvas')).toHaveAttribute('data-earth-imagery-moon-elevation', 'no-elevation-fallback');
+  await expect(page.getByTestId('earth-imagery-status')).toContainText('Procedural cloud fallback');
+  await expect(page.getByTestId('earth-imagery-status')).toContainText('Procedural lunar fallback');
   await expect(page.locator('.earth3d-canvas canvas')).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
