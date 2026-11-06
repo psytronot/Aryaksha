@@ -12,19 +12,31 @@ async function disableContextCoach(page: import('@playwright/test').Page) {
 }
 
 async function assertPointerReachable(locator: Locator, label: string) {
-  await locator.scrollIntoViewIfNeeded();
-  await expect(locator).toBeInViewport();
+  // Scroll synchronously without Playwright's stability wait: the simulation
+  // clock re-renders every second, which can keep scrollIntoViewIfNeeded waiting.
+  await locator.evaluate(element => element.scrollIntoView({
+    block: 'center',
+    inline: 'nearest',
+    behavior: 'instant'
+  }));
   const hit = await locator.evaluate(element => {
     const rect = element.getBoundingClientRect();
-    const target = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const centerInViewport = x >= 0 && y >= 0 && x < window.innerWidth && y < window.innerHeight;
+    const target = centerInViewport ? document.elementFromPoint(x, y) : null;
     return {
+      centerInViewport,
       receivesPointer: Boolean(target && (target === element || element.contains(target))),
       hitTag: target?.tagName ?? null,
       hitId: target?.id ?? null,
       hitClass: target && typeof target.className === 'string' ? target.className : null
     };
   });
-  expect(hit.receivesPointer, `${label} is intercepted at its center: ${JSON.stringify(hit)}`).toBe(true);
+  expect(
+    hit.centerInViewport && hit.receivesPointer,
+    `${label} is not pointer-reachable at its center: ${JSON.stringify(hit)}`
+  ).toBe(true);
 }
 
 
