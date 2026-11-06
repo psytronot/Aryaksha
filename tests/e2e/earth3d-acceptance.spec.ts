@@ -905,6 +905,16 @@ test('Earth 3D reference dashboard reflows to a globe-first mobile layout', asyn
   await page.getByRole('navigation', { name: 'Mobile navigation' })
     .getByRole('button', { name: 'Simulation', exact: true }).click();
 
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await expect(page.locator('.welcome-hero')).toHaveCount(0);
+  await expect(page.locator('.about-kakshiya')).toHaveCount(0);
+  await expect(page.locator('.simulation-page > .page-header')).toBeHidden();
+  const workspace = page.locator('.earth3d-workspace');
+  await expect(workspace).toBeInViewport({ ratio: 0.1 });
+  const workspaceBounds = await workspace.boundingBox();
+  expect(workspaceBounds).not.toBeNull();
+  expect(workspaceBounds!.y).toBeLessThan(220);
+
   const canvas = page.locator('.earth3d-canvas');
   const setup = page.getByTestId('earth3d-mission-setup');
   const controls = page.getByTestId('earth3d-simulation-controls');
@@ -913,6 +923,16 @@ test('Earth 3D reference dashboard reflows to a globe-first mobile layout', asyn
   await expect(page.locator('[aria-label="Camera modes"]').getByRole('button', { name: 'EARTH', exact: true })).toHaveClass(/active/);
   await expect(setup).toBeHidden();
   await expect(controls).toBeHidden();
+  await expect(canvas.locator('canvas')).toBeInViewport({ ratio: 0.8 });
+  const initialCanvasBounds = await canvas.boundingBox();
+  expect(initialCanvasBounds).not.toBeNull();
+  expect(initialCanvasBounds!.y).toBeGreaterThanOrEqual(0);
+  expect(initialCanvasBounds!.y + initialCanvasBounds!.height).toBeLessThanOrEqual(844);
+
+  const mobileScreenshot = testInfo.outputPath('earth3d-reference-dashboard-mobile-390x844.png');
+  await page.screenshot({ path: mobileScreenshot, animations: 'disabled' });
+  await testInfo.attach('earth3d-reference-dashboard-mobile-390x844.png', { path: mobileScreenshot, contentType: 'image/png' });
+
   await page.getByRole('button', { name: 'Show mission data panels' }).click();
   await expect(setup).toBeVisible();
   await expect(controls).toBeVisible();
@@ -938,14 +958,6 @@ test('Earth 3D reference dashboard reflows to a globe-first mobile layout', asyn
   expect(canvasBounds).not.toBeNull();
   expect(setupBounds).not.toBeNull();
   expect(setupBounds!.y).toBeGreaterThanOrEqual(canvasBounds!.y + canvasBounds!.height - 1);
-
-  const mobileScreenshot = testInfo.outputPath('earth3d-reference-dashboard-mobile-390x844.png');
-  // Keep this as a viewport capture (390×844), not a full-height element image.
-  // The WebGL canvas remains animated, so page.screenshot avoids the element
-  // stability wait while preserving the actual mobile composition.
-  await page.getByRole('region', { name: 'Interactive 3D Earth with trackable spacecraft' }).scrollIntoViewIfNeeded();
-  await page.screenshot({ path: mobileScreenshot, animations: 'disabled' });
-  await testInfo.attach('earth3d-reference-dashboard-mobile-390x844.png', { path: mobileScreenshot, contentType: 'image/png' });
 
   await setup.getByRole('tab', { name: 'CUSTOM ORBIT' }).click();
   await setup.getByRole('spinbutton', { name: 'Mission setup altitude' }).fill('650');
