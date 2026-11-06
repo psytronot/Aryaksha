@@ -318,3 +318,32 @@ html.earth3d-active pwa-install {
 @media(min-width:1351px) {
   .earth3d-workspace { grid-template-columns:minmax(230px,260px) minmax(0,1fr) minmax(245px,275px); }
 }
+
+
+/* Keep the working globe visible in the first mobile viewport while retaining
+   the live NASA imagery provenance line. The mission strip duplicates the
+   simulated-object identity already shown in the Earth 3D topbar. */
+@media (max-width: 800px) {
+  .main:has(.simulation-page) > .mission-strip { display: none; }
+  .simulation-page { padding-top: 6px; }
+  .simulation-page .scene-wrap > .page { padding: 0 0 20px; }
+  .simulation-page .scene-wrap > .page > .page-header { margin: 0 0 6px; }
+  .simulation-page .scene-wrap > .page > .page-header h1 {
+    margin: 2px 0;
+    font-size: 18px;
+    line-height: 1.1;
+  }
+  .simulation-page .scene-wrap > .page > .page-header p,
+  .simulation-page .scene-wrap > .page > .page-header > div > small:last-child {
+    display: none;
+  }
+  .simulation-page .scene-wrap > .page > .page-header .earth3d-imagery-status {
+    display: block;
+    margin-top: 2px;
+    font-size: 7px;
+  }
+}
+
+@media (max-width: 500px) {
+  .earth-camera-controls { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
