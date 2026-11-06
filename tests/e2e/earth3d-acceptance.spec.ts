@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
 import { EARTH_CAMERA_MARGIN, fitCameraDistance, MOON_CAMERA_MARGIN, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO } from '../../src/earth3dMath';
 
 async function disableContextCoach(page: import('@playwright/test').Page) {
@@ -9,6 +9,22 @@ async function disableContextCoach(page: import('@playwright/test').Page) {
   const coachOff = page.getByRole('button', { name: /COACH OFF/i });
   // The setting is intentionally hidden in the compact mobile header.
   if (await coachOff.count()) await expect(coachOff).toHaveAttribute('aria-pressed', 'false');
+}
+
+async function assertPointerReachable(locator: Locator, label: string) {
+  await locator.scrollIntoViewIfNeeded();
+  await expect(locator).toBeInViewport();
+  const hit = await locator.evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    const target = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    return {
+      receivesPointer: Boolean(target && (target === element || element.contains(target))),
+      hitTag: target?.tagName ?? null,
+      hitId: target?.id ?? null,
+      hitClass: target && typeof target.className === 'string' ? target.className : null
+    };
+  });
+  expect(hit.receivesPointer, `${label} is intercepted at its center: ${JSON.stringify(hit)}`).toBe(true);
 }
 
 
@@ -595,6 +611,7 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   const speed = simulationControls.getByRole("group", { name: "Simulation playback speed" });
   const speed60 = speed.getByRole("button", { name: "Set playback speed 60x" });
   await expect(speed60).toBeVisible();
+  await assertPointerReachable(speed60, '60x playback-speed control');
   await speed60.click();
   await expect(speed60).toBeInViewport();
   await expect(speed.getByRole("button", { name: "Set playback speed 60x" })).toHaveAttribute("aria-pressed", "true");
@@ -818,6 +835,7 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   await setup.getByRole('button', { name: 'Start simulation' }).click();
   const pauseControl = page.getByRole('button', { name: 'Pause simulation' });
   await expect(pauseControl).toBeVisible();
+  await assertPointerReachable(pauseControl, 'pause simulation control');
   // Exercise the control after live telemetry has advanced, not only on its
   // first stable frame.
   const dashboardClock = controls.locator('.earth3d-simulation-clock span');
@@ -827,6 +845,7 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   const desktopSpeed = page.getByRole('group', { name: 'Simulation playback speed' });
   const desktopSpeed60 = desktopSpeed.getByRole('button', { name: 'Set playback speed 60x' });
   await expect(desktopSpeed60).toBeVisible();
+  await assertPointerReachable(desktopSpeed60, 'desktop 60x playback-speed control');
   await desktopSpeed60.click();
   await expect(desktopSpeed60).toBeInViewport();
   await expect(controls.getByRole('group', { name: 'Simulation playback speed' }).getByRole('button', { name: 'Set playback speed 60x' })).toHaveAttribute('aria-pressed', 'true');
