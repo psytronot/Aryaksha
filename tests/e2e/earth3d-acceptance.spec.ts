@@ -12,14 +12,14 @@ async function disableContextCoach(page: import('@playwright/test').Page) {
 }
 
 async function assertPointerReachable(locator: Locator, label: string) {
-  // Scroll synchronously without Playwright's stability wait: the simulation
-  // clock re-renders every second, which can keep scrollIntoViewIfNeeded waiting.
-  await locator.evaluate(element => element.scrollIntoView({
-    block: 'center',
-    inline: 'nearest',
-    behavior: 'instant'
-  }));
+  // Scroll and hit-test the same DOM node in one browser task. Separate
+  // locator.evaluate calls can race with the simulation's 4 Hz parent updates.
   const hit = await locator.evaluate(element => {
+    element.scrollIntoView({
+      block: 'center',
+      inline: 'nearest',
+      behavior: 'instant'
+    });
     const rect = element.getBoundingClientRect();
     const x = rect.left + rect.width / 2;
     const y = rect.top + rect.height / 2;
@@ -602,6 +602,7 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   await timeline.getByRole("button", { name: "Advance simulation by 10 seconds" }).click();
   await expect(clock).toContainText("T+ 10.0 s");
 
+  await simulationControls.getByRole("group", { name: "Simulation playback speed" }).getByRole("button", { name: "Set playback speed 1x" }).click();
   await simulationControls.getByRole("button", { name: "Play simulation" }).click();
   await expect(simulationControls.getByRole("button", { name: "Pause simulation" })).toBeVisible();
   // Let several 250 ms simulation ticks reach the scene before exercising
@@ -844,6 +845,9 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   await expect(raan).toHaveValue('15');
   await expect(bottom.getByText('98.20°', { exact: true })).toBeVisible();
 
+  // Keep the simulation running long enough to exercise the live pause control
+  // under CI load; playback speed is tested separately below.
+  await controls.getByRole('group', { name: 'Simulation playback speed' }).getByRole('button', { name: 'Set playback speed 1x' }).click();
   await setup.getByRole('button', { name: 'Start simulation' }).click();
   const pauseControl = page.getByRole('button', { name: 'Pause simulation' });
   await expect(pauseControl).toBeVisible();
