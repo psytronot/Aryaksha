@@ -169,12 +169,22 @@ function App() {
   };
 
   return (
-    <div className="app-shell">
+    <div className={view === 'simulation' ? 'app-shell simulation-active' : 'app-shell'}>
       <header className="topbar">
         <button className="brand" onClick={() => { setView('mission'); setMobileNavOpen(false); }}>
           <span className="brand-mark"><AryakshaMark size={34} /></span>
           <span><strong>ARYAKSHA</strong><small>SPACE EXPLORATION LAB</small></span>
         </button>
+        {view === 'simulation' && (
+          <nav className="simulation-primary-nav" aria-label="Simulation workspace navigation" data-testid="simulation-primary-nav">
+            <button type="button" onClick={() => setView('mission')}><Target size={15} /><span>Mission</span></button>
+            <button type="button" onClick={() => setView('spacecraft')}><Satellite size={15} /><span>Spacecraft</span></button>
+            <button type="button" onClick={() => setView('orbit')}><Orbit size={15} /><span>Orbits</span></button>
+            <button type="button" aria-current="page" onClick={() => setView('simulation')}><Globe2 size={15} /><span>Earth 3D</span></button>
+            <button type="button" onClick={() => document.getElementById('earth3d-ground-track-panel')?.scrollIntoView({ block: 'start', behavior: 'smooth' })}><Globe2 size={15} /><span>Ground Track</span></button>
+            <button type="button" onClick={() => setView('instructions')}><BookOpen size={15} /><span>Docs</span></button>
+          </nav>
+        )}
         <div className="engine-status"><span /> PHYSICS ENGINE <b>READY</b></div>
         <div className="topbar-actions"><button className="mobile-menu-button" type="button" aria-label={mobileNavOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={mobileNavOpen} aria-controls="mobile-navigation" onClick={() => setMobileNavOpen(v => !v)}><Layers3 size={17} /></button><button className={coachEnabled ? "coach-setting active" : "coach-setting"} type="button" aria-pressed={coachEnabled} onClick={() => setCoachEnabled(v => !v)}><CircleHelp size={15} /><span>COACH {coachEnabled ? "ON" : "OFF"}</span></button><button className="top-help" onClick={() => { setView('instructions'); setMobileNavOpen(false); }}><BookOpen size={16} /> <span>HELP · DEFINITIONS</span></button></div>
       </header>
@@ -414,7 +424,7 @@ function SimulationView({ model, current, seconds, duration, running, setRunning
       </div>
     </div>
     <div className="earth3d-bottom-panels" data-testid="earth3d-bottom-panels">
-      <div className="earth3d-bottom-panel earth3d-ground-track-panel"><GroundTrackMap model={model} current={current} /></div>
+      <div id="earth3d-ground-track-panel" className="earth3d-bottom-panel earth3d-ground-track-panel"><GroundTrackMap model={model} current={current} /></div>
       <Card title="Orbit Parameters" icon={<Orbit size={17} />}>
         <div className="earth3d-bottom-metrics">
           <div><small>APOGEE</small><b>{formatNumber(orbitMetrics.ra - EARTH_RADIUS, 1)} km</b></div>
