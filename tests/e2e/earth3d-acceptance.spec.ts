@@ -888,7 +888,7 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   });
   const editMission = page.getByTestId('earth3d-mission-setup')
     .getByRole('button', { name: 'Edit mission requirements' });
-  await expect(editMission).toBeInViewport();
+  await assertPointerReachable(editMission, 'edit mission requirements control');
   await editMission.click();
   await expect(page.getByRole('heading', { name: 'Start with the engineering problem.' })).toBeVisible();
   expect(pageErrors).toEqual([]);
