@@ -952,3 +952,78 @@ test('Earth 3D reference dashboard reflows to a globe-first mobile layout', asyn
   await expect(setup.getByRole('spinbutton', { name: 'Mission setup altitude' })).toHaveValue('650');
   expect(pageErrors).toEqual([]);
 });
+
+
+test('Earth 3D desktop shell matches the reference three-column mission-control hierarchy', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1536, height: 1024 });
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.goto('/');
+  await disableContextCoach(page);
+  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const primaryNav = page.getByTestId('simulation-primary-nav');
+  const canvas = page.locator('.earth3d-canvas');
+  const bottom = page.getByTestId('earth3d-bottom-panels');
+  await expect(primaryNav).toBeVisible();
+  await expect(primaryNav.getByRole('button', { name: 'Earth 3D', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('.sidebar')).toBeHidden();
+  await expect(page.locator('.mission-strip')).toBeHidden();
+  await expect(page.locator('.simulation-page > .page-header')).toBeHidden();
+  await expect(canvas.locator('canvas')).toBeVisible();
+  await expect(bottom.getByText('2D Ground Track', { exact: true })).toBeVisible();
+  await expect(bottom.getByText('Orbit Parameters', { exact: true })).toBeVisible();
+  await expect(bottom.getByText('Mission Info', { exact: true })).toBeVisible();
+
+  const canvasBounds = await canvas.boundingBox();
+  const bottomBounds = await bottom.boundingBox();
+  expect(canvasBounds).not.toBeNull();
+  expect(bottomBounds).not.toBeNull();
+  expect(canvasBounds!.width).toBeGreaterThan(700);
+  expect(bottomBounds!.y).toBeLessThan(850);
+
+  const screenshot = testInfo.outputPath('earth3d-reference-desktop-topnav-1536x1024.png');
+  await page.screenshot({ path: screenshot, animations: 'disabled' });
+  await testInfo.attach('earth3d-reference-desktop-topnav-1536x1024.png', { path: screenshot, contentType: 'image/png' });
+
+  await primaryNav.getByRole('button', { name: 'Ground Track', exact: true }).click();
+  await expect(page.locator('#earth3d-ground-track-panel')).toBeInViewport();
+  expect(pageErrors).toEqual([]);
+});
+
+test('Earth 3D mobile shell keeps the globe visible and retains navigation in the drawer', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.goto('/');
+  await disableContextCoach(page);
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page.getByRole('navigation', { name: 'Mobile navigation' })
+    .getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const canvas = page.locator('.earth3d-canvas');
+  await expect(canvas.locator('canvas')).toBeVisible();
+  await expect(page.locator('.sidebar')).toBeHidden();
+  await expect(page.locator('.mission-strip')).toBeHidden();
+  await expect(page.locator('.simulation-page > .page-header')).toBeHidden();
+  await expect(page.getByTestId('simulation-primary-nav')).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Open navigation' })).toBeVisible();
+
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds!.y).toBeLessThan(844);
+  expect(bounds!.y + bounds!.height).toBeGreaterThan(0);
+
+  const screenshot = testInfo.outputPath('earth3d-reference-mobile-topnav-390x844.png');
+  await page.screenshot({ path: screenshot, animations: 'disabled' });
+  await testInfo.attach('earth3d-reference-mobile-topnav-390x844.png', { path: screenshot, contentType: 'image/png' });
+
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  const mobileNav = page.getByRole('navigation', { name: 'Mobile navigation' });
+  await expect(mobileNav).toBeVisible();
+  await mobileNav.getByRole('button', { name: 'Mission', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Start with the engineering problem.' })).toBeVisible();
+  expect(pageErrors).toEqual([]);
+});
