@@ -599,7 +599,7 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   await expect(simulationControls).toBeVisible();
   const canvasLayer = page.locator(".earth3d-canvas");
   await expect.poll(() => canvasLayer.evaluate(element => getComputedStyle(element).position)).toBe("relative");
-  await expect.poll(() => timeline.evaluate(element => getComputedStyle(element).zIndex)).toBe("8");
+  await expect.poll(() => timeline.evaluate(element => getComputedStyle(element).zIndex)).toBe("9");
   const clock = timeline.locator(".earth3d-timeline-heading b");
   await expect(clock).toContainText("T+ 0.0 s");
   await timeline.getByRole("button", { name: "Advance simulation by 10 seconds" }).click();
@@ -984,17 +984,33 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   await expect(page.locator('.sidebar')).toBeHidden();
   await expect(page.locator('.mission-strip')).toBeHidden();
   await expect(page.locator('.simulation-page > .page-header')).toBeHidden();
+  const provenanceHeader = page.locator('.earth3d-page-header');
+  await expect(provenanceHeader).toBeVisible();
+  await expect(provenanceHeader.locator('[data-testid="earth-imagery-status"]')).toContainText('NASA Blue Marble');
+  await expect(provenanceHeader).toContainText('Scale disclosure:');
   await expect(canvas.locator('canvas')).toBeVisible();
   await expect(bottom.getByText('2D Ground Track', { exact: true })).toBeVisible();
   await expect(bottom.getByText('Orbit Parameters', { exact: true })).toBeVisible();
   await expect(bottom.getByText('Mission Info', { exact: true })).toBeVisible();
 
   const canvasBounds = await canvas.boundingBox();
+  const workspaceBounds = await page.locator('.earth3d-workspace').boundingBox();
   const bottomBounds = await bottom.boundingBox();
+  const legendBounds = await page.locator('.earth3d-bottom-bar').boundingBox();
+  const timelineBounds = await page.locator('.earth3d-timeline').boundingBox();
   expect(canvasBounds).not.toBeNull();
+  expect(workspaceBounds).not.toBeNull();
   expect(bottomBounds).not.toBeNull();
+  expect(legendBounds).not.toBeNull();
+  expect(timelineBounds).not.toBeNull();
   expect(canvasBounds!.width).toBeGreaterThan(700);
+  expect(canvasBounds!.height).toBeGreaterThan(600);
+  expect(workspaceBounds!.height).toBeLessThanOrEqual(681);
   expect(bottomBounds!.y).toBeLessThan(850);
+  expect(legendBounds!.x).toBeGreaterThanOrEqual(canvasBounds!.x);
+  expect(timelineBounds!.x).toBeGreaterThanOrEqual(canvasBounds!.x);
+  expect(legendBounds!.x + legendBounds!.width).toBeLessThanOrEqual(canvasBounds!.x + canvasBounds!.width + 1);
+  expect(timelineBounds!.x + timelineBounds!.width).toBeLessThanOrEqual(canvasBounds!.x + canvasBounds!.width + 1);
 
   const screenshot = testInfo.outputPath('earth3d-reference-desktop-topnav-1536x1024.png');
   await page.screenshot({ path: screenshot, animations: 'disabled' });
