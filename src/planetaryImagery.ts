@@ -147,7 +147,7 @@ function makeCloudOpacityTexture(bitmap: ImageBitmap, source: PlanetarySource): 
   texture.userData = {
     sourceId: source.id, sourceUrl: source.url, assetPath: source.assetPath, sourcePage: source.page,
     credit: source.credit, historicalDate: source.historicalDate || null,
-    assetPath: source.assetPath, alphaDerivation: 'inverse grayscale luminance from NASA SVS print JPEG'
+    alphaDerivation: 'inverse grayscale luminance from NASA SVS print JPEG'
   };
   texture.addEventListener('dispose', () => { canvas.width = 0; canvas.height = 0; });
   texture.needsUpdate = true;
