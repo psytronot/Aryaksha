@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 type PlanetarySource = {
-  id: string; url: string; page: string; credit: string;
+  id: string; url: string; assetPath: string; page: string; credit: string;
   width: number; height: number; historicalDate?: string; productYear?: string;
 };
 
@@ -9,6 +9,7 @@ export const PLANETARY_IMAGERY_SOURCES = {
   clouds: {
     id: 'nasa-noaa-cpc-clouds-2014-06-02',
     url: 'https://svs.gsfc.nasa.gov/vis/a000000/a004400/a004439/flat_cpc_clouds_8192x4096.01000_print.jpg',
+    assetPath: '/api/imagery/nasa-noaa-cpc-clouds-2014-06-02',
     page: 'https://svs.gsfc.nasa.gov/4439/',
     credit: 'NASA Scientific Visualization Studio; NOAA Climate Prediction Center',
     width: 1024, height: 512, historicalDate: '2014-06-02T00:00:00Z'
@@ -16,6 +17,7 @@ export const PLANETARY_IMAGERY_SOURCES = {
   moonColor: {
     id: 'nasa-lroc-color-2025',
     url: 'https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_2k.jpg',
+    assetPath: '/api/imagery/nasa-lroc-color-2025',
     page: 'https://svs.gsfc.nasa.gov/4720/',
     credit: 'NASA Scientific Visualization Studio; LRO LROC WAC; Ernie Wright',
     width: 2048, height: 1024, productYear: '2025'
@@ -23,6 +25,7 @@ export const PLANETARY_IMAGERY_SOURCES = {
   moonElevation: {
     id: 'nasa-lola-elevation-2019',
     url: 'https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/ldem_3_8bit.jpg',
+    assetPath: '/api/imagery/nasa-lola-elevation-2019',
     page: 'https://svs.gsfc.nasa.gov/4720/',
     credit: 'NASA Scientific Visualization Studio; Lunar Reconnaissance Orbiter LOLA',
     width: 1024, height: 512, productYear: '2019'
@@ -46,8 +49,8 @@ function abortError(): DOMException {
 }
 
 async function loadBitmap(source: PlanetarySource, signal: AbortSignal): Promise<ImageBitmap> {
-  const response = await fetch(source.url, {
-    mode: 'cors', credentials: 'omit', cache: 'force-cache', signal
+  const response = await fetch(source.assetPath, {
+    mode: 'same-origin', credentials: 'same-origin', cache: 'force-cache', signal
   });
   if (!response.ok) throw new Error(source.id + ': HTTP ' + response.status);
   const contentType = response.headers.get('content-type') || '';
@@ -91,7 +94,7 @@ function configureTexture(texture: THREE.Texture, bitmap: ImageBitmap, source: P
   texture.minFilter = THREE.LinearMipmapLinearFilter;
   texture.magFilter = THREE.LinearFilter;
   texture.userData = {
-    sourceId: source.id, sourceUrl: source.url, sourcePage: source.page,
+    sourceId: source.id, sourceUrl: source.url, assetPath: source.assetPath, sourcePage: source.page,
     credit: source.credit, historicalDate: source.historicalDate || null,
     productYear: source.productYear || null
   };
@@ -142,9 +145,9 @@ function makeCloudOpacityTexture(bitmap: ImageBitmap, source: PlanetarySource): 
   texture.minFilter = THREE.LinearMipmapLinearFilter;
   texture.magFilter = THREE.LinearFilter;
   texture.userData = {
-    sourceId: source.id, sourceUrl: source.url, sourcePage: source.page,
+    sourceId: source.id, sourceUrl: source.url, assetPath: source.assetPath, sourcePage: source.page,
     credit: source.credit, historicalDate: source.historicalDate || null,
-    alphaDerivation: 'inverse grayscale luminance from NASA SVS print JPEG'
+    assetPath: source.assetPath, alphaDerivation: 'inverse grayscale luminance from NASA SVS print JPEG'
   };
   texture.addEventListener('dispose', () => { canvas.width = 0; canvas.height = 0; });
   texture.needsUpdate = true;

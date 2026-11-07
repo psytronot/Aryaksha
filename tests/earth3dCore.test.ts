@@ -230,12 +230,15 @@ describe('NASA cloud and lunar imagery source and fallback behavior', () => {
   it('pins CPC cloud, LROC color and LOLA elevation sources with provenance', () => {
     expect(PLANETARY_IMAGERY_SOURCES.clouds.id).toBe('nasa-noaa-cpc-clouds-2014-06-02');
     expect(PLANETARY_IMAGERY_SOURCES.clouds.url).toContain('flat_cpc_clouds_8192x4096.01000_print.jpg');
+    expect(PLANETARY_IMAGERY_SOURCES.clouds.assetPath).toBe('/api/imagery/nasa-noaa-cpc-clouds-2014-06-02');
     expect(PLANETARY_IMAGERY_SOURCES.clouds.credit).toContain('NOAA Climate Prediction Center');
     expect(PLANETARY_IMAGERY_SOURCES.clouds.historicalDate).toBe('2014-06-02T00:00:00Z');
     expect(PLANETARY_IMAGERY_SOURCES.moonColor.id).toBe('nasa-lroc-color-2025');
     expect(PLANETARY_IMAGERY_SOURCES.moonColor.url).toContain('lroc_color_2k.jpg');
+    expect(PLANETARY_IMAGERY_SOURCES.moonColor.assetPath).toBe('/api/imagery/nasa-lroc-color-2025');
     expect(PLANETARY_IMAGERY_SOURCES.moonElevation.id).toBe('nasa-lola-elevation-2019');
     expect(PLANETARY_IMAGERY_SOURCES.moonElevation.url).toContain('ldem_3_8bit.jpg');
+    expect(PLANETARY_IMAGERY_SOURCES.moonElevation.assetPath).toBe('/api/imagery/nasa-lola-elevation-2019');
   });
 
   it('turns the white cloud-map background transparent while retaining darker cloud detail', () => {
@@ -247,14 +250,21 @@ describe('NASA cloud and lunar imagery source and fallback behavior', () => {
     expect(cloudAlphaFromLuminance(Number.NaN)).toBe(0);
   });
 
-  it('retains deterministic fallback layers when NASA SVS requests fail CORS or network validation', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('CORS blocked')));
+  it('retains deterministic fallback layers when the same-origin NASA imagery proxy is unavailable', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError('same-origin imagery proxy unavailable'));
+    vi.stubGlobal('fetch', fetchMock);
     try {
       const result = await loadPlanetaryImagery(new AbortController().signal);
       expect(result.clouds).toBeNull();
       expect(result.moonColor).toBeNull();
       expect(result.moonElevation).toBeNull();
       expect(Object.keys(result.failures).sort()).toEqual(['clouds', 'moonColor', 'moonElevation']);
+      expect(fetchMock.mock.calls.map(([url]) => url).sort()).toEqual([
+        '/api/imagery/nasa-lola-elevation-2019',
+        '/api/imagery/nasa-lroc-color-2025',
+        '/api/imagery/nasa-noaa-cpc-clouds-2014-06-02'
+      ]);
+      expect(fetchMock.mock.calls.every(([, init]) => init?.mode === 'same-origin' && init?.credentials === 'same-origin')).toBe(true);
     } finally {
       vi.unstubAllGlobals();
     }
