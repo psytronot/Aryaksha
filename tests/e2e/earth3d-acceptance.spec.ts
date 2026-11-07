@@ -599,7 +599,7 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   await expect(simulationControls).toBeVisible();
   const canvasLayer = page.locator(".earth3d-canvas");
   await expect.poll(() => canvasLayer.evaluate(element => getComputedStyle(element).position)).toBe("relative");
-  await expect.poll(() => timeline.evaluate(element => getComputedStyle(element).zIndex)).toBe("8");
+  await expect.poll(() => timeline.evaluate(element => getComputedStyle(element).zIndex)).toBe("9");
   const clock = timeline.locator(".earth3d-timeline-heading b");
   await expect(clock).toContainText("T+ 0.0 s");
   await timeline.getByRole("button", { name: "Advance simulation by 10 seconds" }).click();
@@ -984,23 +984,71 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   await expect(page.locator('.sidebar')).toBeHidden();
   await expect(page.locator('.mission-strip')).toBeHidden();
   await expect(page.locator('.simulation-page > .page-header')).toBeHidden();
+  const provenanceHeader = page.locator('.earth3d-page-header');
+  await expect(provenanceHeader).toBeVisible();
+  await expect(provenanceHeader.locator('[data-testid="earth-imagery-status"]')).toContainText('NASA Blue Marble');
+  await expect(provenanceHeader).toContainText('Scale disclosure:');
   await expect(canvas.locator('canvas')).toBeVisible();
   await expect(bottom.getByText('2D Ground Track', { exact: true })).toBeVisible();
   await expect(bottom.getByText('Orbit Parameters', { exact: true })).toBeVisible();
   await expect(bottom.getByText('Mission Info', { exact: true })).toBeVisible();
 
   const canvasBounds = await canvas.boundingBox();
+  const workspaceBounds = await page.locator('.earth3d-workspace').boundingBox();
   const bottomBounds = await bottom.boundingBox();
+  const legendBounds = await page.locator('.earth3d-bottom-bar').boundingBox();
+  const timelineBounds = await page.locator('.earth3d-timeline').boundingBox();
   expect(canvasBounds).not.toBeNull();
+  expect(workspaceBounds).not.toBeNull();
   expect(bottomBounds).not.toBeNull();
+  expect(legendBounds).not.toBeNull();
+  expect(timelineBounds).not.toBeNull();
   expect(canvasBounds!.width).toBeGreaterThan(700);
+  expect(canvasBounds!.height).toBeGreaterThan(600);
+  expect(workspaceBounds!.height).toBeLessThanOrEqual(681);
   expect(bottomBounds!.y).toBeLessThan(850);
+  expect(legendBounds!.x).toBeGreaterThanOrEqual(canvasBounds!.x);
+  expect(timelineBounds!.x).toBeGreaterThanOrEqual(canvasBounds!.x);
+  expect(legendBounds!.x + legendBounds!.width).toBeLessThanOrEqual(canvasBounds!.x + canvasBounds!.width + 1);
+  expect(timelineBounds!.x + timelineBounds!.width).toBeLessThanOrEqual(canvasBounds!.x + canvasBounds!.width + 1);
 
   const screenshot = testInfo.outputPath('earth3d-reference-desktop-topnav-1536x1024.png');
   await page.screenshot({ path: screenshot, animations: 'disabled' });
   await testInfo.attach('earth3d-reference-desktop-topnav-1536x1024.png', { path: screenshot, contentType: 'image/png' });
 
-  await primaryNav.getByRole('button', { name: 'Ground Track', exact: true }).click();
+  const groundTrackMetrics = await primaryNav.evaluate(nav => {
+    const button = Array.from(nav.querySelectorAll('button'))
+      .find(candidate => candidate.textContent?.trim() === 'Ground Track');
+    if (!button) return null;
+    const rect = button.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const hit = document.elementFromPoint(x, y);
+    const hitButton = hit?.closest('button');
+    return {
+      text: button.textContent?.trim(),
+      x: rect.left,
+      y: rect.top,
+      width: rect.width,
+      height: rect.height,
+      inViewport: rect.left >= 0 && rect.top >= 0
+        && rect.right <= window.innerWidth && rect.bottom <= window.innerHeight,
+      receivesPointer: hitButton === button
+        && hitButton.closest('[data-testid="simulation-primary-nav"]') === nav
+    };
+  });
+  expect(groundTrackMetrics).not.toBeNull();
+  expect(groundTrackMetrics!.text).toBe('Ground Track');
+  expect(groundTrackMetrics!.width).toBeGreaterThan(0);
+  expect(groundTrackMetrics!.height).toBeGreaterThan(0);
+  expect(groundTrackMetrics!.inViewport).toBe(true);
+  expect(groundTrackMetrics!.receivesPointer).toBe(true);
+  // The sticky topbar is already in the viewport. Query its DOM geometry
+  // without Playwright's auto-scroll path, then send a real pointer event.
+  await page.mouse.click(
+    groundTrackMetrics!.x + groundTrackMetrics!.width / 2,
+    groundTrackMetrics!.y + groundTrackMetrics!.height / 2
+  );
   await expect(page.locator('#earth3d-ground-track-panel')).toBeInViewport();
   expect(pageErrors).toEqual([]);
 });
