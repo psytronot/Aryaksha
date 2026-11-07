@@ -184,8 +184,10 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   await expect.poll(() => workspace.evaluate(element =>
     getComputedStyle(element).gridTemplateColumns.trim().split(/\s+/).length
   )).toBe(2);
+  // The 390px emulated viewport leaves a 318px WebGL content box after the
+  // app's 8px page gutters and the scene border; assert the measured usable width.
   await expect.poll(() => canvas.evaluate(element => element.getBoundingClientRect().width))
-    .toBeGreaterThanOrEqual(320);
+    .toBeGreaterThanOrEqual(318);
 
   const initial = await canvas.evaluate((element: HTMLCanvasElement) => {
     const gl = element.getContext('webgl2') ?? element.getContext('webgl');
@@ -868,6 +870,13 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   await expect(desktopSpeed60).toBeInViewport();
   await expect(controls.getByRole('group', { name: 'Simulation playback speed' }).getByRole('button', { name: 'Set playback speed 60x' })).toHaveAttribute('aria-pressed', 'true');
 
+  // Capture the full Earth disc, not the default TRACK close-up.
+  const referenceEarthCamera = page.locator('.earth-camera-controls').getByRole('button', { name: 'EARTH', exact: true });
+  await referenceEarthCamera.click();
+  const referenceEarthCanvas = page.locator('.earth3d-canvas');
+  await expect(referenceEarthCanvas).toHaveAttribute('data-camera-mode', 'EARTH');
+  await expect.poll(async () => Number(await referenceEarthCanvas.getAttribute('data-camera-distance'))).toBeGreaterThan(5.15);
+
   const missionScreenshot = testInfo.outputPath('earth3d-reference-dashboard-desktop-1536x1024.png');
   // Capture the actual 1536×1024 browser viewport. Element screenshots wait for
   // layout stability; the continuously rendered WebGL canvas never becomes
@@ -966,6 +975,10 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   const primaryNav = page.getByTestId('simulation-primary-nav');
   const canvas = page.locator('.earth3d-canvas');
   const bottom = page.getByTestId('earth3d-bottom-panels');
+  const earthCamera = page.locator('.earth-camera-controls').getByRole('button', { name: 'EARTH', exact: true });
+  await earthCamera.click();
+  await expect(canvas).toHaveAttribute('data-camera-mode', 'EARTH');
+  await expect.poll(async () => Number(await canvas.getAttribute('data-camera-distance'))).toBeGreaterThan(5.15);
   await expect(primaryNav).toBeVisible();
   await expect(primaryNav.getByRole('button', { name: 'Earth 3D', exact: true })).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('.sidebar')).toBeHidden();
