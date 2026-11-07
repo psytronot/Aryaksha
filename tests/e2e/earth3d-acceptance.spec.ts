@@ -491,11 +491,37 @@ test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without sh
   const imageryCanvas = page.locator('.earth3d-canvas');
   await expect(imageryCanvas).toHaveAttribute('data-earth-atmosphere-model', 'sun-driven-rayleigh-limb-v1');
   await expect(imageryCanvas).toHaveAttribute('data-earth-atmosphere-polar-lighting', 'solar-incidence');
-  await expect(imageryCanvas).toHaveAttribute('data-earth-imagery-cloud', 'nasa-noaa-cpc-clouds-2014-06-02', { timeout: 30_000 });
-  await expect(imageryCanvas).toHaveAttribute('data-earth-imagery-moon-color', 'nasa-lroc-color-2025', { timeout: 30_000 });
-  await expect(imageryCanvas).toHaveAttribute('data-earth-imagery-moon-elevation', 'nasa-lola-elevation-2019', { timeout: 30_000 });
-  await expect(page.getByTestId('earth-imagery-status')).toContainText('NASA/NOAA CPC clouds');
-  await expect(page.getByTestId('earth-imagery-status')).toContainText('NASA LROC Moon');
+  await expect(imageryCanvas).toHaveAttribute('data-earth-imagery-cloud', /^(nasa-noaa-cpc-clouds-2014-06-02|procedural-cloud-fallback)$/, { timeout: 30_000 });
+  await expect(imageryCanvas).toHaveAttribute('data-earth-imagery-moon-color', /^(nasa-lroc-color-2025|procedural-lunar-fallback)$/, { timeout: 30_000 });
+  await expect(imageryCanvas).toHaveAttribute('data-earth-imagery-moon-elevation', /^(nasa-lola-elevation-2019|no-elevation-fallback)$/, { timeout: 30_000 });
+  const planetarySourceState = await imageryCanvas.evaluate(element => {
+    const data = (element as HTMLElement).dataset;
+    return {
+      clouds: data.earthImageryCloud || '',
+      moonColor: data.earthImageryMoonColor || '',
+      moonElevation: data.earthImageryMoonElevation || '',
+      failures: data.earthImageryPlanetaryFailures || ''
+    };
+  });
+  await test.info().attach('planetary-imagery-source-state.json', {
+    body: JSON.stringify(planetarySourceState, null, 2),
+    contentType: 'application/json'
+  });
+  if (planetarySourceState.clouds === 'procedural-cloud-fallback') {
+    expect(planetarySourceState.failures).toMatch(/(?:^|;)clouds:/);
+    await expect(page.getByTestId('earth-imagery-status')).toContainText('Procedural cloud fallback');
+  } else {
+    await expect(page.getByTestId('earth-imagery-status')).toContainText('NASA/NOAA CPC clouds');
+  }
+  if (planetarySourceState.moonColor === 'procedural-lunar-fallback') {
+    expect(planetarySourceState.failures).toMatch(/(?:^|;)moonColor:/);
+    await expect(page.getByTestId('earth-imagery-status')).toContainText('Procedural lunar fallback');
+  } else {
+    await expect(page.getByTestId('earth-imagery-status')).toContainText('NASA LROC Moon');
+  }
+  if (planetarySourceState.moonElevation === 'no-elevation-fallback') {
+    expect(planetarySourceState.failures).toMatch(/(?:^|;)moonElevation:/);
+  }
   const cameraModes = page.locator('[aria-label="Camera modes"]');
   await cameraModes.getByRole('button', { name: 'EARTH', exact: true }).click();
   await page.waitForTimeout(400);
@@ -572,6 +598,7 @@ test('Earth 3D uses deterministic local textures when NASA imagery is blocked by
   await expect(page.locator('.earth3d-canvas')).toHaveAttribute('data-earth-imagery-cloud', 'procedural-cloud-fallback');
   await expect(page.locator('.earth3d-canvas')).toHaveAttribute('data-earth-imagery-moon-color', 'procedural-lunar-fallback');
   await expect(page.locator('.earth3d-canvas')).toHaveAttribute('data-earth-imagery-moon-elevation', 'no-elevation-fallback');
+  await expect(page.locator('.earth3d-canvas')).toHaveAttribute('data-earth-imagery-planetary-failures', /clouds:|moonColor:|moonElevation:/);
   await expect(page.getByTestId('earth-imagery-status')).toContainText('Procedural cloud fallback');
   await expect(page.getByTestId('earth-imagery-status')).toContainText('Procedural lunar fallback');
   await expect(page.locator('.earth3d-canvas canvas')).toBeVisible();

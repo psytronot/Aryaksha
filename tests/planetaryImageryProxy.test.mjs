@@ -102,6 +102,25 @@ describe('fixed NASA planetary imagery proxy', () => {
     expect(sink.body.error).toEqual(expect.any(String));
   });
 
+  it('returns HTTP 504 when the NASA origin exceeds the configured timeout', async () => {
+    const fetchImpl = vi.fn((_url, { signal }) => new Promise((_resolve, reject) => {
+      if (signal.aborted) {
+        reject(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+        return;
+      }
+      signal.addEventListener('abort', () => {
+        reject(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+      }, { once: true });
+    }));
+    const handler = createPlanetaryImageryHandler({ fetchImpl, cache: new Map(), timeoutMs: 1 });
+    const sink = responseSink();
+
+    await handler({ params: { assetId: 'nasa-noaa-cpc-clouds-2014-06-02' } }, sink.res);
+
+    expect(sink.statusCode).toBe(504);
+    expect(sink.body.error).toContain('timed out');
+  });
+
   it('returns a bounded unavailable response when the NASA origin cannot be reached', async () => {
     const fetchImpl = vi.fn().mockRejectedValue(new TypeError('network unavailable'));
     const handler = createPlanetaryImageryHandler({ fetchImpl, cache: new Map() });

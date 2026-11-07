@@ -537,7 +537,10 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         container.dataset.earthImageryCloud = nasaClouds ? PLANETARY_IMAGERY_SOURCES.clouds.id : 'procedural-cloud-fallback';
         container.dataset.earthImageryMoonColor = moonColor ? PLANETARY_IMAGERY_SOURCES.moonColor.id : 'procedural-lunar-fallback';
         container.dataset.earthImageryMoonElevation = moonElevation ? PLANETARY_IMAGERY_SOURCES.moonElevation.id : 'no-elevation-fallback';
-        container.dataset.earthImageryPlanetaryFailures = Object.keys(failures).join(',');
+        container.dataset.earthImageryPlanetaryFailures = Object.entries(failures)
+          .sort(([left], [right]) => left.localeCompare(right))
+          .map(([layer, message]) => layer + ':' + message)
+          .join(';');
         planetaryImagerySummary = (nasaClouds ? 'NASA/NOAA CPC clouds (2014)' : 'Procedural cloud fallback') + ' · ' + (moonColor ? 'NASA LROC Moon (2025)' : 'Procedural lunar fallback') + ' · ' + (moonElevation ? 'LOLA elevation' : 'No LOLA elevation map');
         refreshImageryStatus();
         if (Object.keys(failures).length) console.warn('Orbital Lab: NASA cloud/lunar layers used safe fallbacks.', failures);
