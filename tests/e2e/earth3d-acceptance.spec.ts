@@ -1016,31 +1016,39 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   await page.screenshot({ path: screenshot, animations: 'disabled' });
   await testInfo.attach('earth3d-reference-desktop-topnav-1536x1024.png', { path: screenshot, contentType: 'image/png' });
 
-  const groundTrackButton = primaryNav.getByRole('button', { name: 'Ground Track', exact: true });
-  await expect(groundTrackButton).toBeVisible();
-  const groundTrackBounds = await groundTrackButton.boundingBox();
-  expect(groundTrackBounds).not.toBeNull();
-  const viewport = page.viewportSize();
-  expect(viewport).not.toBeNull();
-  expect(groundTrackBounds!.x).toBeGreaterThanOrEqual(0);
-  expect(groundTrackBounds!.y).toBeGreaterThanOrEqual(0);
-  expect(groundTrackBounds!.x + groundTrackBounds!.width).toBeLessThanOrEqual(viewport!.width);
-  expect(groundTrackBounds!.y + groundTrackBounds!.height).toBeLessThanOrEqual(viewport!.height);
-  const groundTrackPoint = {
-    x: groundTrackBounds!.x + groundTrackBounds!.width / 2,
-    y: groundTrackBounds!.y + groundTrackBounds!.height / 2
-  };
-  const receivesPointer = await page.evaluate(({ x, y }) => {
+  const groundTrackMetrics = await primaryNav.evaluate(nav => {
+    const button = Array.from(nav.querySelectorAll('button'))
+      .find(candidate => candidate.textContent?.trim() === 'Ground Track');
+    if (!button) return null;
+    const rect = button.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
     const hit = document.elementFromPoint(x, y);
-    const button = hit?.closest('button');
-    return button?.textContent?.trim() === 'Ground Track'
-      && button.closest('[data-testid="simulation-primary-nav"]') !== null;
-  }, groundTrackPoint);
-  expect(receivesPointer).toBe(true);
-  // The sticky topbar is already in the viewport. Use a real pointer click
-  // after checking its hit target rather than invoking Playwright's
-  // scrollIntoViewIfNeeded path, which stalls on this sticky header.
-  await page.mouse.click(groundTrackPoint.x, groundTrackPoint.y);
+    const hitButton = hit?.closest('button');
+    return {
+      text: button.textContent?.trim(),
+      x: rect.left,
+      y: rect.top,
+      width: rect.width,
+      height: rect.height,
+      inViewport: rect.left >= 0 && rect.top >= 0
+        && rect.right <= window.innerWidth && rect.bottom <= window.innerHeight,
+      receivesPointer: hitButton === button
+        && hitButton.closest('[data-testid="simulation-primary-nav"]') === nav
+    };
+  });
+  expect(groundTrackMetrics).not.toBeNull();
+  expect(groundTrackMetrics!.text).toBe('Ground Track');
+  expect(groundTrackMetrics!.width).toBeGreaterThan(0);
+  expect(groundTrackMetrics!.height).toBeGreaterThan(0);
+  expect(groundTrackMetrics!.inViewport).toBe(true);
+  expect(groundTrackMetrics!.receivesPointer).toBe(true);
+  // The sticky topbar is already in the viewport. Query its DOM geometry
+  // without Playwright's auto-scroll path, then send a real pointer event.
+  await page.mouse.click(
+    groundTrackMetrics!.x + groundTrackMetrics!.width / 2,
+    groundTrackMetrics!.y + groundTrackMetrics!.height / 2
+  );
   await expect(page.locator('#earth3d-ground-track-panel')).toBeInViewport();
   expect(pageErrors).toEqual([]);
 });
