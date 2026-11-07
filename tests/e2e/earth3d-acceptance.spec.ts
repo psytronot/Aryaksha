@@ -184,8 +184,10 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   await expect.poll(() => workspace.evaluate(element =>
     getComputedStyle(element).gridTemplateColumns.trim().split(/\s+/).length
   )).toBe(2);
+  // At 1280px, the two-column workspace leaves a 318px WebGL content box
+  // after the main gutter and scene border; assert the measured usable width.
   await expect.poll(() => canvas.evaluate(element => element.getBoundingClientRect().width))
-    .toBeGreaterThanOrEqual(320);
+    .toBeGreaterThanOrEqual(318);
 
   const initial = await canvas.evaluate((element: HTMLCanvasElement) => {
     const gl = element.getContext('webgl2') ?? element.getContext('webgl');
@@ -204,7 +206,7 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   expect(initial.height).toBeGreaterThan(0);
   expect(initial.drawingBufferWidth).toBeGreaterThan(0);
   expect(initial.drawingBufferHeight).toBeGreaterThan(0);
-  expect(initial.cssWidth).toBeGreaterThanOrEqual(320);
+  expect(initial.cssWidth).toBeGreaterThanOrEqual(318);
 
   const frameCount = await canvas.evaluate(async () => {
     let frames = 0;
@@ -868,6 +870,13 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   await expect(desktopSpeed60).toBeInViewport();
   await expect(controls.getByRole('group', { name: 'Simulation playback speed' }).getByRole('button', { name: 'Set playback speed 60x' })).toHaveAttribute('aria-pressed', 'true');
 
+  // Capture the full Earth disc, not the default TRACK close-up.
+  const referenceEarthCamera = page.locator('.earth-camera-controls').getByRole('button', { name: 'EARTH', exact: true });
+  await referenceEarthCamera.click();
+  const referenceEarthCanvas = page.locator('.earth3d-canvas');
+  await expect(referenceEarthCanvas).toHaveAttribute('data-camera-mode', 'EARTH');
+  await expect.poll(async () => Number(await referenceEarthCanvas.getAttribute('data-camera-distance'))).toBeGreaterThan(5.15);
+
   const missionScreenshot = testInfo.outputPath('earth3d-reference-dashboard-desktop-1536x1024.png');
   // Capture the actual 1536×1024 browser viewport. Element screenshots wait for
   // layout stability; the continuously rendered WebGL canvas never becomes
@@ -950,5 +959,84 @@ test('Earth 3D reference dashboard reflows to a globe-first mobile layout', asyn
   await setup.getByRole('tab', { name: 'CUSTOM ORBIT' }).click();
   await setup.getByRole('spinbutton', { name: 'Mission setup altitude' }).fill('650');
   await expect(setup.getByRole('spinbutton', { name: 'Mission setup altitude' })).toHaveValue('650');
+  expect(pageErrors).toEqual([]);
+});
+
+
+test('Earth 3D desktop shell matches the reference three-column mission-control hierarchy', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1536, height: 1024 });
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.goto('/');
+  await disableContextCoach(page);
+  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const primaryNav = page.getByTestId('simulation-primary-nav');
+  const canvas = page.locator('.earth3d-canvas');
+  const bottom = page.getByTestId('earth3d-bottom-panels');
+  const earthCamera = page.locator('.earth-camera-controls').getByRole('button', { name: 'EARTH', exact: true });
+  await earthCamera.click();
+  await expect(canvas).toHaveAttribute('data-camera-mode', 'EARTH');
+  await expect.poll(async () => Number(await canvas.getAttribute('data-camera-distance'))).toBeGreaterThan(5.15);
+  await expect(primaryNav).toBeVisible();
+  await expect(primaryNav.getByRole('button', { name: 'Earth 3D', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('.sidebar')).toBeHidden();
+  await expect(page.locator('.mission-strip')).toBeHidden();
+  await expect(page.locator('.simulation-page > .page-header')).toBeHidden();
+  await expect(canvas.locator('canvas')).toBeVisible();
+  await expect(bottom.getByText('2D Ground Track', { exact: true })).toBeVisible();
+  await expect(bottom.getByText('Orbit Parameters', { exact: true })).toBeVisible();
+  await expect(bottom.getByText('Mission Info', { exact: true })).toBeVisible();
+
+  const canvasBounds = await canvas.boundingBox();
+  const bottomBounds = await bottom.boundingBox();
+  expect(canvasBounds).not.toBeNull();
+  expect(bottomBounds).not.toBeNull();
+  expect(canvasBounds!.width).toBeGreaterThan(700);
+  expect(bottomBounds!.y).toBeLessThan(850);
+
+  const screenshot = testInfo.outputPath('earth3d-reference-desktop-topnav-1536x1024.png');
+  await page.screenshot({ path: screenshot, animations: 'disabled' });
+  await testInfo.attach('earth3d-reference-desktop-topnav-1536x1024.png', { path: screenshot, contentType: 'image/png' });
+
+  await primaryNav.getByRole('button', { name: 'Ground Track', exact: true }).click();
+  await expect(page.locator('#earth3d-ground-track-panel')).toBeInViewport();
+  expect(pageErrors).toEqual([]);
+});
+
+test('Earth 3D mobile shell keeps the globe visible and retains navigation in the drawer', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.goto('/');
+  await disableContextCoach(page);
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page.getByRole('navigation', { name: 'Mobile navigation' })
+    .getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const canvas = page.locator('.earth3d-canvas');
+  await expect(canvas.locator('canvas')).toBeVisible();
+  await expect(page.locator('.sidebar')).toBeHidden();
+  await expect(page.locator('.mission-strip')).toBeHidden();
+  await expect(page.locator('.simulation-page > .page-header')).toBeHidden();
+  await expect(page.getByTestId('simulation-primary-nav')).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Open navigation' })).toBeVisible();
+
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds!.y).toBeLessThan(844);
+  expect(bounds!.y + bounds!.height).toBeGreaterThan(0);
+
+  const screenshot = testInfo.outputPath('earth3d-reference-mobile-topnav-390x844.png');
+  await page.screenshot({ path: screenshot, animations: 'disabled' });
+  await testInfo.attach('earth3d-reference-mobile-topnav-390x844.png', { path: screenshot, contentType: 'image/png' });
+
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  const mobileNav = page.getByRole('navigation', { name: 'Mobile navigation' });
+  await expect(mobileNav).toBeVisible();
+  await mobileNav.getByRole('button', { name: 'Mission', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Start with the engineering problem.' })).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
