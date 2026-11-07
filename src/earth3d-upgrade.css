@@ -325,7 +325,7 @@ html.earth3d-active pwa-install {
    changing the underlying simulation or the mobile drawer navigation. */
 .app-shell.simulation-active .mission-strip { display: none; }
 .app-shell.simulation-active .main { max-width: none; padding: 0 14px 24px; }
-.app-shell.simulation-active .simulation-page { padding-top: 0; }
+.app-shell.simulation-active .simulation-page { width: 100%; max-width: none; margin: 0; padding: 0; }
 .app-shell.simulation-active .simulation-page > .page-header { display: none; }
 .app-shell.simulation-active .engine-status { display: none; }
 .simulation-primary-nav { display: none; }
@@ -371,9 +371,9 @@ html.earth3d-active pwa-install {
   }
   .simulation-primary-nav svg { color: var(--cyan); }
   .app-shell.simulation-active .earth3d-workspace {
-    grid-template-columns: minmax(280px, 320px) minmax(0, 1fr) minmax(280px, 320px);
-    grid-template-rows: auto minmax(500px, 1fr) auto;
-    min-height: 660px;
+    grid-template-columns: minmax(300px, 340px) minmax(0, 1fr) minmax(300px, 335px);
+    grid-template-rows: auto minmax(560px, 1fr) auto;
+    min-height: 700px;
   }
   .app-shell.simulation-active .earth3d-canvas { min-height: 500px; }
   .app-shell.simulation-active .earth3d-left-hud,
@@ -397,3 +397,6 @@ html.earth3d-active pwa-install {
   .app-shell.simulation-active .topbar { height: 64px; padding: 0 12px; }
   .app-shell.simulation-active .main { padding: 0 12px 40px; }
 }
+
+.app-shell.simulation-active .simulation-grid,
+.app-shell.simulation-active .scene-wrap { width: 100%; max-width: none; }
