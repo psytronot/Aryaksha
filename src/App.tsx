@@ -109,7 +109,7 @@ function App() {
     window.setTimeout(() => setNotice(''), 2800);
   };
 
-  const updateOrbit = (patch: Partial<OrbitDesign>) => setOrbit(current => ({ ...current, ...patch, a: EARTH_RADIUS + (patch.altitudeKm ?? current.altitudeKm) }));
+  const updateOrbit = (patch: Partial<OrbitDesign>) => { setSelectedPreset('Custom Orbit'); setOrbit(current => ({ ...current, ...patch, a: EARTH_RADIUS + (patch.altitudeKm ?? current.altitudeKm) })); };
 
   const applyPreset = (name: string, altitude: number, inclination: number) => {
     setSelectedPreset(name);
@@ -230,7 +230,7 @@ function App() {
           {view === 'payload' && <PayloadView payload={payload} setPayload={setPayload} go={setView} />}
           {view === 'spacecraft' && <SpacecraftView spacecraft={spacecraft} setSpacecraft={setSpacecraft} payload={payload} mission={mission} verification={verification} />}
           {view === 'orbit' && <OrbitView orbit={orbit} updateOrbit={updateOrbit} maneuverAltitude={maneuverAltitude} setManeuverAltitude={setManeuverAltitude} maneuverInclination={maneuverInclination} setManeuverInclination={setManeuverInclination} maneuver={maneuver} applyPreset={applyPreset} selectedPreset={selectedPreset} />}
-          {view === 'simulation' && <SimulationView model={model} current={currentState} seconds={seconds} duration={duration} running={running} setRunning={setRunning} playback={playback} setPlayback={setPlayback} setSeconds={setSeconds} mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} footprintAngle={geometry.footprintDeg} />}
+          {view === 'simulation' && <SimulationView model={model} current={currentState} seconds={seconds} duration={duration} running={running} setRunning={setRunning} playback={playback} setPlayback={setPlayback} setSeconds={setSeconds} mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} footprintAngle={geometry.footprintDeg} applyPreset={applyPreset} selectedPreset={selectedPreset} updateOrbit={updateOrbit} go={setView} />}
           {view === 'tracking' && <SatelliteTrackingView />}
           {view === 'missionAnalysis' && <MissionAnalysisView initialAltitudeKm={orbit.altitudeKm} initialInclinationDeg={orbit.i} initialEccentricity={orbit.e} />}
           {view === 'analysis' && <AnalysisView mission={mission} orbit={orbit} geometry={geometry} power={power} thermal={thermal} comms={comms} adcs={adcs} propulsion={propulsion} />}
@@ -405,17 +405,39 @@ function OrbitView({ orbit, updateOrbit, maneuverAltitude, setManeuverAltitude, 
   </div>;
 }
 
-function SimulationView({ model, current, seconds, duration, running, setRunning, playback, setPlayback, setSeconds, mission, payload, spacecraft, orbit, footprintAngle }: { model: any[]; current: any; seconds: number; duration: number; running: boolean; setRunning: (v:boolean)=>void; playback:number; setPlayback:(v:number)=>void; setSeconds:(v:number)=>void; mission: Mission; payload: Payload; spacecraft: Spacecraft; orbit: OrbitDesign; footprintAngle:number }) {
+function SimulationView({ model, current, seconds, duration, running, setRunning, playback, setPlayback, setSeconds, mission, payload, spacecraft, orbit, footprintAngle, applyPreset, selectedPreset, updateOrbit, go }: { model: any[]; current: any; seconds: number; duration: number; running: boolean; setRunning: (v:boolean)=>void; playback:number; setPlayback:(v:number)=>void; setSeconds:(v:number)=>void; mission: Mission; payload: Payload; spacecraft: Spacecraft; orbit: OrbitDesign; footprintAngle:number; applyPreset:(name:string, altitude:number, inclination:number)=>void; selectedPreset:string; updateOrbit:(p:Partial<OrbitDesign>)=>void; go:(v:View)=>void }) {
+  const orbitMetrics = orbitalSummary(orbit);
   return <div className="page simulation-page">
     <PageHeader eyebrow="05 · SIMULATION" title="Run the spacecraft, not a picture of it." text="The animation, telemetry and engineering results read from the same propagated state. The current model is deterministic two-body Keplerian propagation; J2, drag, SRP, third-body gravity and operational effects remain outside the model." />
     <div className="simulation-grid">
-      <div className="scene-wrap"><Earth3DScene model={model} current={current} seconds={seconds} name={mission.name} propagator="KEPLER" objectStatus="SIMULATED" footprintAngleDeg={footprintAngle} busWidthM={spacecraft.busWidthM} busHeightM={spacecraft.busHeightM} busDepthM={spacecraft.busDepthM} altitudeKm={orbit.altitudeKm} eccentricity={orbit.e} inclinationDeg={orbit.i} raanDeg={orbit.raan} argumentOfPerigeeDeg={orbit.argp} trueAnomalyDeg={orbit.nu} periodMin={orbitalSummary(orbit).period / 60} panelAreaM2={spacecraft.panelAreaM2} running={running} setRunning={setRunning} playback={playback} setPlayback={setPlayback} duration={duration} setSeconds={setSeconds} /></div>
+      <div className="scene-wrap"><Earth3DScene model={model} current={current} seconds={seconds} name={mission.name} propagator="KEPLER" objectStatus="SIMULATED" missionType={mission.type} missionTarget={mission.target} payloadName={payload.name} payloadMassKg={payload.massKg} payloadPowerW={payload.powerW} spacecraftDryMassKg={spacecraft.dryMassKg} selectedPreset={selectedPreset} onApplyPreset={applyPreset} onUpdateOrbit={updateOrbit} onOpenMissionSetup={() => go('mission')} onOpenOrbitDesign={() => go('orbit')} footprintAngleDeg={footprintAngle} busWidthM={spacecraft.busWidthM} busHeightM={spacecraft.busHeightM} busDepthM={spacecraft.busDepthM} altitudeKm={orbit.altitudeKm} eccentricity={orbit.e} inclinationDeg={orbit.i} raanDeg={orbit.raan} argumentOfPerigeeDeg={orbit.argp} trueAnomalyDeg={orbit.nu} periodMin={orbitMetrics.period / 60} panelAreaM2={spacecraft.panelAreaM2} running={running} setRunning={setRunning} playback={playback} setPlayback={setPlayback} duration={duration} setSeconds={setSeconds} />
+      </div>
     </div>
-    <GroundTrackMap model={model} current={current} />
-    <div className="state-sheet">
-      <div><small>PAYLOAD FOOTPRINT</small><b>{footprintAngle.toFixed(3)}° central angle</b><span>FOV {payload.fovDeg}° at {orbit.altitudeKm} km</span></div>
-      <div><small>SCENARIO EPOCH</small><b>2026-01-01T00:00:00Z</b><span>Deterministic replay</span></div>
-      <div><small>STATE SOURCE</small><b>Propagate → ECI/ECEF/WGS84</b><span>One mathematical source of truth</span></div>
+    <div className="earth3d-bottom-panels" data-testid="earth3d-bottom-panels">
+      <div className="earth3d-bottom-panel earth3d-ground-track-panel"><GroundTrackMap model={model} current={current} /></div>
+      <Card title="Orbit Parameters" icon={<Orbit size={17} />}>
+        <div className="earth3d-bottom-metrics">
+          <div><small>APOGEE</small><b>{formatNumber(orbitMetrics.ra - EARTH_RADIUS, 1)} km</b></div>
+          <div><small>PERIGEE</small><b>{formatNumber(orbitMetrics.rp - EARTH_RADIUS, 1)} km</b></div>
+          <div><small>INCLINATION</small><b>{formatNumber(orbit.i, 2)}°</b></div>
+          <div><small>ECCENTRICITY</small><b>{formatNumber(orbit.e, 4)}</b></div>
+          <div><small>PERIOD</small><b>{formatNumber(orbitMetrics.period / 60, 2)} min</b></div>
+          <div><small>SEMI-MAJOR AXIS</small><b>{formatNumber(orbit.a, 1)} km</b></div>
+        </div>
+        <p className="earth3d-card-note">Two-body Keplerian reference elements at the selected scenario epoch.</p>
+      </Card>
+      <Card title="Mission Info" icon={<Info size={17} />}>
+        <div className="earth3d-mission-info">
+          <div className="earth3d-mission-identity"><b>{mission.name}</b><span>{mission.type} · {mission.target}</span></div>
+          <div className="earth3d-mission-info-grid">
+            <div><small>PAYLOAD</small><b>{payload.name}</b><span>{formatNumber(payload.massKg, 2)} kg · {formatNumber(payload.powerW, 1)} W</span></div>
+            <div><small>SPACECRAFT DRY MASS</small><b>{formatNumber(spacecraft.dryMassKg, 2)} kg</b><span>Bus {spacecraft.busWidthM.toFixed(2)} × {spacecraft.busHeightM.toFixed(2)} × {spacecraft.busDepthM.toFixed(2)} m</span></div>
+            <div><small>FOOTPRINT / FOV</small><b>{formatNumber(footprintAngle, 3)}°</b><span>Payload FOV {formatNumber(payload.fovDeg, 1)}°</span></div>
+            <div><small>STATE PROVENANCE</small><b>SIMULATED · KEPLER</b><span>Two-body spacecraft state; Moon and visual bodies are not TLE-tracked objects.</span></div>
+          </div>
+          <div className="earth3d-mission-info-footer"><span>SCENARIO EPOCH</span><b>{String(current?.time ?? '2026-01-01T00:00:00.000Z').slice(0, 19)} UTC</b><span>ECI → ECEF → WGS84</span></div>
+        </div>
+      </Card>
     </div>
   </div>;
 }
@@ -446,7 +468,7 @@ function GroundTrackMap({ model, current }: { model: any[]; current: any }) {
   const hasCurrentPoint = Number.isFinite(currentLat) && Number.isFinite(currentLon);
 
   return (
-    <Card title="2D Ground Track · Equirectangular" icon={<Globe2 size={17} />}>
+    <Card title="2D Ground Track" icon={<Globe2 size={17} />}>
       <div className="ground-track-controls">
         <label htmlFor="solar-epoch">Solar overlay epoch</label>
         <select id="solar-epoch" value={solarEpoch} onChange={event => setSolarEpoch(event.target.value)}>
