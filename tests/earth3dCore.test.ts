@@ -109,6 +109,9 @@ describe('Sun-driven atmospheric limb and polar illumination', () => {
     expect(material.fragmentShader).toContain('smoothstep(-0.18, 0.12, solarIncidence)');
     expect(material.fragmentShader).toContain('exp(-abs(solarIncidence) * 8.0)');
     expect(material.fragmentShader).toContain('#include <tonemapping_fragment>');
+    // Three.js injects the pars chunks for ShaderMaterial; including them again duplicates GLSL declarations.
+    expect(material.fragmentShader).not.toContain('#include <tonemapping_pars_fragment>');
+    expect(material.fragmentShader).not.toContain('#include <colorspace_pars_fragment>');
     expect(material.fragmentShader).not.toContain('polarBoost');
     expect(EARTH_ATMOSPHERE_MODEL).toBe('sun-driven-rayleigh-limb-v1');
 

@@ -74,8 +74,6 @@ export function createSunDrivenAtmosphereMaterial(
     ].join('\n'),
     fragmentShader: [
       '#include <common>',
-      '#include <tonemapping_pars_fragment>',
-      '#include <colorspace_pars_fragment>',
       'uniform vec3 uEarthSunDirection;',
       'uniform float uAtmosphereIntensity;',
       'uniform float uLimbPower;',
