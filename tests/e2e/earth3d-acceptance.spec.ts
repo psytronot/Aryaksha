@@ -1016,7 +1016,31 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   await page.screenshot({ path: screenshot, animations: 'disabled' });
   await testInfo.attach('earth3d-reference-desktop-topnav-1536x1024.png', { path: screenshot, contentType: 'image/png' });
 
-  await primaryNav.getByRole('button', { name: 'Ground Track', exact: true }).click();
+  const groundTrackButton = primaryNav.getByRole('button', { name: 'Ground Track', exact: true });
+  await expect(groundTrackButton).toBeVisible();
+  const groundTrackBounds = await groundTrackButton.boundingBox();
+  expect(groundTrackBounds).not.toBeNull();
+  const viewport = page.viewportSize();
+  expect(viewport).not.toBeNull();
+  expect(groundTrackBounds!.x).toBeGreaterThanOrEqual(0);
+  expect(groundTrackBounds!.y).toBeGreaterThanOrEqual(0);
+  expect(groundTrackBounds!.x + groundTrackBounds!.width).toBeLessThanOrEqual(viewport!.width);
+  expect(groundTrackBounds!.y + groundTrackBounds!.height).toBeLessThanOrEqual(viewport!.height);
+  const groundTrackPoint = {
+    x: groundTrackBounds!.x + groundTrackBounds!.width / 2,
+    y: groundTrackBounds!.y + groundTrackBounds!.height / 2
+  };
+  const receivesPointer = await page.evaluate(({ x, y }) => {
+    const hit = document.elementFromPoint(x, y);
+    const button = hit?.closest('button');
+    return button?.textContent?.trim() === 'Ground Track'
+      && button.closest('[data-testid="simulation-primary-nav"]') !== null;
+  }, groundTrackPoint);
+  expect(receivesPointer).toBe(true);
+  // The sticky topbar is already in the viewport. Use a real pointer click
+  // after checking its hit target rather than invoking Playwright's
+  // scrollIntoViewIfNeeded path, which stalls on this sticky header.
+  await page.mouse.click(groundTrackPoint.x, groundTrackPoint.y);
   await expect(page.locator('#earth3d-ground-track-panel')).toBeInViewport();
   expect(pageErrors).toEqual([]);
 });
