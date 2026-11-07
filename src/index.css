@@ -155,3 +155,9 @@ html,body{min-width:320px;overflow-x:clip}
 html.aryaksha-app-active pwa-install {
   pointer-events: none !important;
 }
+
+
+/* Mobile simulation is a working workspace, not a landing-page article. */
+@media(max-width:800px){
+  .simulation-page > .page-header{display:none}
+}

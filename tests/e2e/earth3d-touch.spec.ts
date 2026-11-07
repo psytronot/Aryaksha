@@ -11,11 +11,13 @@ test('Earth 3D responds to native two-pointer touch pinch on mobile Chromium', a
   await page.getByRole('button', { name: 'Open navigation' }).click();
   await page.getByRole('navigation', { name: 'Mobile navigation' })
     .getByRole('button', { name: 'Simulation', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
 
   const modes = page.locator('[aria-label="Camera modes"]');
   const container = page.locator('.earth3d-canvas');
   const canvas = page.locator('.earth3d-canvas canvas');
   await expect(canvas).toBeVisible();
+  await expect(canvas).toBeInViewport({ ratio: 0.8 });
   await modes.getByRole('button', { name: 'SYSTEM', exact: true }).click();
   await expect(container).toHaveAttribute('data-camera-mode', 'SYSTEM');
 
@@ -44,8 +46,19 @@ test('Earth 3D responds to native two-pointer touch pinch on mobile Chromium', a
 
   const bounds = await canvas.boundingBox();
   expect(bounds).not.toBeNull();
+  const viewportBounds = await page.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight }));
+  expect(bounds!.x).toBeGreaterThanOrEqual(0);
+  expect(bounds!.y).toBeGreaterThanOrEqual(0);
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewportBounds.width);
+  expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(viewportBounds.height);
   const centerX = bounds!.x + bounds!.width / 2;
   const centerY = bounds!.y + bounds!.height / 2;
+  const receivesTouchAtCenter = await page.evaluate(({ x, y }) => {
+    const target = document.elementFromPoint(x, y);
+    const webglCanvas = document.querySelector('.earth3d-canvas canvas');
+    return webglCanvas !== null && (target === webglCanvas || webglCanvas.contains(target));
+  }, { x: centerX, y: centerY });
+  expect(receivesTouchAtCenter).toBe(true);
   const client = await page.context().newCDPSession(page);
   const dispatch = (type: 'touchStart' | 'touchMove' | 'touchEnd', touchPoints: Array<{ id: number; x: number; y: number; radiusX: number; radiusY: number; force: number }>) =>
     client.send('Input.dispatchTouchEvent', { type, touchPoints });
