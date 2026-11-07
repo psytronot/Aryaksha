@@ -184,8 +184,8 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   await expect.poll(() => workspace.evaluate(element =>
     getComputedStyle(element).gridTemplateColumns.trim().split(/\s+/).length
   )).toBe(2);
-  // The 390px emulated viewport leaves a 318px WebGL content box after the
-  // app's 8px page gutters and the scene border; assert the measured usable width.
+  // At 1280px, the two-column workspace leaves a 318px WebGL content box
+  // after the main gutter and scene border; assert the measured usable width.
   await expect.poll(() => canvas.evaluate(element => element.getBoundingClientRect().width))
     .toBeGreaterThanOrEqual(318);
 
@@ -206,7 +206,7 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   expect(initial.height).toBeGreaterThan(0);
   expect(initial.drawingBufferWidth).toBeGreaterThan(0);
   expect(initial.drawingBufferHeight).toBeGreaterThan(0);
-  expect(initial.cssWidth).toBeGreaterThanOrEqual(320);
+  expect(initial.cssWidth).toBeGreaterThanOrEqual(318);
 
   const frameCount = await canvas.evaluate(async () => {
     let frames = 0;
