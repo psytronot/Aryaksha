@@ -404,9 +404,41 @@ html.earth3d-active pwa-install {
 
 /* Geometry correction: bound the desktop mission workspace to the reference viewport. */
 @media (min-width: 1351px) {
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page {
+    max-width: none;
+    padding: 0;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .page-header {
+    margin: 0 0 6px;
+    padding: 0 12px;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .page-header > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 2px 12px;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .page-header > div > small:first-child,
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .page-header h1,
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .page-header p {
+    display: none;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .page-header .earth3d-imagery-status {
+    display: block;
+    grid-column: 1;
+    margin: 0;
+    font: 7px/1.25 ui-monospace, monospace;
+    white-space: normal;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .page-header > div > small:last-child {
+    grid-column: 2;
+    margin: 0;
+    font: 6px/1.25 ui-monospace, monospace;
+    text-align: right;
+  }
   .app-shell.simulation-active .earth3d-workspace {
-    height: min(740px, calc(100vh - 160px));
-    min-height: 640px;
+    height: min(650px, calc(100vh - 160px));
+    min-height: 620px;
     grid-template-rows: auto minmax(0, 1fr) auto auto;
   }
   .app-shell.simulation-active .earth3d-canvas {
