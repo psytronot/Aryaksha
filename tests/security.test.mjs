@@ -23,9 +23,11 @@ describe('API security middleware', () => {
     expect(result.headers['x-frame-options']).toBe('DENY');
     expect(result.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
     expect(result.headers['permissions-policy']).toBe('camera=(), microphone=(), geolocation=()');
+    expect(result.headers['reporting-endpoints']).toBe('csp-endpoint="/api/csp-report"');
     expect(result.headers['content-security-policy-report-only']).toContain("default-src 'self'");
     expect(result.headers['content-security-policy-report-only']).toContain("connect-src 'self' https://celestrak.org");
     expect(result.headers['content-security-policy-report-only']).toContain("object-src 'none'");
+    expect(result.headers['content-security-policy-report-only']).toContain("report-to csp-endpoint");
     expect(result.headers['content-security-policy-report-only']).toContain("report-uri /api/csp-report");
   });
 
