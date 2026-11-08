@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'node:path';
 import * as satellite from 'satellite.js';
+import { normalizeCspReports } from './csp-report.mjs';
 import { createRateLimiter, securityHeaders } from './security.mjs';
 
 const app = express();
@@ -11,8 +12,28 @@ app.disable('x-powered-by');
 // Render terminates TLS and forwards requests through one trusted proxy hop.
 app.set('trust proxy', 1);
 app.use(securityHeaders);
-app.use(express.json({ limit: '64kb', strict: false }));
 const apiRateLimit = createRateLimiter({ windowMs: 60_000, maxRequests: 60 });
+const cspReportRateLimit = createRateLimiter({ windowMs: 60_000, maxRequests: 30, maxClients: 2_000 });
+const cspReportParser = express.json({
+  limit: '8kb',
+  strict: false,
+  type: ['application/csp-report', 'application/reports+json', 'application/json']
+});
+
+app.post('/api/csp-report', cspReportRateLimit, cspReportParser, (req, res) => {
+  const reports = normalizeCspReports(req.body);
+  if (!reports) return res.status(400).json({ error: 'CSP report payload is invalid.' });
+  for (const report of reports) console.warn(JSON.stringify({ event: 'csp-violation', ...report }));
+  return res.status(204).end();
+});
+
+app.use('/api/csp-report', (err, _req, res, next) => {
+  if (err?.type === 'entity.too.large') return res.status(413).json({ error: 'CSP report exceeds the 8 KiB limit.' });
+  if (err?.type === 'entity.parse.failed' || err?.type === 'entity.verify.failed') return res.status(400).json({ error: 'CSP report must be valid JSON.' });
+  return next(err);
+});
+
+app.use(express.json({ limit: '64kb', strict: false }));
 app.get('/api/_healthcheck', (_req, res) => res.json({ message: 'Success', service: 'aryaksha-api' }));
 app.get('/api/v1/health', (_req, res) => res.json({ status: 'ok', service: 'aryaksha-api' }));
 
