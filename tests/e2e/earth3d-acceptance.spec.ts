@@ -1015,10 +1015,10 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   expect(legendBounds!.x + legendBounds!.width).toBeLessThanOrEqual(canvasBounds!.x + canvasBounds!.width + 1);
   expect(timelineBounds!.x + timelineBounds!.width).toBeLessThanOrEqual(canvasBounds!.x + canvasBounds!.width + 1);
 
-  const screenshot = testInfo.outputPath('earth3d-reference-desktop-topnav-1536x1024.png');
-  await page.screenshot({ path: screenshot, animations: 'disabled' });
-  await testInfo.attach('earth3d-reference-desktop-topnav-1536x1024.png', { path: screenshot, contentType: 'image/png' });
-
+  // Read the sticky navigation geometry and pointer target before the WebGL
+  // screenshot. Chromium can keep the canvas compositor busy after a large
+  // screenshot; retaining these measured coordinates avoids a second
+  // renderer-bound locator evaluation while preserving a real pointer click.
   const groundTrackMetrics = await primaryNav.evaluate(nav => {
     const button = Array.from(nav.querySelectorAll('button'))
       .find(candidate => candidate.textContent?.trim() === 'Ground Track');
@@ -1046,8 +1046,12 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   expect(groundTrackMetrics!.height).toBeGreaterThan(0);
   expect(groundTrackMetrics!.inViewport).toBe(true);
   expect(groundTrackMetrics!.receivesPointer).toBe(true);
-  // The sticky topbar is already in the viewport. Query its DOM geometry
-  // without Playwright's auto-scroll path, then send a real pointer event.
+
+  const screenshot = testInfo.outputPath('earth3d-reference-desktop-topnav-1536x1024.png');
+  await page.screenshot({ path: screenshot, animations: 'disabled' });
+  await testInfo.attach('earth3d-reference-desktop-topnav-1536x1024.png', { path: screenshot, contentType: 'image/png' });
+
+  // Use the previously measured visible hit target for a real pointer event.
   await page.mouse.click(
     groundTrackMetrics!.x + groundTrackMetrics!.width / 2,
     groundTrackMetrics!.y + groundTrackMetrics!.height / 2
