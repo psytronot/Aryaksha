@@ -12,8 +12,8 @@ test('live deployed UI serves the app shell and report-only CSP', async ({ page 
   expect(headers?.['content-security-policy-report-only']).toContain("default-src 'self'");
   expect(headers?.['content-security-policy-report-only']).toContain("connect-src 'self' https://celestrak.org");
   expect(headers?.['content-security-policy-report-only']).toContain("report-uri /api/csp-report");
-  expect(headers?.['content-security-policy-report-only']).toContain("report-to csp-endpoint");
-  expect(headers?.['reporting-endpoints']).toBe('csp-endpoint="/api/csp-report"');
+  expect(headers?.['content-security-policy-report-only']).not.toContain("report-to csp-endpoint");
+  expect(headers?.['reporting-endpoints']).toBeUndefined();
   expect(pageErrors).toEqual([]);
 });
 
