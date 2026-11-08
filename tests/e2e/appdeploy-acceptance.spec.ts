@@ -28,22 +28,34 @@ async function openWorkspace(page: Page, label: string) {
 
 async function waitForOrekit(page: Page) {
   const started = Date.now();
-  const deadline = started + 90_000;
+  const deadline = started + 120_000;
   let lastStatus = 'no response';
+  let attempt = 0;
+
   while (Date.now() < deadline) {
+    attempt += 1;
+    const remaining = deadline - Date.now();
+    const requestTimeout = Math.min(60_000, remaining);
     try {
-      const response = await page.context().request.get('https://aryaksha-orekit.onrender.com/api/v1/health', { timeout: 12_000 });
+      const response = await page.context().request.get('https://aryaksha-orekit.onrender.com/api/v1/health', {
+        timeout: requestTimeout
+      });
       lastStatus = `HTTP ${response.status()}`;
       if (response.ok()) {
-        console.log(`Orekit health ready after ${Date.now() - started} ms (${lastStatus})`);
+        console.log(`Orekit health ready after ${Date.now() - started} ms on attempt ${attempt} (${lastStatus})`);
         return;
       }
     } catch (cause) {
       lastStatus = cause instanceof Error ? cause.message : String(cause);
     }
-    await page.waitForTimeout(3_000);
+
+    if (Date.now() < deadline) {
+      console.log(`Orekit cold-start probe ${attempt} did not return HTTP 200: ${lastStatus}`);
+      await page.waitForTimeout(Math.min(5_000, Math.max(0, deadline - Date.now())));
+    }
   }
-  throw new Error(`Orekit health did not become ready within 90 seconds; last result: ${lastStatus}`);
+
+  throw new Error(`Orekit health did not become ready within 120 seconds; last result: ${lastStatus}`);
 }
 
 async function stubCelesTrak(page: Page) {
@@ -301,7 +313,7 @@ test.describe('Mobile AppDeploy acceptance scenarios', () => {
   });
 
   test('9. Mobile Mission Analysis rejects an Earth-intersecting orbit without showing metrics', async ({ page }) => {
-    test.setTimeout(150_000);
+    test.setTimeout(240_000);
     await waitForOrekit(page);
     await openLab(page);
     await openWorkspace(page, 'Mission Analysis');
