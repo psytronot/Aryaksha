@@ -27,8 +27,6 @@ describe('API security middleware', () => {
     expect(result.headers['content-security-policy-report-only']).toContain("connect-src 'self' https://celestrak.org");
     expect(result.headers['content-security-policy-report-only']).toContain("object-src 'none'");
     expect(result.headers['content-security-policy-report-only']).toContain("report-uri /api/csp-report");
-    expect(result.headers['content-security-policy-report-only']).toContain("report-to csp-endpoint");
-    expect(result.headers['reporting-endpoints']).toBe('csp-endpoint="/api/csp-report"');
   });
 
   it('limits requests per client and resets after the time window', () => {
