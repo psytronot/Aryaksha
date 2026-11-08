@@ -21,7 +21,7 @@ function fakeResponse() {
 }
 
 describe('API security middleware', () => {
-  it('sets baseline security headers and an absolute same-origin reporting endpoint', () => {
+  it('sets baseline security headers and an absolute same-origin production reporting endpoint', () => {
     const result = fakeResponse();
     let continued = false;
     securityHeaders(fakeRequest(), result.response, () => { continued = true; });
@@ -38,14 +38,15 @@ describe('API security middleware', () => {
     expect(result.headers['content-security-policy-report-only']).toContain("report-uri /api/csp-report");
   });
 
-  it('uses the loopback origin for local browser-delivery tests', () => {
+  it('uses the legacy report-uri path for local browser-delivery tests', () => {
     const result = fakeResponse();
     securityHeaders(fakeRequest('http', '127.0.0.1:3000'), result.response, () => {});
-    expect(result.headers['reporting-endpoints']).toBe('csp-endpoint="http://127.0.0.1:3000/api/csp-report"');
-    expect(result.headers['content-security-policy-report-only']).toContain('report-to csp-endpoint');
+    expect(result.headers['reporting-endpoints']).toBeUndefined();
+    expect(result.headers['content-security-policy-report-only']).not.toContain('report-to csp-endpoint');
+    expect(result.headers['content-security-policy-report-only']).toContain('report-uri /api/csp-report');
   });
 
-  it('does not publish a reporting endpoint for an untrusted Host header', () => {
+  it('does not publish a Reporting API endpoint for an untrusted Host header', () => {
     const result = fakeResponse();
     securityHeaders(fakeRequest('https', 'attacker.example'), result.response, () => {});
     expect(result.headers['reporting-endpoints']).toBeUndefined();
