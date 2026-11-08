@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { createRateLimiter, securityHeaders } from '../backend/security.mjs';
 
+function fakeRequest(protocol = 'https', host = 'aryaksha-web.onrender.com') {
+  return {
+    protocol,
+    get(name) { return name.toLowerCase() === 'host' ? host : undefined; }
+  };
+}
+
 function fakeResponse() {
   const headers = {};
   let statusCode = 200;
@@ -14,21 +21,36 @@ function fakeResponse() {
 }
 
 describe('API security middleware', () => {
-  it('sets baseline security headers on every response', () => {
+  it('sets baseline security headers and an absolute same-origin reporting endpoint', () => {
     const result = fakeResponse();
     let continued = false;
-    securityHeaders({}, result.response, () => { continued = true; });
+    securityHeaders(fakeRequest(), result.response, () => { continued = true; });
     expect(continued).toBe(true);
     expect(result.headers['x-content-type-options']).toBe('nosniff');
     expect(result.headers['x-frame-options']).toBe('DENY');
     expect(result.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
     expect(result.headers['permissions-policy']).toBe('camera=(), microphone=(), geolocation=()');
-    expect(result.headers['reporting-endpoints']).toBe('csp-endpoint="/api/csp-report"');
+    expect(result.headers['reporting-endpoints']).toBe('csp-endpoint="https://aryaksha-web.onrender.com/api/csp-report"');
     expect(result.headers['content-security-policy-report-only']).toContain("default-src 'self'");
     expect(result.headers['content-security-policy-report-only']).toContain("connect-src 'self' https://celestrak.org");
     expect(result.headers['content-security-policy-report-only']).toContain("object-src 'none'");
     expect(result.headers['content-security-policy-report-only']).toContain("report-to csp-endpoint");
     expect(result.headers['content-security-policy-report-only']).toContain("report-uri /api/csp-report");
+  });
+
+  it('uses the loopback origin for local browser-delivery tests', () => {
+    const result = fakeResponse();
+    securityHeaders(fakeRequest('http', '127.0.0.1:3000'), result.response, () => {});
+    expect(result.headers['reporting-endpoints']).toBe('csp-endpoint="http://127.0.0.1:3000/api/csp-report"');
+    expect(result.headers['content-security-policy-report-only']).toContain('report-to csp-endpoint');
+  });
+
+  it('does not publish a reporting endpoint for an untrusted Host header', () => {
+    const result = fakeResponse();
+    securityHeaders(fakeRequest('https', 'attacker.example'), result.response, () => {});
+    expect(result.headers['reporting-endpoints']).toBeUndefined();
+    expect(result.headers['content-security-policy-report-only']).not.toContain('report-to csp-endpoint');
+    expect(result.headers['content-security-policy-report-only']).toContain('report-uri /api/csp-report');
   });
 
   it('limits requests per client and resets after the time window', () => {
