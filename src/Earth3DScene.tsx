@@ -2,7 +2,7 @@ import { memo, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Maximize2, Minimize2, Pause, Play } from 'lucide-react';
 import { dayNightSnapshot, greenwichMeanSiderealAngle, solarEciDirection } from './daynight';
-import { applyEarthNightLightMask, makeFallbackNightLightsTexture } from './earthVisuals';
+import { applyEarthNightLightMask, createSunDrivenAtmosphereMaterial, EARTH_ATMOSPHERE_MODEL, makeFallbackNightLightsTexture } from './earthVisuals';
 import { EARTH_IMAGERY_SOURCES, loadEarthImagery } from './earthImagery';
 import { formatIstDateTime } from './time';
 import { createSpaceEnvironment } from './solarSystem';
@@ -436,10 +436,25 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       const grid = new THREE.Mesh(new THREE.SphereGeometry(earthRadius * 1.004, 72, 48), new THREE.MeshBasicMaterial({ color: 0x9bdefe, wireframe: true, transparent: true, opacity: 0.035, depthWrite: false }));
       grid.visible = false;
       earth.add(grid);
-      const atmosphereOuter = new THREE.Mesh(new THREE.SphereGeometry(earthRadius * 1.07, 96, 64), new THREE.MeshBasicMaterial({ color: 0x3bbcff, transparent: true, opacity: 0.08, side: THREE.BackSide, depthWrite: false }));
-      earth.add(atmosphereOuter);
-      const atmosphereCore = new THREE.Mesh(new THREE.SphereGeometry(earthRadius * 1.025, 96, 64), new THREE.MeshBasicMaterial({ color: 0x6dd8ff, transparent: true, opacity: 0.055, side: THREE.FrontSide, depthWrite: false }));
+      // The atmosphere uses the exact same world-space Sun vector as the
+      // Earth surface terminator and the Black Marble emissive mask. Polar
+      // daylight follows solar declination; no latitude-only glow is invented.
+      const atmosphereCore = new THREE.Mesh(
+        new THREE.SphereGeometry(earthRadius * 1.025, 96, 64),
+        createSunDrivenAtmosphereMaterial(earthSunUniform, 0.42, 2.4)
+      );
+      atmosphereCore.name = 'earth-atmosphere-inner';
+      atmosphereCore.renderOrder = 3;
       earth.add(atmosphereCore);
+      const atmosphereOuter = new THREE.Mesh(
+        new THREE.SphereGeometry(earthRadius * 1.07, 96, 64),
+        createSunDrivenAtmosphereMaterial(earthSunUniform, 1, 3.2)
+      );
+      atmosphereOuter.name = 'earth-atmosphere-outer';
+      atmosphereOuter.renderOrder = 4;
+      earth.add(atmosphereOuter);
+      container.dataset.earthAtmosphereModel = EARTH_ATMOSPHERE_MODEL;
+      container.dataset.earthAtmospherePolarLighting = 'solar-incidence';
       scene.add(earth);
 
       container.dataset.earthImageryState = 'loading';
