@@ -12,16 +12,22 @@ function safeUri(value) {
   if (typeof value !== 'string') return undefined;
   const input = value.trim();
   if (!input) return undefined;
-  if (/^(inline|eval|wasm-eval|self|data|blob)$/i.test(input)) return input;
+  if (/^(inline|eval|wasm-eval|self)$/i.test(input)) return input;
 
   try {
     const url = new URL(input, 'https://local.invalid');
-    const normalized = url.origin === 'https://local.invalid'
-      ? url.pathname
-      : `${url.origin}${url.pathname}`;
-    return normalized.slice(0, MAX_URI_LENGTH);
+    if (url.origin === 'https://local.invalid') {
+      return url.pathname.slice(0, MAX_URI_LENGTH);
+    }
+    if (url.protocol === 'http:' || url.protocol === 'https:') {
+      return `${url.origin}${url.pathname}`.slice(0, MAX_URI_LENGTH);
+    }
+    // Non-web schemes can embed document contents, local paths or opaque IDs.
+    // Keep only the scheme so report logging cannot leak those payloads.
+    return url.protocol.slice(0, MAX_URI_LENGTH);
   } catch {
-    return input.slice(0, MAX_URI_LENGTH);
+    // Do not echo malformed URI text: it may contain arbitrary sensitive data.
+    return 'unparseable:';
   }
 }
 
