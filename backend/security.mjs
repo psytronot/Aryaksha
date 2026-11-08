@@ -7,6 +7,7 @@ export function securityHeaders(_req, res, next) {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Reporting-Endpoints', 'csp-endpoint="/api/csp-report"');
   res.setHeader('Content-Security-Policy-Report-Only', [
     "default-src 'self'",
     "base-uri 'self'",
@@ -19,6 +20,7 @@ export function securityHeaders(_req, res, next) {
     "font-src 'self' data:",
     "connect-src 'self' https://celestrak.org",
     "worker-src 'self' blob:",
+    "report-to csp-endpoint",
     "report-uri /api/csp-report"
   ].join('; '));
   next();
