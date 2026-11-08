@@ -13,10 +13,8 @@ function cspReportingEndpoint(req) {
     return null;
   }
 
-  const hostname = origin.hostname.toLowerCase();
-  const localLoopback = origin.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(hostname);
-  const productionHost = origin.protocol === 'https:' && hostname === 'aryaksha-web.onrender.com';
-  if (!localLoopback && !productionHost) return null;
+  const productionHost = origin.protocol === 'https:' && origin.hostname.toLowerCase() === 'aryaksha-web.onrender.com';
+  if (!productionHost) return null;
 
   return new URL('/api/csp-report', origin.origin).toString();
 }
