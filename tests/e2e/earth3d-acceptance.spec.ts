@@ -483,6 +483,9 @@ test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without sh
   await expect(page.getByTestId('earth-imagery-status')).toHaveAttribute('data-imagery-state', 'nasa', { timeout: 30_000 });
   await expect(page.getByTestId('earth-imagery-status')).toContainText('NASA Blue Marble');
   await expect(page.getByTestId('earth-imagery-status')).toContainText('NASA Black Marble');
+  const atmosphereCanvas = page.locator('.earth3d-canvas');
+  await expect(atmosphereCanvas).toHaveAttribute('data-earth-atmosphere-model', 'sun-driven-rayleigh-limb-v1');
+  await expect(atmosphereCanvas).toHaveAttribute('data-earth-atmosphere-polar-lighting', 'solar-incidence');
   const cameraModes = page.locator('[aria-label="Camera modes"]');
   await cameraModes.getByRole('button', { name: 'EARTH', exact: true }).click();
   await page.waitForTimeout(400);
