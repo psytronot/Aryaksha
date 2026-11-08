@@ -55,6 +55,37 @@ describe('CSP report normalization', () => {
     }]);
   });
 
+  it('redacts non-web URI payloads and keeps only their scheme', () => {
+    const reports = normalizeCspReports({
+      'csp-report': {
+        'violated-directive': 'img-src',
+        'blocked-uri': 'data:text/html,<script>private-data</script>',
+        'document-uri': 'file:///private/home/user/report.html?token=secret',
+        'source-file': 'javascript:alert("secret")'
+      }
+    });
+
+    expect(reports).toEqual([{
+      type: 'csp-violation',
+      disposition: 'report',
+      violatedDirective: 'img-src',
+      blockedUri: 'data:',
+      documentUri: 'file:',
+      sourceFile: 'javascript:'
+    }]);
+  });
+
+  it('redacts malformed URI text instead of logging it verbatim', () => {
+    const reports = normalizeCspReports({
+      'csp-report': {
+        'violated-directive': 'img-src',
+        'blocked-uri': 'https://[private malformed URI'
+      }
+    });
+
+    expect(reports?.[0].blockedUri).toBe('unparseable:');
+  });
+
   it('bounds report text and rejects malformed or excessive payloads', () => {
     const longDirective = 'img-src '.repeat(40);
     const bounded = normalizeCspReports({
