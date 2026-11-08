@@ -141,6 +141,61 @@ describe('standalone orbit-analysis HTTP contract', () => {
     expect(payload.error).toBe('Request body exceeds the 64 KiB limit.');
   });
 
+  it('accepts legacy CSP violation reports with the CSP report media type', async () => {
+    const response = await fetch(`${baseUrl}/api/csp-report`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/csp-report' },
+      body: JSON.stringify({
+        'csp-report': {
+          'document-uri': 'https://aryaksha.example/',
+          'blocked-uri': 'https://tracker.example/pixel',
+          'violated-directive': 'img-src',
+          'effective-directive': 'img-src',
+          disposition: 'report',
+          'status-code': 200
+        }
+      })
+    });
+
+    expect(response.status).toBe(204);
+  });
+
+  it('accepts Reporting API CSP violation arrays', async () => {
+    const response = await fetch(`${baseUrl}/api/csp-report`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/reports+json' },
+      body: JSON.stringify([{
+        type: 'csp-violation',
+        body: {
+          disposition: 'report',
+          effectiveDirective: 'img-src',
+          violatedDirective: 'img-src',
+          blockedURL: 'https://tracker.example/pixel'
+        }
+      }])
+    });
+
+    expect(response.status).toBe(204);
+  });
+
+  it('rejects malformed and oversized CSP report bodies with structured errors', async () => {
+    const malformed = await fetch(`${baseUrl}/api/csp-report`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/csp-report' },
+      body: '{"csp-report":'
+    });
+    expect(malformed.status).toBe(400);
+    expect((await malformed.json()).error).toBe('CSP report must be valid JSON.');
+
+    const oversized = await fetch(`${baseUrl}/api/csp-report`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/csp-report' },
+      body: 'x'.repeat(9 * 1024)
+    });
+    expect(oversized.status).toBe(413);
+    expect((await oversized.json()).error).toBe('CSP report exceeds the 8 KiB limit.');
+  });
+
   it('rejects negative simulation time with a structured JSON error', async () => {
     const response = await fetch(`${baseUrl}/api/simulation/propagate`, {
       method: 'POST',

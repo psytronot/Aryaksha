@@ -11,6 +11,9 @@ test('live deployed UI serves the app shell and report-only CSP', async ({ page 
   const headers = await response?.allHeaders();
   expect(headers?.['content-security-policy-report-only']).toContain("default-src 'self'");
   expect(headers?.['content-security-policy-report-only']).toContain("connect-src 'self' https://celestrak.org");
+  expect(headers?.['content-security-policy-report-only']).toContain("report-uri /api/csp-report");
+  expect(headers?.['content-security-policy-report-only']).not.toContain("report-to csp-endpoint");
+  expect(headers?.['reporting-endpoints']).toBeUndefined();
   expect(pageErrors).toEqual([]);
 });
 
@@ -95,6 +98,28 @@ test('live deployed UI loads the lazy simulation, tracking and calculator worksp
   expect(pageErrors).toEqual([]);
 });
 
+
+test('a controlled CSP Report-Only browser violation reaches the same-origin collector', async ({ page }) => {
+  await page.goto('/');
+  const reportResponse = page.waitForResponse(response =>
+    new URL(response.url()).pathname === '/api/csp-report' && response.request().method() === 'POST',
+    { timeout: 10_000 }
+  );
+
+  await page.evaluate(() => {
+    const image = document.createElement('img');
+    image.src = 'https://csp-report-probe.invalid/phase-a-probe.png';
+    document.body.appendChild(image);
+  });
+
+  const response = await reportResponse;
+  expect(response.status()).toBe(204);
+  const payload = response.request().postDataJSON() as Record<string, unknown> | Array<Record<string, unknown>>;
+  const first = Array.isArray(payload) ? payload[0] : payload;
+  const report = (first?.['csp-report'] ?? first?.body ?? first) as Record<string, unknown>;
+  expect(report['effective-directive'] ?? report.effectiveDirective).toBe('img-src');
+  expect(report['violated-directive'] ?? report.violatedDirective).toBe('img-src');
+});
 
 test('CSP report-only audit records no blocked resources across key workspaces', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));

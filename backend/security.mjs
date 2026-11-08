@@ -2,12 +2,35 @@ const DEFAULT_WINDOW_MS = 60_000;
 const DEFAULT_MAX_REQUESTS = 60;
 const DEFAULT_MAX_CLIENTS = 10_000;
 
-export function securityHeaders(_req, res, next) {
+function cspReportingEndpoint(req) {
+  const host = typeof req?.get === 'function' ? req.get('host') : null;
+  if (!host || !req?.protocol) return null;
+
+  let origin;
+  try {
+    origin = new URL(`${req.protocol}://${host}`);
+  } catch {
+    return null;
+  }
+
+  const productionHost = origin.protocol === 'https:' && origin.hostname.toLowerCase() === 'aryaksha-web.onrender.com';
+  if (!productionHost) return null;
+
+  return new URL('/api/csp-report', origin.origin).toString();
+}
+
+export function securityHeaders(req, res, next) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  res.setHeader('Content-Security-Policy-Report-Only', [
+
+  const reportingEndpoint = cspReportingEndpoint(req);
+  if (reportingEndpoint) {
+    res.setHeader('Reporting-Endpoints', `csp-endpoint="${reportingEndpoint}"`);
+  }
+
+  const policy = [
     "default-src 'self'",
     "base-uri 'self'",
     "object-src 'none'",
@@ -19,7 +42,10 @@ export function securityHeaders(_req, res, next) {
     "font-src 'self' data:",
     "connect-src 'self' https://celestrak.org",
     "worker-src 'self' blob:"
-  ].join('; '));
+  ];
+  if (reportingEndpoint) policy.push('report-to csp-endpoint');
+  policy.push('report-uri /api/csp-report');
+  res.setHeader('Content-Security-Policy-Report-Only', policy.join('; '));
   next();
 }
 
