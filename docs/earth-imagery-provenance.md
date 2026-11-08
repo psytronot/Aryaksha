@@ -33,3 +33,12 @@ NASA's Earth Science FAQ says most material published under science.nasa.gov/ear
 ## Content Security Policy
 
 The Render web/API security header allowlists https://assets.science.nasa.gov in connect-src for the two CORS-mode image fetches. The application still uses self-hosted scripts/styles and blob: only for the decoded local image source; no wildcard origins are added.
+
+
+## Sun-driven atmospheric scattering and polar illumination
+
+- The inner and outer atmospheric shells use a shared world-space Sun-direction uniform populated from the same ECI-derived vector as the Earth day/night mask and directional key light.
+- Scattering is view-angle dependent: a limb/Fresnel term concentrates the blue atmospheric glow near the visible edge, while solar incidence controls day-side, twilight and night-side intensity.
+- The terminator uses the same smooth solar-incidence transition as the night-light mask. Twilight scattering decays with angular distance from the terminator.
+- Polar illumination is not a latitude-only brightness boost. The north/south polar response follows the sign and magnitude of the actual solar declination through the same normal·Sun calculation used everywhere else. No aurora or live atmospheric observation is implied.
+- This is a real-time visual approximation, not a calibrated radiative-transfer model. Both shell geometries and ShaderMaterials are owned by the Earth scene graph and released by the existing deterministic disposeObjectResources teardown.
