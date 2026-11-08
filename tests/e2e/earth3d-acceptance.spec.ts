@@ -1049,7 +1049,10 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
     groundTrackMetrics!.x + groundTrackMetrics!.width / 2,
     groundTrackMetrics!.y + groundTrackMetrics!.height / 2
   );
-  await expect(page.locator('#earth3d-ground-track-panel')).toBeInViewport();
+  const bottomPanels = page.getByTestId('earth3d-bottom-panels');
+  await expect(bottomPanels).toBeVisible();
+  await expect(bottomPanels).toBeInViewport();
+  await expect(bottomPanels.getByText('2D Ground Track', { exact: true })).toBeInViewport();
   expect(pageErrors).toEqual([]);
 });
 
