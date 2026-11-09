@@ -15,7 +15,7 @@ import {
   SYSTEM_CAMERA_MARGIN,
   SYSTEM_DISPLAY_DISTANCE_RATIO
 } from '../src/earth3dMath';
-import { applyEarthNightLightMask, makeFallbackNightLightsTexture } from '../src/earthVisuals';
+import { applyEarthNightLightMask, atmosphereSolarResponse, createSunDrivenAtmosphereMaterial, EARTH_ATMOSPHERE_MODEL, makeFallbackNightLightsTexture } from '../src/earthVisuals';
 import { EARTH_IMAGERY_SOURCES, loadEarthImagery } from '../src/earthImagery';
 import { cloudAlphaFromLuminance, loadPlanetaryImagery, PLANETARY_IMAGERY_SOURCES } from '../src/planetaryImagery';
 import { disposeObjectResources, updateFootprint } from '../src/earth3dGeometry';
@@ -92,6 +92,62 @@ describe('Sun direction and Earth-fixed frame coherence', () => {
       const sunSceneDirection = new THREE.Vector3(sun.x, sun.z, sun.y);
       expect(earthFixedNormal.dot(sunSceneDirection)).toBeCloseTo(1, 8);
     }
+  });
+});
+
+describe('Sun-driven atmospheric limb and polar illumination', () => {
+  it('builds transparent limb scattering from the shared world-space Sun direction', () => {
+    const sunUniform = { value: new THREE.Vector3(0, 1, 0) };
+    const material = createSunDrivenAtmosphereMaterial(sunUniform, 0.8, 3.2);
+    expect(material).toBeInstanceOf(THREE.ShaderMaterial);
+    expect(material.transparent).toBe(true);
+    expect(material.depthWrite).toBe(false);
+    expect(material.side).toBe(THREE.FrontSide);
+    expect(material.uniforms.uEarthSunDirection.value).toBe(sunUniform.value);
+    expect(material.vertexShader).toContain('mat3(modelMatrix) * normal');
+    expect(material.fragmentShader).toContain('dot(worldNormal, normalize(uEarthSunDirection))');
+    expect(material.fragmentShader).toContain('smoothstep(-0.18, 0.12, solarIncidence)');
+    expect(material.fragmentShader).toContain('exp(-abs(solarIncidence) * 8.0)');
+    expect(material.fragmentShader).toContain('#include <tonemapping_fragment>');
+    // Three.js injects the pars chunks for ShaderMaterial; including them again duplicates GLSL declarations.
+    expect(material.fragmentShader).not.toContain('#include <tonemapping_pars_fragment>');
+    expect(material.fragmentShader).not.toContain('#include <colorspace_pars_fragment>');
+    expect(material.fragmentShader).not.toContain('polarBoost');
+    expect(EARTH_ATMOSPHERE_MODEL).toBe('sun-driven-rayleigh-limb-v1');
+
+    const dispose = vi.spyOn(material, 'dispose');
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 8), material);
+    disposeObjectResources(mesh);
+    expect(dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps equatorial twilight bounded and polar daylight seasonal', () => {
+    const day = atmosphereSolarResponse(1);
+    const terminator = atmosphereSolarResponse(0);
+    const night = atmosphereSolarResponse(-1);
+    expect(day.daylight).toBe(1);
+    expect(night.daylight).toBe(0);
+    expect(terminator.twilight).toBeGreaterThan(night.twilight);
+    expect([day, terminator, night].every(response =>
+      Object.values(response).every(value => Number.isFinite(value) && value >= 0 && value <= 1)
+    )).toBe(true);
+
+    const juneSun = solarEciDirection(new Date('2026-06-21T12:00:00.000Z'));
+    const decemberSun = solarEciDirection(new Date('2026-12-21T12:00:00.000Z'));
+    const juneNorth = atmosphereSolarResponse(juneSun.z).daylight;
+    const juneSouth = atmosphereSolarResponse(-juneSun.z).daylight;
+    const decemberNorth = atmosphereSolarResponse(decemberSun.z).daylight;
+    const decemberSouth = atmosphereSolarResponse(-decemberSun.z).daylight;
+    expect(juneNorth).toBeGreaterThan(juneSouth);
+    expect(decemberSouth).toBeGreaterThan(decemberNorth);
+  });
+
+  it('returns a finite night-side response for invalid normal/Sun incidence', () => {
+    expect(atmosphereSolarResponse(Number.NaN)).toEqual({
+      daylight: 0,
+      twilight: Math.exp(-8),
+      night: 1 - Math.exp(-8)
+    });
   });
 });
 

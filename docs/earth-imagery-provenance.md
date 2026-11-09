@@ -79,3 +79,12 @@ The browser fetches Blue Marble and Black Marble from the CORS-enabled https://a
 - The Express proxy maps those identifiers to the exact NASA SVS source URLs above. It accepts no caller-provided URL, validates the final HTTPS host remains under `*.nasa.gov`, requires JPEG content, enforces per-asset byte limits and checks the 2:1 equirectangular dimensions before caching.
 - This avoids direct browser requests to the SVS host, which failed in the PR #92 Playwright browser with `net::ERR_FAILED` and no response headers. Blue Marble and Black Marble requests to `assets.science.nasa.gov` succeeded in the same browser run.
 - The proxy is same-origin and cacheable. If the proxy or NASA origin is unavailable, each texture independently retains its deterministic local fallback; the UI never labels fallback content as NASA imagery.
+
+
+## Sun-driven atmospheric scattering and polar illumination
+
+- The inner and outer atmospheric shells use a shared world-space Sun-direction uniform populated from the same ECI-derived vector as the Earth day/night mask and directional key light.
+- Scattering is view-angle dependent: a limb/Fresnel term concentrates the blue atmospheric glow near the visible edge, while solar incidence controls day-side, twilight and night-side intensity.
+- The terminator uses the same smooth solar-incidence transition as the night-light mask. Twilight scattering decays with angular distance from the terminator.
+- Polar illumination is not a latitude-only brightness boost. The north/south polar response follows the sign and magnitude of the actual solar declination through the same normal·Sun calculation used everywhere else. No aurora or live atmospheric observation is implied.
+- This is a real-time visual approximation, not a calibrated radiative-transfer model. Both shell geometries and ShaderMaterials are owned by the Earth scene graph and released by the existing deterministic disposeObjectResources teardown.
