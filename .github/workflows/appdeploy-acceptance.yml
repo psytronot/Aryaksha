@@ -32,6 +32,28 @@ jobs:
       - run: npm ci
       - name: Install Chromium for Playwright
         run: npx playwright install --with-deps chromium
+      - name: Capture non-blocking live endpoint timing diagnostics
+        shell: bash
+        continue-on-error: true
+        run: |
+          probe() {
+            name="$1"
+            url="$2"
+            body="$(mktemp)"
+            echo "endpoint=$name"
+            curl --silent --show-error --connect-timeout 10 --max-time 70 \
+              -o "$body" \
+              -w 'http_code=%{http_code} remote_ip=%{remote_ip} dns_ms=%{time_namelookup} connect_ms=%{time_connect} tls_ms=%{time_appconnect} ttfb_ms=%{time_starttransfer} total_ms=%{time_total}\n' \
+              "$url"
+            rc=$?
+            if [ "$rc" -ne 0 ]; then echo "curl_exit=$rc"; fi
+            if [ -s "$body" ]; then head -c 500 "$body"; echo; fi
+            rm -f "$body"
+          }
+          probe "render-web-health" "https://aryaksha-web.onrender.com/api/v1/health" &
+          probe "render-orekit-health" "https://aryaksha-orekit.onrender.com/api/v1/health" &
+          probe "appdeploy-backend-health" "https://orbital-lab-lq22ug.v2.appdeploy.ai/api/_healthcheck" &
+          wait
       - name: Execute desktop and mobile AppDeploy acceptance scenarios
         env:
           APPDEPLOY_BASE_URL: https://orbital-lab-lq22ug.v2.appdeploy.ai/
