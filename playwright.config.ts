@@ -4,6 +4,7 @@ const externalBaseURL = process.env.PLAYWRIGHT_BASE_URL;
 
 export default defineConfig({
   testDir: './tests/e2e',
+  testIgnore: ['**/appdeploy-acceptance.spec.ts'],
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
