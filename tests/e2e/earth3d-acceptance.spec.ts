@@ -1110,7 +1110,13 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   const bottomPanels = page.getByTestId('earth3d-bottom-panels');
   await expect(bottomPanels).toBeVisible();
   await expect(bottomPanels).toBeInViewport();
-  await expect(bottomPanels.getByText('2D Ground Track', { exact: true })).toBeInViewport();
+  const groundTrackHeading = bottomPanels.locator('.earth3d-ground-track-panel .card-head');
+  await expect(groundTrackHeading).toBeInViewport();
+  await expect(groundTrackHeading.getByText('2D Ground Track', { exact: true })).toBeVisible();
+  const headingBounds = await groundTrackHeading.boundingBox();
+  expect(headingBounds).not.toBeNull();
+  expect(headingBounds!.y).toBeGreaterThanOrEqual(0);
+  expect(headingBounds!.y + headingBounds!.height).toBeLessThanOrEqual(1024);
   expect(pageErrors).toEqual([]);
 });
 
