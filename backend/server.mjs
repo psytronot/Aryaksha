@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'node:path';
 import * as satellite from 'satellite.js';
 import { createRateLimiter, securityHeaders } from './security.mjs';
+import { createPlanetaryImageryHandler } from './planetaryImagery.mjs';
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -13,8 +14,10 @@ app.set('trust proxy', 1);
 app.use(securityHeaders);
 app.use(express.json({ limit: '64kb', strict: false }));
 const apiRateLimit = createRateLimiter({ windowMs: 60_000, maxRequests: 60 });
+const planetaryImageryHandler = createPlanetaryImageryHandler();
 app.get('/api/_healthcheck', (_req, res) => res.json({ message: 'Success', service: 'aryaksha-api' }));
 app.get('/api/v1/health', (_req, res) => res.json({ status: 'ok', service: 'aryaksha-api' }));
+app.get('/api/imagery/:assetId', apiRateLimit, planetaryImageryHandler);
 
 app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
   const body = req.body;

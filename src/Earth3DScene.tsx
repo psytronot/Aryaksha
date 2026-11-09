@@ -4,6 +4,7 @@ import { Maximize2, Minimize2, Pause, Play } from 'lucide-react';
 import { dayNightSnapshot, greenwichMeanSiderealAngle, solarEciDirection } from './daynight';
 import { applyEarthNightLightMask, createSunDrivenAtmosphereMaterial, EARTH_ATMOSPHERE_MODEL, makeFallbackNightLightsTexture } from './earthVisuals';
 import { EARTH_IMAGERY_SOURCES, loadEarthImagery } from './earthImagery';
+import { loadPlanetaryImagery, PLANETARY_IMAGERY_SOURCES } from './planetaryImagery';
 import { formatIstDateTime } from './time';
 import { createSpaceEnvironment } from './solarSystem';
 import { cloudRelativeRotation, earthCameraDistance, fitCameraDistance, MOON_CAMERA_MARGIN, MOON_ORBIT_PERIOD_SECONDS, moonCameraYaw, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO } from './earth3dMath';
@@ -326,7 +327,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mobileHudOpen, setMobileHudOpen] = useState(false);
   const [missionSetupTab, setMissionSetupTab] = useState<'presets' | 'custom'>('presets');
-  const [imageryStatus, setImageryStatus] = useState('Loading NASA Blue Marble and Black Marble imagery…');
+  const [imageryStatus, setImageryStatus] = useState('Loading NASA Earth, cloud and lunar imagery…');
   const [wallTime, setWallTime] = useState(() => new Date());
   const cameraState = useRef({ yaw: 0.65, pitch: 0.26, distance: 11 });
   const systemZoomRatioRef = useRef(1);
@@ -367,6 +368,11 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
     let mounted = true;
     let cleanup = () => {};
     const imageryAbortController = new AbortController();
+    let earthImagerySummary = 'Loading NASA Earth imagery…';
+    let planetaryImagerySummary = 'Loading NASA cloud and lunar maps…';
+    const refreshImageryStatus = () => {
+      if (mounted) setImageryStatus(earthImagerySummary + ' · ' + planetaryImagerySummary);
+    };
     try {
       const scene = new THREE.Scene();
       scene.background = new THREE.Color('#01040a');
@@ -424,7 +430,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       const earth = new THREE.Group();
       let earthTexture: THREE.Texture = makeEarthTexture();
       let nightTexture: THREE.Texture = makeFallbackNightLightsTexture();
-      const cloudTexture = makeCloudTexture();
+      let cloudTexture: THREE.Texture = makeCloudTexture();
       const earthMaterial = new THREE.MeshPhongMaterial({ map: earthTexture, emissive: 0xffffff, emissiveMap: nightTexture, emissiveIntensity: 1.25, specular: 0x5d889c, shininess: 22 });
       const earthSunUniform = { value: new THREE.Vector3(1, 0, 0) };
       applyEarthNightLightMask(earthMaterial, earthSunUniform);
@@ -489,7 +495,8 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         container.dataset.earthImageryNightLights = nightLightsSource;
         container.dataset.earthImageryFailures = Object.keys(failures).join(',');
         setImageryState(nextState);
-        setImageryStatus(`${albedo ? 'NASA Blue Marble' : 'Cartographic fallback'} · ${nightLights ? 'NASA Black Marble' : 'No night-light layer'}`);
+        earthImagerySummary = `${albedo ? 'NASA Blue Marble' : 'Cartographic fallback'} · ${nightLights ? 'NASA Black Marble' : 'No night-light layer'}`;
+        refreshImageryStatus();
         if (Object.keys(failures).length > 0) {
           console.warn('Orbital Lab: one or more NASA Earth imagery layers used their safe fallback.', failures);
         }
@@ -500,7 +507,8 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         container.dataset.earthImageryAlbedo = 'cartographic-fallback';
         container.dataset.earthImageryNightLights = 'transparent-fallback';
         setImageryState('fallback');
-        setImageryStatus('Cartographic fallback · No night-light layer');
+        earthImagerySummary = 'Cartographic fallback · No night-light layer';
+        refreshImageryStatus();
         console.warn('Orbital Lab: NASA Earth imagery could not be loaded; safe fallback textures remain active.', error);
       });
 
@@ -508,6 +516,45 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       // they are illustrative context, not ephemeris-grade planetary positions.
       const spaceEnvironment = createSpaceEnvironment(moonRadius, moonDistance);
       scene.add(spaceEnvironment.group);
+
+      container.dataset.earthImageryCloud = 'procedural-cloud-fallback';
+      container.dataset.earthImageryMoonColor = 'procedural-lunar-fallback';
+      container.dataset.earthImageryMoonElevation = 'no-elevation-fallback';
+      void loadPlanetaryImagery(imageryAbortController.signal).then(({ clouds: nasaClouds, moonColor, moonElevation, failures }) => {
+        if (!mounted || imageryAbortController.signal.aborted) {
+          nasaClouds?.dispose(); moonColor?.dispose(); moonElevation?.dispose();
+          return;
+        }
+        if (nasaClouds) {
+          const fallback = cloudTexture;
+          cloudTexture = nasaClouds;
+          cloudMaterial.map = nasaClouds;
+          cloudMaterial.needsUpdate = true;
+          fallback.dispose();
+        }
+        if (moonColor) spaceEnvironment.setLunarColorTexture(moonColor);
+        if (moonElevation) spaceEnvironment.setLunarElevationTexture(moonElevation);
+        container.dataset.earthImageryCloud = nasaClouds ? PLANETARY_IMAGERY_SOURCES.clouds.id : 'procedural-cloud-fallback';
+        container.dataset.earthImageryMoonColor = moonColor ? PLANETARY_IMAGERY_SOURCES.moonColor.id : 'procedural-lunar-fallback';
+        container.dataset.earthImageryMoonElevation = moonElevation ? PLANETARY_IMAGERY_SOURCES.moonElevation.id : 'no-elevation-fallback';
+        container.dataset.earthImageryPlanetaryFailures = Object.entries(failures)
+          .sort(([left], [right]) => left.localeCompare(right))
+          .map(([layer, message]) => layer + ':' + message)
+          .join(';');
+        planetaryImagerySummary = (nasaClouds ? 'NASA/NOAA CPC clouds (2014)' : 'Procedural cloud fallback') + ' · ' + (moonColor ? 'NASA LROC Moon (2025)' : 'Procedural lunar fallback') + ' · ' + (moonElevation ? 'LOLA elevation' : 'No LOLA elevation map');
+        refreshImageryStatus();
+        if (Object.keys(failures).length) console.warn('Orbital Lab: NASA cloud/lunar layers used safe fallbacks.', failures);
+      }).catch((error) => {
+        if (error instanceof Error && error.name === 'AbortError') return;
+        if (!mounted) return;
+        container.dataset.earthImageryCloud = 'procedural-cloud-fallback';
+        container.dataset.earthImageryMoonColor = 'procedural-lunar-fallback';
+        container.dataset.earthImageryMoonElevation = 'no-elevation-fallback';
+        container.dataset.earthImageryPlanetaryFailures = 'load-error';
+        planetaryImagerySummary = 'Procedural cloud fallback · Procedural lunar fallback · No LOLA elevation map';
+        refreshImageryStatus();
+        console.warn('Orbital Lab: NASA cloud/lunar imagery could not be loaded; safe fallbacks remain active.', error);
+      });
 
       const orbitGeometry = new THREE.BufferGeometry();
       const orbitGlow = new THREE.Line(orbitGeometry, new THREE.LineBasicMaterial({ color: 0x1c97bc, transparent: true, opacity: 0.24 }));
