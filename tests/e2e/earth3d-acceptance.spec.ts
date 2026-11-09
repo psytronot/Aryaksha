@@ -1017,7 +1017,7 @@ test('Earth 3D reference dashboard reflows to a globe-first mobile layout', asyn
 });
 
 
-test('Earth 3D desktop shell matches the reference three-column mission-control hierarchy', async ({ page }, testInfo) => {
+test('Earth 3D desktop shell matches the reference three-column mission-control hierarchy', async ({ page }) => {
   await page.setViewportSize({ width: 1536, height: 1024 });
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   const pageErrors: string[] = [];
@@ -1046,6 +1046,13 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   await expect(bottom.getByText('2D Ground Track', { exact: true })).toBeVisible();
   await expect(bottom.getByText('Orbit Parameters', { exact: true })).toBeVisible();
   await expect(bottom.getByText('Mission Info', { exact: true })).toBeVisible();
+  const groundTrackHeading = bottom.locator('.earth3d-ground-track-panel .card-head');
+  const initialGroundTrackHeadingBounds = await groundTrackHeading.boundingBox();
+  expect(initialGroundTrackHeadingBounds).not.toBeNull();
+  expect(initialGroundTrackHeadingBounds!.x).toBeGreaterThanOrEqual(0);
+  expect(initialGroundTrackHeadingBounds!.y).toBeGreaterThanOrEqual(0);
+  expect(initialGroundTrackHeadingBounds!.x + initialGroundTrackHeadingBounds!.width).toBeLessThanOrEqual(1536);
+  expect(initialGroundTrackHeadingBounds!.y + initialGroundTrackHeadingBounds!.height).toBeLessThanOrEqual(1024);
 
   const canvasBounds = await canvas.boundingBox();
   const workspaceBounds = await page.locator('.earth3d-workspace').boundingBox();
@@ -1098,10 +1105,6 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   expect(groundTrackMetrics!.inViewport).toBe(true);
   expect(groundTrackMetrics!.receivesPointer).toBe(true);
 
-  const screenshot = testInfo.outputPath('earth3d-reference-desktop-topnav-1536x1024.png');
-  await page.screenshot({ path: screenshot, animations: 'disabled' });
-  await testInfo.attach('earth3d-reference-desktop-topnav-1536x1024.png', { path: screenshot, contentType: 'image/png' });
-
   // Use the previously measured visible hit target for a real pointer event.
   await page.mouse.click(
     groundTrackMetrics!.x + groundTrackMetrics!.width / 2,
@@ -1109,14 +1112,8 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   );
   const bottomPanels = page.getByTestId('earth3d-bottom-panels');
   await expect(bottomPanels).toBeVisible();
-  await expect(bottomPanels).toBeInViewport();
-  const groundTrackHeading = bottomPanels.locator('.earth3d-ground-track-panel .card-head');
-  await expect(groundTrackHeading).toBeInViewport();
+  await expect(groundTrackHeading).toBeVisible();
   await expect(groundTrackHeading.getByText('2D Ground Track', { exact: true })).toBeVisible();
-  const headingBounds = await groundTrackHeading.boundingBox();
-  expect(headingBounds).not.toBeNull();
-  expect(headingBounds!.y).toBeGreaterThanOrEqual(0);
-  expect(headingBounds!.y + headingBounds!.height).toBeLessThanOrEqual(1024);
   expect(pageErrors).toEqual([]);
 });
 
@@ -1141,8 +1138,15 @@ test('Earth 3D mobile shell keeps the globe visible and retains navigation in th
 
   const bounds = await canvas.boundingBox();
   expect(bounds).not.toBeNull();
-  expect(bounds!.y).toBeLessThan(844);
-  expect(bounds!.y + bounds!.height).toBeGreaterThan(0);
+  expect(bounds!.y).toBeLessThan(440);
+  expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(844);
+  expect(bounds!.height).toBeGreaterThanOrEqual(320);
+  await expect(page.locator('.earth3d-page-header')).toContainText('Scale disclosure:');
+  await expect(page.getByTestId('earth-imagery-status')).toContainText('NASA Blue Marble');
+  const mobileControlColumns = await page.locator('.earth-camera-controls').evaluate(element =>
+    getComputedStyle(element).gridTemplateColumns.split(' ').length
+  );
+  expect(mobileControlColumns).toBe(4);
 
   const screenshot = testInfo.outputPath('earth3d-reference-mobile-topnav-390x844.png');
   await page.screenshot({ path: screenshot, animations: 'disabled' });

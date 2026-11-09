@@ -521,3 +521,63 @@ html.earth3d-active pwa-install {
     grid-row: auto;
   }
 }
+
+
+/* Compact the mobile header and controls so the Earth globe is visible in the
+   first viewport; keep complete provenance and scale disclosures in the DOM. */
+@media (max-width: 800px) {
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header {
+    margin: 0 0 6px;
+    padding: 0 8px;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header > div {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 3px 8px;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header > div > small:first-child,
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header p {
+    display: none;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header h1 {
+    grid-column: 1;
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.1;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header .earth3d-imagery-status {
+    grid-column: 2;
+    min-width: 0;
+    margin: 0;
+    font: 6px/1.2 ui-monospace, monospace;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header > div > small:last-child {
+    grid-column: 1 / -1;
+    margin: 0;
+    font: 6px/1.2 ui-monospace, monospace;
+    text-align: left;
+  }
+}
+@media (max-width: 500px) {
+  .app-shell.simulation-active .earth-camera-controls {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .app-shell.simulation-active .earth-camera-button {
+    height: 28px;
+    min-height: 28px;
+    padding: 0 2px;
+    font-size: 7px;
+  }
+  .app-shell.simulation-active .earth-fullscreen-button span {
+    font-size: 6px;
+  }
+  .app-shell.simulation-active .earth3d-workspace {
+    grid-template-rows: auto minmax(320px, 48svh) auto auto auto;
+  }
+  .app-shell.simulation-active .earth3d-canvas {
+    height: 48svh;
+    max-height: 430px;
+  }
+}
