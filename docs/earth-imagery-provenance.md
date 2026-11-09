@@ -32,7 +32,53 @@ NASA's Earth Science FAQ says most material published under science.nasa.gov/ear
 
 ## Content Security Policy
 
-The Render web/API security header allowlists https://assets.science.nasa.gov in connect-src for the two CORS-mode image fetches. The application still uses self-hosted scripts/styles and blob: only for the decoded local image source; no wildcard origins are added.
+The browser fetches Blue Marble and Black Marble from the CORS-enabled https://assets.science.nasa.gov origin. Cloud, lunar-color and LOLA requests use same-origin `/api/imagery/<fixed-id>` endpoints; the Express service fetches the three hard-coded NASA SVS URLs server-side. The browser does not contact `svs.gsfc.nasa.gov`, so no wildcard CORS or CSP origin is required. The proxy accepts no caller-supplied URL, follows redirects only within `*.nasa.gov`, validates JPEG content type, byte limits and 2:1 dimensions, and caches successful assets for 24 hours. The CSP retains only the external origins actually used by browser requests.
+
+
+## Cloud opacity — NASA/NOAA Climate Prediction Center composite
+
+- Product: NASA Scientific Visualization Studio 4439, "High Resolution Layers from Monsoons: Wet, Dry, Repeat..."; the cloud layer is a global NOAA Climate Prediction Center (CPC) composite.
+- Frame used: flat_cpc_clouds_8192x4096.01000_print.jpg (1024 × 512 JPEG). Frame 01000 corresponds to **2014-06-02 00:00 UTC**. The full 4096 × 2048 frame sequence is TIFF with alpha, but browser-native TIFF decoding is not assumed.
+- Source page: https://svs.gsfc.nasa.gov/4439/
+- Source image: https://svs.gsfc.nasa.gov/vis/a000000/a004400/a004439/flat_cpc_clouds_8192x4096.01000_print.jpg
+- Credit: **NASA's Scientific Visualization Studio** and **NOAA Climate Prediction Center**.
+- This is a historical cloud snapshot, not current weather or a live satellite feed. The print JPEG has a white background; runtime converts inverse grayscale luminance to alpha so the white background is transparent and darker cloud detail becomes opacity.
+
+## Lunar surface color — NASA CGI Moon Kit 2025
+
+- Product: 2025 lroc_color_2k.jpg (2048 × 1024), centered at 0° longitude.
+- Source page: https://svs.gsfc.nasa.gov/4720/
+- Source image: https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_2k.jpg
+- Derived from the LRO Lunar Reconnaissance Orbiter Camera (LROC) Wide Angle Camera natural-color Hapke-normalized mosaic, with missing high-latitude regions filled using a lower-resolution LOLA albedo map.
+- Credit: **NASA's Scientific Visualization Studio**; visualizer Ernie Wright (USRA); scientist Noah Petro (NASA/GSFC).
+- NASA describes this map as optimized for visualization, not scientific analysis.
+
+## Lunar elevation — NASA LOLA displacement map
+
+- Product: ldem_3_8bit.jpg (1024 × 512), a low-resolution 8-bit visualization derivative of the Lunar Orbiter Laser Altimeter (LOLA) displacement map.
+- Source page: https://svs.gsfc.nasa.gov/4720/
+- Source image: https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/ldem_3_8bit.jpg
+- Credit: **NASA's Scientific Visualization Studio** and the LRO LOLA instrument team.
+- This map is used only as a restrained visual bump map. The LROC color/albedo image is not reused as a height map.
+
+## Planetary texture runtime, fallbacks and orientation
+
+- Cloud, lunar color and lunar elevation requests are asynchronous same-origin fetches to the fixed Express imagery proxy. The server validates upstream HTTP status, NASA-domain redirects, JPEG content type, maximum response size and 2:1 equirectangular dimensions; the browser then validates image decoding and dimensions before GPU upload.
+- The browser's `fetch` requests use `mode: same-origin`, same-origin credentials and the browser cache. If the server proxy or upstream NASA source is unavailable, each layer independently retains its deterministic fallback and reports that it is not NASA imagery.
+- Cloud alpha is derived from inverse grayscale luminance because the selected NASA/NOAA CPC print JPEG has a white background. Texture metadata retains the original NASA source page, source URL, credit, historical date and same-origin asset path.
+- The Moon retains deterministic procedural color fallback. If a NASA layer fails CORS, HTTP validation or decoding, that layer remains on its safe fallback; synthetic content is never labelled as NASA data.
+- Moon color and LOLA elevation are separate textures. ImageBitmaps are closed on texture disposal; cloud canvases are cleared; pending requests are aborted on scene unmount; replaced fallback textures are disposed immediately.
+- Three.js SphereGeometry maps the 0° texture meridian to local +X. The lunar geometry rotates -90° around Y so the map centre aligns with local +Z, the synchronous Earth-facing axis. Tests verify this direction across orbital phases.
+- The cloud layer retains the tested -1.5% local drift relative to the rotating Earth parent; its world-space rate remains 98.5% of Earth rotation.
+
+
+
+## Same-origin NASA SVS delivery — 2026-11-07
+
+- Browser requests for the cloud, LROC color and LOLA layers use fixed same-origin paths: `/api/imagery/nasa-noaa-cpc-clouds-2014-06-02`, `/api/imagery/nasa-lroc-color-2025` and `/api/imagery/nasa-lola-elevation-2019`.
+- The Express proxy maps those identifiers to the exact NASA SVS source URLs above. It accepts no caller-provided URL, validates the final HTTPS host remains under `*.nasa.gov`, requires JPEG content, enforces per-asset byte limits and checks the 2:1 equirectangular dimensions before caching.
+- This avoids direct browser requests to the SVS host, which failed in the PR #92 Playwright browser with `net::ERR_FAILED` and no response headers. Blue Marble and Black Marble requests to `assets.science.nasa.gov` succeeded in the same browser run.
+- The proxy is same-origin and cacheable. If the proxy or NASA origin is unavailable, each texture independently retains its deterministic local fallback; the UI never labels fallback content as NASA imagery.
 
 
 ## Sun-driven atmospheric scattering and polar illumination
