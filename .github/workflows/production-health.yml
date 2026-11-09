@@ -25,7 +25,10 @@ jobs:
           set -euo pipefail
           headers="$(mktemp)"
           body="$(mktemp)"
-          status="$(curl --silent --show-error --max-time 30 -D "$headers" -o "$body" -w '%{http_code}' https://aryaksha-web.onrender.com/api/v1/health)"
+          result="$(curl --silent --show-error --connect-timeout 10 --max-time 75 -D "$headers" -o "$body" -w '%{http_code} %{time_namelookup} %{time_connect} %{time_appconnect} %{time_starttransfer} %{time_total}' https://aryaksha-web.onrender.com/api/v1/health)"
+          status="${result%% *}"
+          timings="${result#* }"
+          echo "web_http=$status dns_connect_tls_ttfb_total_seconds=$timings"
           test "$status" = "200"
           grep -qi '^x-content-type-options: nosniff' "$headers"
           grep -qi '^x-frame-options: DENY' "$headers"
@@ -38,7 +41,10 @@ jobs:
         run: |
           set -euo pipefail
           body="$(mktemp)"
-          status="$(curl --silent --show-error --max-time 75 -o "$body" -w '%{http_code}' https://aryaksha-orekit.onrender.com/api/v1/health)"
+          result="$(curl --silent --show-error --connect-timeout 10 --max-time 75 -o "$body" -w '%{http_code} %{time_namelookup} %{time_connect} %{time_appconnect} %{time_starttransfer} %{time_total}' https://aryaksha-orekit.onrender.com/api/v1/health)"
+          status="${result%% *}"
+          timings="${result#* }"
+          echo "orekit_http=$status dns_connect_tls_ttfb_total_seconds=$timings"
           test "$status" = "200"
           node -e 'const fs=require("node:fs"); const p=JSON.parse(fs.readFileSync(process.argv[1], "utf8")); if (p.status!=="ok" || p.engine!=="Orekit" || p.version!=="13.1.9") process.exit(1);' "$body"
           cat "$body"
