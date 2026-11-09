@@ -490,6 +490,13 @@ test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without sh
   await expect(page.getByTestId('earth-imagery-status')).toHaveAttribute('data-imagery-state', 'nasa', { timeout: 30_000 });
   await expect(page.getByTestId('earth-imagery-status')).toContainText('NASA Blue Marble');
   await expect(page.getByTestId('earth-imagery-status')).toContainText('NASA Black Marble');
+  const imageryCanvas = page.locator('.earth3d-canvas');
+  await expect(imageryCanvas).toHaveAttribute('data-earth-imagery-cloud', 'nasa-noaa-cpc-clouds-2014-06-02', { timeout: 30_000 });
+  await expect(imageryCanvas).toHaveAttribute('data-earth-imagery-moon-color', 'nasa-lroc-color-2025', { timeout: 30_000 });
+  await expect(imageryCanvas).toHaveAttribute('data-earth-imagery-moon-elevation', 'nasa-lola-elevation-2019', { timeout: 30_000 });
+  await expect(page.getByTestId('earth-imagery-status')).toContainText('NASA/NOAA CPC clouds (2014)');
+  await expect(page.getByTestId('earth-imagery-status')).toContainText('NASA LROC Moon (2025)');
+  await expect(page.getByTestId('earth-imagery-status')).toContainText('LOLA elevation');
   const atmosphereCanvas = page.locator('.earth3d-canvas');
   await expect(atmosphereCanvas).toHaveAttribute('data-earth-atmosphere-model', 'sun-driven-rayleigh-limb-v1');
   await expect(atmosphereCanvas).toHaveAttribute('data-earth-atmosphere-polar-lighting', 'solar-incidence');
