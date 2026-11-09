@@ -325,6 +325,55 @@ describe('NASA cloud and lunar imagery source and fallback behavior', () => {
       vi.unstubAllGlobals();
     }
   });
+
+  it('closes lunar ImageBitmaps and clears the cloud canvas when textures are disposed', async () => {
+    const bitmaps: Array<{ width: number; height: number; close: ReturnType<typeof vi.fn> }> = [];
+    const context = {
+      drawImage: vi.fn(),
+      getImageData: vi.fn(() => ({ data: new Uint8ClampedArray([120, 120, 120, 255]) })),
+      putImageData: vi.fn()
+    };
+    const canvas = {
+      width: 0,
+      height: 0,
+      getContext: vi.fn(() => context)
+    };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: (name: string) => name.toLowerCase() === 'content-type' ? 'image/jpeg' : null },
+      blob: async () => new Blob([new Uint8Array([1, 2, 3])])
+    });
+    const bitmapFactory = vi.fn().mockImplementation(async () => {
+      const bitmap = { width: 2048, height: 1024, close: vi.fn() };
+      bitmaps.push(bitmap);
+      return bitmap as unknown as ImageBitmap;
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('createImageBitmap', bitmapFactory);
+    vi.stubGlobal('document', { createElement: vi.fn(() => canvas) });
+
+    try {
+      const result = await loadPlanetaryImagery(new AbortController().signal);
+      expect(result.clouds).not.toBeNull();
+      expect(result.moonColor).not.toBeNull();
+      expect(result.moonElevation).not.toBeNull();
+      expect(bitmaps).toHaveLength(3);
+      expect(bitmaps[0].close).toHaveBeenCalledTimes(1);
+      expect(bitmaps[1].close).not.toHaveBeenCalled();
+      expect(bitmaps[2].close).not.toHaveBeenCalled();
+
+      result.clouds?.dispose();
+      result.moonColor?.dispose();
+      result.moonElevation?.dispose();
+
+      expect(canvas.width).toBe(0);
+      expect(canvas.height).toBe(0);
+      expect(bitmaps[1].close).toHaveBeenCalledTimes(1);
+      expect(bitmaps[2].close).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
 
 describe('Earth-facing lunar camera', () => {
