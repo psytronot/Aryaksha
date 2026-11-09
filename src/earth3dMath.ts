@@ -1,5 +1,7 @@
 export const EARTH_3D_FOV_DEGREES = 42;
 export const MOON_CAMERA_MARGIN = 1.7;
+// SphereGeometry's 0° texture meridian is local +X; rotate it onto the Earth-facing +Z axis.
+export const MOON_TEXTURE_CENTER_ROTATION_RAD = -Math.PI / 2;
 export const SYSTEM_CAMERA_MARGIN = 1.08;
 export const EARTH_CAMERA_MARGIN = 1.35;
 // In SYSTEM view, compress only the displayed Earth-Moon centre separation.
@@ -41,7 +43,7 @@ export function cloudRelativeRotation(earthRotation: number): number {
 
 export function moonSynchronousYaw(phase: number): number {
   const safePhase = Number.isFinite(phase) ? phase : 0;
-  // Three.js local +Z points from the Moon back toward Earth in the x-z orbital plane.
+  // After the Moon geometry's -90° texture-centre rotation, local +Z points from the Moon back toward Earth.
   return -safePhase - Math.PI / 2;
 }
 
