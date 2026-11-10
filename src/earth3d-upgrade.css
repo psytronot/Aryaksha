@@ -581,3 +581,24 @@ html.earth3d-active pwa-install {
     max-height: 430px;
   }
 }
+
+
+/* Schematic planetary overview: deliberately distinct from tracked spacecraft and physical Earth–Moon scale. */
+.earth3d-gallery-thumb[data-scene="planets"] {
+  background: radial-gradient(circle at 50% 50%, #ffd27a 0 14%, transparent 15%),
+    radial-gradient(circle at 24% 34%, #9b9a97 0 5%, transparent 6%),
+    radial-gradient(circle at 70% 34%, #4b9fe8 0 6%, transparent 7%),
+    radial-gradient(circle at 78% 68%, #d8c69b 0 8%, transparent 9%),
+    #03070c;
+}
+.earth3d-planetary-disclosure {
+  display: block;
+  margin-top: 5px;
+  color: #8fa3b7;
+  font: 7px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .055em;
+}
+.earth3d-planetary-controls .earth3d-planet-select { margin-top: 7px; }
+@media (max-width: 800px) {
+  .earth3d-planetary-disclosure { font-size: 6.5px; }
+}
