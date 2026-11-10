@@ -80,6 +80,48 @@ test('Earth 3D responds to native two-pointer touch pinch on mobile Chromium', a
       .__earth3dTouchEvents?.filter(event => event.type === 'pointerup' && event.pointerType === 'touch').length ?? 0
   )).toBe(2);
 
+  // The PLANETS camera reuses the same two-pointer handler but has its own
+  // fit-distance baseline; verify native touch pinch in both directions.
+  const solarSystemScene = page.getByRole('button', { name: 'Solar system scene', exact: true });
+  await solarSystemScene.scrollIntoViewIfNeeded();
+  await solarSystemScene.click();
+  await expect(container).toHaveAttribute('data-camera-mode', 'PLANETS');
+  await expect(container).toHaveAttribute('data-planetary-visible', 'true');
+  await canvas.scrollIntoViewIfNeeded();
+  const planetaryBounds = await canvas.boundingBox();
+  expect(planetaryBounds).not.toBeNull();
+  const planetaryCenterX = planetaryBounds!.x + planetaryBounds!.width / 2;
+  const planetaryCenterY = planetaryBounds!.y + planetaryBounds!.height / 2;
+  const planetaryInitialDistance = await readDistance();
+
+  await dispatch('touchStart', [
+    { id: 3, x: planetaryCenterX - 30, y: planetaryCenterY, radiusX: 4, radiusY: 4, force: 1 },
+    { id: 4, x: planetaryCenterX + 30, y: planetaryCenterY, radiusX: 4, radiusY: 4, force: 1 }
+  ]);
+  await expect.poll(() => page.evaluate(() =>
+    (window as Window & { __earth3dTouchEvents?: Array<{ type: string; pointerType: string }> })
+      .__earth3dTouchEvents?.filter(event => event.type === 'pointerdown' && event.pointerType === 'touch').length ?? 0
+  )).toBe(4);
+
+  await dispatch('touchMove', [
+    { id: 3, x: planetaryCenterX - 30, y: planetaryCenterY, radiusX: 4, radiusY: 4, force: 1 },
+    { id: 4, x: planetaryCenterX + 120, y: planetaryCenterY, radiusX: 4, radiusY: 4, force: 1 }
+  ]);
+  await expect.poll(readDistance).toBeLessThan(planetaryInitialDistance - 1);
+  const planetaryPinchedInDistance = await readDistance();
+
+  await dispatch('touchMove', [
+    { id: 3, x: planetaryCenterX - 30, y: planetaryCenterY, radiusX: 4, radiusY: 4, force: 1 },
+    { id: 4, x: planetaryCenterX + 30, y: planetaryCenterY, radiusX: 4, radiusY: 4, force: 1 }
+  ]);
+  await expect.poll(readDistance).toBeGreaterThan(planetaryPinchedInDistance + 1);
+  expect(await readDistance()).toBeCloseTo(planetaryInitialDistance, 1);
+  await dispatch('touchEnd', []);
+  await expect.poll(() => page.evaluate(() =>
+    (window as Window & { __earth3dTouchEvents?: Array<{ type: string; pointerType: string }> })
+      .__earth3dTouchEvents?.filter(event => event.type === 'pointerup' && event.pointerType === 'touch').length ?? 0
+  )).toBe(4);
+
   const eventSummary = await page.evaluate(() => {
     const events = (window as Window & { __earth3dTouchEvents?: Array<{ type: string; pointerType: string }> })
       .__earth3dTouchEvents ?? [];
@@ -91,13 +133,13 @@ test('Earth 3D responds to native two-pointer touch pinch on mobile Chromium', a
     };
   });
   expect(eventSummary.touchPointerTypes).toEqual(['touch']);
-  expect(eventSummary.downCount).toBe(2);
+  expect(eventSummary.downCount).toBe(4);
   expect(eventSummary.moveCount).toBeGreaterThan(0);
-  expect(eventSummary.upCount).toBe(2);
+  expect(eventSummary.upCount).toBe(4);
   expect(pageErrors).toEqual([]);
   test.info().annotations.push({
     type: 'Touch-input evidence',
-    description: 'Chromium CDP Input.dispatchTouchEvent generated two touch PointerEvents and exercised pinch-in/pinch-out. This is browser-emulated touch input, not a physical-device test.'
+    description: 'Chromium CDP Input.dispatchTouchEvent generated touch PointerEvents and exercised pinch-in/pinch-out in SYSTEM and PLANETS camera modes. This is browser-emulated touch input, not a physical-device test.'
   });
   await client.detach();
 });

@@ -38,7 +38,8 @@ test('desktop solar-system overview exposes all bodies, Saturn rings and preserv
 
   await expect(viewport).toHaveAttribute('data-camera-mode', 'PLANETS');
   await expect(viewport).toHaveAttribute('data-planetary-visible', 'true');
-  await expect(page.getByTestId('earth3d-planetary-scale-note')).toBeVisible();
+  await expect(page.locator('.earth3d-planetary-disclosure')).toBeVisible();
+  await expect(viewport).toHaveAttribute('data-planetary-scale-disclosure', 'schematic-not-to-scale-not-ephemeris');
   await page.screenshot({ path: testInfo.outputPath('earth3d-planets-overview-desktop-1536x1024.png'), fullPage: false });
 
   const planetaryControls = page.getByTestId('earth3d-planetary-controls');
@@ -49,7 +50,9 @@ test('desktop solar-system overview exposes all bodies, Saturn rings and preserv
   await expect(viewport).toHaveAttribute('data-camera-mode', 'PLANETS');
   await page.getByRole('button', { name: 'Reset camera framing' }).click();
   await expect(viewport).toHaveAttribute('data-camera-pitch', '0.620000');
-  await expect(telemetryRow).toHaveText(telemetryBefore);
+  // innerText preserves the row's visual line break; toHaveText normalizes
+  // textContent whitespace differently for these adjacent label/value spans.
+  expect(await telemetryRow.innerText()).toBe(telemetryBefore);
   await page.screenshot({ path: testInfo.outputPath('earth3d-saturn-rings-desktop-1536x1024.png'), fullPage: false });
 
   // Reload forces Earth3DScene unmount/remount after the planetary group has been allocated.
@@ -77,10 +80,15 @@ test('mobile planetary controls remain reachable without horizontal overflow', a
   const planetaryControls = page.getByTestId('earth3d-planetary-controls');
   await expect(planetaryControls).toBeVisible();
   const enabled = planetaryControls.getByRole('checkbox', { name: 'Enable schematic solar system' });
+  await expect(enabled).toBeChecked();
+  await enabled.uncheck();
+  await expect(viewport).toHaveAttribute('data-camera-mode', 'EARTH');
   await enabled.check();
   await expect(viewport).toHaveAttribute('data-camera-mode', 'PLANETS');
   await expect(viewport).toHaveAttribute('data-planetary-visible', 'true');
+  await expect(page.locator('.earth3d-planetary-disclosure')).toBeVisible();
   await page.getByRole('button', { name: 'Hide mission data panels' }).click();
+  await expect(page.getByTestId('earth3d-planetary-scale-note')).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('earth3d-planets-overview-mobile-390x844.png'), fullPage: false });
 
   await page.getByRole('button', { name: 'Show mission data panels' }).click();
