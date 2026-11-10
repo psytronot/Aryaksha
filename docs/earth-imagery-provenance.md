@@ -88,3 +88,10 @@ The browser fetches Blue Marble and Black Marble from the CORS-enabled https://a
 - The terminator uses the same smooth solar-incidence transition as the night-light mask. Twilight scattering decays with angular distance from the terminator.
 - Polar illumination is not a latitude-only brightness boost. The north/south polar response follows the sign and magnitude of the actual solar declination through the same normal·Sun calculation used everywhere else. No aurora or live atmospheric observation is implied.
 - This is a real-time visual approximation, not a calibrated radiative-transfer model. Both shell geometries and ShaderMaterials are owned by the Earth scene graph and released by the existing deterministic disposeObjectResources teardown.
+
+
+## Optional planetary overview — schematic reference layer
+
+The optional Solar System scene displays the Sun and eight planets, including a Saturn ring model. Its circular orbit radii, phase offsets and body sizes are intentionally schematic and exaggerated for legibility. They are not physical scale, not an ephemeris, and must not be used for navigation, conjunction analysis or mission planning. The Earth–Moon scene retains its separate physical radius and mean centre-separation references.
+
+The overview bodies are simulated reference geometry, not tracked spacecraft. They do not alter satellite.js/SGP4 propagation, Kepler state, mission telemetry, orbit design or mission-analysis calculations. The interface discloses the schematic scale and provenance whenever the planetary view is active.
