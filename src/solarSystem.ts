@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { MOON_ORBIT_PERIOD_SECONDS, MOON_TEXTURE_CENTER_ROTATION_RAD, moonSynchronousYaw } from './earth3dMath';
+import { MOON_ORBIT_PERIOD_SECONDS, MOON_TEXTURE_CENTER_ROTATION_RAD, PLANETARY_BODY_SPECS, moonSynchronousYaw, planetaryPositionAt } from './earth3dMath';
 
 function seededRandom(seed: number) {
   let state = seed >>> 0;
@@ -7,6 +7,30 @@ function seededRandom(seed: number) {
     state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
     return state / 0x100000000;
   };
+}
+
+function makeBodyLabel(text: string, color: string) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 384;
+  canvas.height = 96;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Planet label canvas could not be created.');
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = 'rgba(3, 8, 15, 0.82)';
+  context.strokeStyle = 'rgba(140, 185, 215, 0.65)';
+  context.lineWidth = 2;
+  context.fillRect(2, 2, canvas.width - 4, canvas.height - 4);
+  context.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+  context.fillStyle = color;
+  context.font = '600 34px ui-monospace, SFMono-Regular, Menlo, monospace';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText(text.toUpperCase(), canvas.width / 2, canvas.height / 2);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false, sizeAttenuation: true }));
+  sprite.renderOrder = 10;
+  return { sprite, texture };
 }
 
 function createLunarTexture() {
@@ -125,12 +149,66 @@ export function createSpaceEnvironment(moonRadius: number, moonDistance: number)
   moonOrbit.name = 'Mean Earth-Moon orbit (display-scale geometry)';
   group.add(moonOrbit, moon);
 
+  const planetaryGroup = new THREE.Group();
+  planetaryGroup.name = 'Schematic solar-system overview — not to scale or ephemeris';
+  planetaryGroup.visible = false;
+  const planetaryLabelTextures: THREE.Texture[] = [];
+  const bodies = PLANETARY_BODY_SPECS.map((spec) => {
+    const root = new THREE.Group();
+    root.name = spec.name;
+    const geometry = new THREE.SphereGeometry(spec.radius, spec.name === 'Sun' ? 48 : 32, spec.name === 'Sun' ? 32 : 24);
+    const material = spec.name === 'Sun'
+      ? new THREE.MeshBasicMaterial({ color: spec.color })
+      : new THREE.MeshStandardMaterial({ color: spec.color, roughness: 0.82, metalness: 0.02 });
+    const sphere = new THREE.Mesh(geometry, material);
+    sphere.name = spec.name + ' schematic body';
+    root.add(sphere);
+
+    if (spec.ringed) {
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(spec.radius * 1.28, spec.radius * 2.05, 72),
+        new THREE.MeshBasicMaterial({ color: 0xcbb98c, side: THREE.DoubleSide, transparent: true, opacity: 0.82, depthWrite: false })
+      );
+      ring.rotation.x = Math.PI / 2;
+      ring.name = 'Saturn rings — schematic';
+      root.add(ring);
+    }
+
+    const label = makeBodyLabel(spec.name, spec.name === 'Sun' ? '#ffd889' : '#d8edf8');
+    planetaryLabelTextures.push(label.texture);
+    label.sprite.position.y = spec.radius + (spec.ringed ? spec.radius * 1.3 + 0.45 : 0.75);
+    label.sprite.scale.set(Math.max(3.4, spec.radius * 4.2), Math.max(0.85, spec.radius * 1.05), 1);
+    root.add(label.sprite);
+
+    if (spec.name !== 'Sun') {
+      const orbitPoints = Array.from({ length: 193 }, (_, index) => {
+        const angle = index / 192 * Math.PI * 2;
+        return new THREE.Vector3(Math.cos(angle) * spec.orbitRadius, 0, Math.sin(angle) * spec.orbitRadius);
+      });
+      const orbit = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(orbitPoints),
+        new THREE.LineBasicMaterial({ color: 0x78a9c6, transparent: true, opacity: 0.28, depthWrite: false })
+      );
+      orbit.name = spec.name + ' schematic orbit';
+      planetaryGroup.add(orbit);
+    }
+    planetaryGroup.add(root);
+    return { name: spec.name, root, spec };
+  });
+
+  const planetarySunLight = new THREE.PointLight(0xffe0a6, 2.2, 0, 0);
+  planetarySunLight.name = 'Schematic Sun point light';
+  planetaryGroup.add(planetarySunLight);
+
   return {
     group,
+    planetaryGroup,
     moon,
     moonOrbit,
+    bodies,
     update(elapsedSeconds: number, displayDistanceScale = 1) {
-      const phase = (elapsedSeconds / MOON_ORBIT_PERIOD_SECONDS) * Math.PI * 2;
+      const safeElapsedSeconds = Number.isFinite(elapsedSeconds) ? elapsedSeconds : 0;
+      const phase = (safeElapsedSeconds / MOON_ORBIT_PERIOD_SECONDS) * Math.PI * 2;
       const distanceScale = Number.isFinite(displayDistanceScale)
         ? Math.max(0.01, Math.min(1, displayDistanceScale))
         : 1;
@@ -141,6 +219,10 @@ export function createSpaceEnvironment(moonRadius: number, moonDistance: number)
       );
       moonOrbit.scale.setScalar(distanceScale);
       moon.rotation.y = moonSynchronousYaw(phase);
+      bodies.forEach((body) => {
+        const position = planetaryPositionAt(body.name, safeElapsedSeconds);
+        body.root.position.set(position.x, position.y, position.z);
+      });
     },
     setLunarColorTexture(texture: THREE.Texture) {
       if (disposed) { texture.dispose(); return; }
@@ -166,15 +248,17 @@ export function createSpaceEnvironment(moonRadius: number, moonDistance: number)
       disposed = true;
       lunarColorTexture.dispose();
       lunarElevationTexture?.dispose();
+      planetaryLabelTextures.forEach(texture => texture.dispose());
       const geometries = new Set<THREE.BufferGeometry>();
       const materials = new Set<THREE.Material>();
-      group.traverse((object) => {
+      [group, planetaryGroup].forEach(root => root.traverse((object) => {
+        if (object instanceof THREE.Mesh || object instanceof THREE.Line) geometries.add(object.geometry);
+        if (object instanceof THREE.Sprite) materials.add(object.material);
         if (object instanceof THREE.Mesh || object instanceof THREE.Line) {
-          geometries.add(object.geometry);
           const objectMaterials = Array.isArray(object.material) ? object.material : [object.material];
-          objectMaterials.forEach((material) => materials.add(material));
+          objectMaterials.forEach(material => materials.add(material));
         }
-      });
+      }));
       geometries.forEach((geometry) => geometry.dispose());
       materials.forEach((material) => material.dispose());
     }
