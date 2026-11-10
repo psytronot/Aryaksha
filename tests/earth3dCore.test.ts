@@ -12,6 +12,8 @@ import {
   nightLightFactor,
   moonSynchronousYaw,
   moonCameraYaw,
+  PLANETARY_BODY_SPECS,
+  planetaryPositionAt,
   SYSTEM_CAMERA_MARGIN,
   SYSTEM_DISPLAY_DISTANCE_RATIO
 } from '../src/earth3dMath';
@@ -353,6 +355,37 @@ describe('Earth-facing lunar camera', () => {
   it('preserves a user orbit offset around the Earth-facing lunar reference', () => {
     const phase = 1.234;
     expect(moonCameraYaw(phase, 0.4) - moonCameraYaw(phase)).toBeCloseTo(0.4, 10);
+  });
+});
+
+describe('Schematic planetary overview', () => {
+  it('defines the Sun and all eight planets, with Saturn as the only ringed body', () => {
+    expect(PLANETARY_BODY_SPECS.map(body => body.name)).toEqual([
+      'Sun', 'Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune'
+    ]);
+    expect(PLANETARY_BODY_SPECS.filter(body => body.name !== 'Sun')).toHaveLength(8);
+    expect(PLANETARY_BODY_SPECS.filter(body => body.ringed).map(body => body.name)).toEqual(['Saturn']);
+  });
+
+  it('keeps schematic orbital positions finite, deterministic and on the declared orbit radius', () => {
+    const elapsedSeconds = 123456.75;
+    for (const body of PLANETARY_BODY_SPECS) {
+      const position = planetaryPositionAt(body.name, elapsedSeconds);
+      const repeated = planetaryPositionAt(body.name, elapsedSeconds);
+      expect(position).toEqual(repeated);
+      expect([position.x, position.y, position.z].every(Number.isFinite)).toBe(true);
+      expect(position.y).toBe(0);
+      if (body.name === 'Sun') {
+        expect(position).toEqual({ x: 0, y: 0, z: 0 });
+      } else {
+        expect(Math.hypot(position.x, position.z)).toBeCloseTo(body.orbitRadius, 8);
+      }
+    }
+  });
+
+  it('uses a finite epoch fallback for invalid elapsed time', () => {
+    expect(planetaryPositionAt('Earth', Number.NaN)).toEqual(planetaryPositionAt('Earth', 0));
+    expect(planetaryPositionAt('Neptune', Number.POSITIVE_INFINITY)).toEqual(planetaryPositionAt('Neptune', 0));
   });
 });
 
