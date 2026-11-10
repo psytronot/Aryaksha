@@ -50,7 +50,9 @@ test('desktop solar-system overview exposes all bodies, Saturn rings and preserv
   await expect(viewport).toHaveAttribute('data-camera-mode', 'PLANETS');
   await page.getByRole('button', { name: 'Reset camera framing' }).click();
   await expect(viewport).toHaveAttribute('data-camera-pitch', '0.620000');
-  await expect(telemetryRow).toHaveText(telemetryBefore);
+  // innerText preserves the row's visual line break; toHaveText normalizes
+  // textContent whitespace differently for these adjacent label/value spans.
+  expect(await telemetryRow.innerText()).toBe(telemetryBefore);
   await page.screenshot({ path: testInfo.outputPath('earth3d-saturn-rings-desktop-1536x1024.png'), fullPage: false });
 
   // Reload forces Earth3DScene unmount/remount after the planetary group has been allocated.
