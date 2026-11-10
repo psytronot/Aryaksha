@@ -31,7 +31,10 @@ test('desktop solar-system overview exposes all bodies, Saturn rings and preserv
   await expect(viewport).toHaveAttribute('data-planetary-provenance', 'simulated-reference-bodies');
 
   const telemetryRow = page.locator('.earth3d-telemetry-row').filter({ hasText: 'ECI X / Y / Z' });
-  const telemetryBefore = await telemetryRow.innerText();
+  const telemetryLabel = telemetryRow.locator('span');
+  const telemetryValue = telemetryRow.locator('b');
+  await expect(telemetryLabel).toHaveText('ECI X / Y / Z');
+  const telemetryBefore = await telemetryValue.innerText();
   const solarSystemScene = page.getByRole('button', { name: 'Solar system scene', exact: true });
   await solarSystemScene.scrollIntoViewIfNeeded();
   await solarSystemScene.click();
@@ -50,7 +53,8 @@ test('desktop solar-system overview exposes all bodies, Saturn rings and preserv
   await expect(viewport).toHaveAttribute('data-camera-mode', 'PLANETS');
   await page.getByRole('button', { name: 'Reset camera framing' }).click();
   await expect(viewport).toHaveAttribute('data-camera-pitch', '0.620000');
-  await expect(telemetryRow).toHaveText(telemetryBefore);
+  await expect(telemetryLabel).toHaveText('ECI X / Y / Z');
+  await expect(telemetryValue).toHaveText(telemetryBefore);
   await page.screenshot({ path: testInfo.outputPath('earth3d-saturn-rings-desktop-1536x1024.png'), fullPage: false });
 
   // Reload forces Earth3DScene unmount/remount after the planetary group has been allocated.
