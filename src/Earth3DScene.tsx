@@ -991,6 +991,41 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
     }
   };
 
+  // Apply camera fitting in the same event turn as the mode change. The render loop
+  // reads cameraModeRef independently of React's passive effects, so waiting for
+  // useEffect can expose one frame at the previous mode's distance.
+  const selectCameraMode = (mode: CameraMode) => {
+    const width = Math.max(1, containerRef.current?.clientWidth || 1);
+    const height = Math.max(1, containerRef.current?.clientHeight || 1);
+    const previousMode = previousCameraModeRef.current;
+
+    if (mode === 'MOON') {
+      cameraState.current.yaw = 0;
+      cameraState.current.pitch = 0.16;
+    } else if (previousMode === 'MOON') {
+      cameraState.current.yaw = 0.65;
+      cameraState.current.pitch = 0.26;
+    }
+    if (mode === 'PLANETS' && previousMode !== 'PLANETS') {
+      cameraState.current.yaw = 0.55;
+      cameraState.current.pitch = 0.62;
+    }
+
+    if (mode === 'EARTH') cameraState.current.distance = earthCameraDistance(width, height) * earthZoomRatioRef.current;
+    if (mode === 'TRACK') cameraState.current.distance = Math.min(cameraState.current.distance, 12);
+    if (mode === 'SATELLITE') cameraState.current.distance = Math.min(cameraState.current.distance, 6.5);
+    if (mode === 'MOON') cameraState.current.distance = moonCameraDistance(width, height) * moonZoomRatioRef.current;
+    if (mode === 'SYSTEM') cameraState.current.distance = systemCameraDistance(width, height) * systemZoomRatioRef.current;
+    if (mode === 'PLANETS') {
+      planetZoomRatioRef.current = 1;
+      cameraState.current.distance = planetCameraDistance(width, height, 'Overview');
+    }
+
+    previousCameraModeRef.current = mode;
+    cameraModeRef.current = mode;
+    setCameraMode(mode);
+  };
+
   const simulationUtc = new Date(current?.time || '2026-01-01T00:00:00.000Z');
   const dayNight = dayNightSnapshot(Number(current?.lla?.lat), Number(current?.lla?.lon), simulationUtc);
   const speed = Math.hypot(...(current?.v || [0, 0, 0]));
@@ -1012,7 +1047,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
             <span className="earth3d-ist-clock">LOCAL CLOCK · {formatIstDateTime(wallTime)} IST</span>
           </div>
           <div className="earth-camera-controls" aria-label="Camera modes">
-            {(['TRACK', 'EARTH', 'SATELLITE', 'MOON', 'SYSTEM'] as CameraMode[]).map(mode => <button key={mode} type="button" className={`earth-camera-button ${cameraMode === mode ? 'active' : ''}`} onClick={() => { if (mode === 'MOON' || mode === 'SYSTEM') setShowSpaceEnvironment(true); setCameraMode(mode); }}>{mode}</button>)}
+            {(['TRACK', 'EARTH', 'SATELLITE', 'MOON', 'SYSTEM'] as CameraMode[]).map(mode => <button key={mode} type="button" className={`earth-camera-button ${cameraMode === mode ? 'active' : ''}`} onClick={() => { if (mode === 'MOON' || mode === 'SYSTEM') setShowSpaceEnvironment(true); selectCameraMode(mode); }}>{mode}</button>)}
             <button type="button" className="earth-camera-button" aria-label="Reset camera framing" onClick={() => { const width = containerRef.current?.clientWidth || 1; const height = containerRef.current?.clientHeight || 1; if (cameraMode === 'SYSTEM') systemZoomRatioRef.current = 1; if (cameraMode === 'MOON') moonZoomRatioRef.current = 1; if (cameraMode === 'EARTH') earthZoomRatioRef.current = 1; if (cameraMode === 'PLANETS') planetZoomRatioRef.current = 1; const distance = cameraMode === 'SATELLITE' ? 5.8 : cameraMode === 'EARTH' ? earthCameraDistance(width, height) : cameraMode === 'MOON' ? moonCameraDistance(width, height) : cameraMode === 'SYSTEM' ? systemCameraDistance(width, height) : cameraMode === 'PLANETS' ? planetCameraDistance(width, height, selectedBody) : 11; cameraState.current = { yaw: cameraMode === 'MOON' ? 0 : cameraMode === 'PLANETS' ? 0.55 : 0.65, pitch: cameraMode === 'MOON' ? 0.16 : cameraMode === 'PLANETS' ? 0.62 : 0.26, distance }; }}>RESET</button>
             <button type='button' className='earth-camera-button earth-fullscreen-button' aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'} onClick={() => void toggleFullscreen()}>{isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}<span>{isFullscreen ? 'EXIT FULL SCREEN' : 'FULL SCREEN'}</span></button>
             <button type="button" className="earth-camera-button earth-mobile-data-toggle" aria-label={mobileHudOpen ? 'Hide mission data panels' : 'Show mission data panels'} aria-expanded={mobileHudOpen} aria-controls="earth3d-left-hud earth3d-right-hud" onClick={() => setMobileHudOpen(value => !value)}>DATA</button>
@@ -1095,7 +1130,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
           <div className="earth3d-timeline-heading"><span>MISSION TIMELINE / SCENE GALLERY</span><b>T+ {Number(seconds || 0).toFixed(1)} s</b></div>
           <SceneGallery
             cameraMode={cameraMode}
-            setCameraMode={setCameraMode}
+            setCameraMode={selectCameraMode}
             setShowSpaceEnvironment={setShowSpaceEnvironment}
             setShowPlanets={setShowPlanets}
             setSelectedBody={setSelectedBody}

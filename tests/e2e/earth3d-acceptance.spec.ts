@@ -929,7 +929,9 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   await referenceEarthCamera.click();
   const referenceEarthCanvas = page.locator('.earth3d-canvas');
   await expect(referenceEarthCanvas).toHaveAttribute('data-camera-mode', 'EARTH');
-  await expect.poll(async () => Number(await referenceEarthCanvas.getAttribute('data-camera-distance'))).toBeGreaterThan(5.15);
+  const referenceEarthSize = await referenceEarthCanvas.evaluate(element => ({ width: element.clientWidth, height: element.clientHeight }));
+  const referenceEarthFit = fitCameraDistance(referenceEarthSize.width, referenceEarthSize.height, 5.15, 42, EARTH_CAMERA_MARGIN);
+  await expect.poll(async () => Number(await referenceEarthCanvas.getAttribute('data-camera-distance'))).toBeCloseTo(referenceEarthFit, 1);
 
   const missionScreenshot = testInfo.outputPath('earth3d-reference-dashboard-desktop-1536x1024.png');
   // Capture the actual 1536×1024 browser viewport. Element screenshots wait for
@@ -973,7 +975,11 @@ test('Earth 3D reference dashboard reflows to a globe-first mobile layout', asyn
   const controls = page.getByTestId('earth3d-simulation-controls');
   const bottom = page.getByTestId('earth3d-bottom-panels');
   await expect(canvas.locator('canvas')).toBeVisible();
+  await expect(canvas).toHaveAttribute('data-camera-mode', 'EARTH');
   await expect(page.locator('[aria-label="Camera modes"]').getByRole('button', { name: 'EARTH', exact: true })).toHaveClass(/active/);
+  const mobileEarthSize = await canvas.evaluate(element => ({ width: element.clientWidth, height: element.clientHeight }));
+  const mobileEarthFit = fitCameraDistance(mobileEarthSize.width, mobileEarthSize.height, 5.15, 42, EARTH_CAMERA_MARGIN);
+  await expect.poll(async () => Number(await canvas.getAttribute('data-camera-distance'))).toBeCloseTo(mobileEarthFit, 1);
   await expect(setup).toBeHidden();
   await expect(controls).toBeHidden();
   await page.getByRole('button', { name: 'Show mission data panels' }).click();
@@ -1032,7 +1038,9 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   const earthCamera = page.locator('.earth-camera-controls').getByRole('button', { name: 'EARTH', exact: true });
   await earthCamera.click();
   await expect(canvas).toHaveAttribute('data-camera-mode', 'EARTH');
-  await expect.poll(async () => Number(await canvas.getAttribute('data-camera-distance'))).toBeGreaterThan(5.15);
+  const desktopEarthSize = await canvas.evaluate(element => ({ width: element.clientWidth, height: element.clientHeight }));
+  const desktopEarthFit = fitCameraDistance(desktopEarthSize.width, desktopEarthSize.height, 5.15, 42, EARTH_CAMERA_MARGIN);
+  await expect.poll(async () => Number(await canvas.getAttribute('data-camera-distance'))).toBeCloseTo(desktopEarthFit, 1);
   await expect(primaryNav).toBeVisible();
   await expect(primaryNav.getByRole('button', { name: 'Earth 3D', exact: true })).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('.sidebar')).toBeHidden();
