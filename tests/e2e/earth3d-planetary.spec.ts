@@ -47,6 +47,8 @@ test('desktop solar-system overview exposes all bodies, Saturn rings and preserv
   await target.selectOption('Saturn');
   await expect(viewport).toHaveAttribute('data-planetary-selected-body', 'Saturn');
   await expect(viewport).toHaveAttribute('data-camera-mode', 'PLANETS');
+  await page.getByRole('button', { name: 'Reset camera framing' }).click();
+  await expect(viewport).toHaveAttribute('data-camera-pitch', '0.620000');
   await expect(telemetryRow).toHaveText(telemetryBefore);
   await page.screenshot({ path: testInfo.outputPath('earth3d-saturn-rings-desktop-1536x1024.png'), fullPage: false });
 
@@ -78,11 +80,19 @@ test('mobile planetary controls remain reachable without horizontal overflow', a
   await enabled.check();
   await expect(viewport).toHaveAttribute('data-camera-mode', 'PLANETS');
   await expect(viewport).toHaveAttribute('data-planetary-visible', 'true');
+  await page.getByRole('button', { name: 'Hide mission data panels' }).click();
   await page.screenshot({ path: testInfo.outputPath('earth3d-planets-overview-mobile-390x844.png'), fullPage: false });
 
+  await page.getByRole('button', { name: 'Show mission data panels' }).click();
   const target = planetaryControls.getByRole('combobox', { name: 'Choose planetary camera target' });
   await target.selectOption('Jupiter');
   await expect(viewport).toHaveAttribute('data-planetary-selected-body', 'Jupiter');
+  await page.getByRole('button', { name: 'Hide mission data panels' }).click();
+  const portraitDistance = Number(await viewport.getAttribute('data-camera-distance'));
+  await page.setViewportSize({ width: 844, height: 390 });
+  await expect.poll(async () => Number(await viewport.getAttribute('data-camera-distance'))).not.toBe(portraitDistance);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(viewport).toHaveAttribute('data-planetary-visible', 'true');
   const dimensions = await page.evaluate(() => ({
     viewportWidth: window.innerWidth,
     documentWidth: document.documentElement.scrollWidth
