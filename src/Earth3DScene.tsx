@@ -758,8 +758,18 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       };
       updateOrbit();
 
-      const animate = () => {
+      // Bound GPU work so the interactive workspace stays responsive on mid-range
+      // laptops and mobile devices. Simulation state still advances on its own
+      // clock; rendering is capped independently at 45 fps desktop / 30 fps mobile.
+      let lastRenderAt = 0;
+      const minimumFrameIntervalMs = window.matchMedia('(max-width: 720px)').matches ? 1000 / 30 : 1000 / 45;
+      const animate = (frameTime = performance.now()) => {
         if (!mounted) return;
+        if (frameTime - lastRenderAt < minimumFrameIntervalMs) {
+          frameRef.current = requestAnimationFrame(animate);
+          return;
+        }
+        lastRenderAt = frameTime;
         const state = currentRef.current;
         const markerVector = scenePosition(state.r, scale);
         const radial = markerVector.clone().normalize();
