@@ -9,7 +9,7 @@ test('satellite tracking retrieves the live CelesTrak station catalogue and pred
   const statusText = await catalogStatus.innerText();
   test.info().annotations.push({ type: 'live CelesTrak catalogue', description: statusText });
   expect(statusText, 'The tracking workspace must retrieve the live CelesTrak station catalogue.')
-    .toMatch(/^Live data loaded · \\d+ objects · Space stations$/);
+    .toMatch(/^Live data loaded · \d+ objects · Space stations$/);
   await expect(page.getByText('SGP4 / TEME')).toBeVisible();
   await page.getByRole('button', { name: 'Predict next 24 hours' }).click();
   await expect(page.locator('.sat-track-pass-card .sat-track-count'))
