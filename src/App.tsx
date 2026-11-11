@@ -157,7 +157,7 @@ function App() {
       'MASS CLOSURE',
       `Dry mass: ${formatNumber(verification.massClosure.dryMassKg, 2)} kg`, `Payload mass: ${formatNumber(verification.massClosure.payloadMassKg, 2)} kg`, `Propellant mass: ${formatNumber(verification.massClosure.propellantMassKg, 2)} kg`,
       `Wet mass: ${formatNumber(verification.massClosure.wetMassKg, 2)} kg`, `Maximum allowable mass: ${formatNumber(verification.massClosure.maximumMassKg, 2)} kg`,
-      `Mass margin: ${formatNumber(verification.massClosure.marginKg, 2)} kg`, `Mass closure status: ${verification.massClosure.passes ? 'PASS' : 'FAIL'}`, '';
+      `Mass margin: ${formatNumber(verification.massClosure.marginKg, 2)} kg`, `Mass closure status: ${verification.massClosure.passes ? 'PASS' : 'FAIL'}`, '',
       'MISSION GEOMETRY',
       `Computed footprint radius: ${formatNumber(geometry.footprintRadiusKm, 1)} km`,
       `Estimated 48 h revisit: ${formatNumber(geometry.revisitDays, 2)} days`, '',
