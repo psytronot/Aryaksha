@@ -634,8 +634,8 @@ test('Earth 3D desktop timeline is opt-in and never overlays the globe', async (
   expect(canvasBox).not.toBeNull();
   expect(bottomBarBox).not.toBeNull();
   expect(timelineBox).not.toBeNull();
-  expect(bottomBarBox!.top).toBeGreaterThanOrEqual(canvasBox!.top + canvasBox!.height - 1);
-  expect(timelineBox!.top).toBeGreaterThanOrEqual(canvasBox!.top + canvasBox!.height - 1);
+  expect(bottomBarBox!.y).toBeGreaterThanOrEqual(canvasBox!.y + canvasBox!.height - 1);
+  expect(timelineBox!.y).toBeGreaterThanOrEqual(canvasBox!.y + canvasBox!.height - 1);
 
   await page.getByRole('button', { name: 'Hide mission timeline' }).click();
   await expect(timeline).toBeHidden();
