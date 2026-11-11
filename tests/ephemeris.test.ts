@@ -30,3 +30,18 @@ describe('precision ephemeris boundary', () => {
     await expect(requireEphemerisState(null, 'MOON', state.epoch)).rejects.toBeInstanceOf(EphemerisUnavailableError);
   });
 });
+
+describe('JPL Horizons ephemeris provenance', () => {
+  it('accepts an ICRF state with explicitly unknown formal uncertainty and unreported kernel ID', () => {
+    const horizonsState = {
+      ...state,
+      frame: 'ICRF' as const,
+      source: 'JPL-HORIZONS' as const,
+      kernelId: null,
+      positionUncertaintyM: null
+    };
+    expect(validateEphemerisState(horizonsState, {
+      body: 'MOON', epoch: state.epoch, frame: 'ICRF', timeScale: 'TDB'
+    })).toEqual([]);
+  });
+});
