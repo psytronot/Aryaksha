@@ -59,7 +59,7 @@ describe('JPL Horizons ephemeris provenance', () => {
     ]));
   });
 
-  it('rejects invalid calendar epochs and negative-zero/non-finite uncertainty values', () => {
+  it('rejects invalid calendar epochs and negative/non-finite uncertainty values', () => {
     expect(validateEphemerisState({
       ...state,
       epoch: 'not-a-date',
