@@ -213,11 +213,7 @@ export function createSpaceEnvironment(moonRadius: number, moonDistance: number)
         ? Math.max(0.01, Math.min(1, displayDistanceScale))
         : 1;
       if (moonPositionScene && moonPositionScene.every(Number.isFinite)) {
-        moon.position.set(
-          moonPositionScene[0] * distanceScale,
-          moonPositionScene[1] * distanceScale,
-          moonPositionScene[2] * distanceScale
-        );
+        moon.position.set(moonPositionScene[0], moonPositionScene[1], moonPositionScene[2]);
       } else {
         moon.position.set(
           Math.cos(phase) * moonDistance * distanceScale,
