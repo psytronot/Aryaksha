@@ -27,3 +27,9 @@ These are operational warning thresholds for this product, not universal accurac
 ## Future telemetry adapters
 
 A telemetry integration must not be inferred from a public TLE source. It requires a configured authenticated provider or user-supplied feed, documented message schema, timestamp semantics, object identity mapping, quality flags and access controls. Display observations separately from SGP4 propagated states, with clear measurement timestamps and uncertainty/quality metadata.
+
+## Authenticated telemetry prototype
+
+A separate API path accepts user/ground-station supplied state vectors only when HMAC-SHA256 signed with the configured server secret. It enforces a five-minute timestamp window, a documented frame/unit contract and monotonically increasing per-spacecraft sequence numbers. The latest-state read endpoint requires a separate Bearer token. This endpoint is not connected to a spacecraft, ground station, GNSS receiver or commercial tracking provider.
+
+The store reports its persistence mode. It defaults to process memory. If `ARYAKSHA_TELEMETRY_STORE_PATH` points to a persistent mounted volume, it uses an append-only JSONL log and restores sequence state on restart. The current Render web service has no confirmed persistent volume attached, so production durability is not enabled.

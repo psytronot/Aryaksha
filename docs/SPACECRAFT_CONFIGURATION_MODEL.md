@@ -21,13 +21,25 @@ The initial machine-readable contract is `schemas/spacecraft-configuration.v1.sc
 - per-component mass, power, dimensions, position and orientation;
 - provenance metadata.
 
-## Next implementation gate
+## Current workbench implementation
 
-A schema alone is not a CAD or mass-properties solver. Before this is called a spacecraft design module, add:
+The Spacecraft page now includes a browser-local geometry and mass-properties workbench:
+
+- Imports GLB, self-contained glTF, OBJ and STL for local 3D preview. STEP files must be exported from CAD to a supported mesh format first.
+- Computes mesh bounding-box dimensions and centre only after source units are explicitly selected. GLB/glTF follow glTF metre conventions; OBJ/STL default to unknown units until selected.
+- Accepts user-entered component mass, body-frame centre of mass and diagonal intrinsic inertia values.
+- Aggregates component mass, composite centre of mass and inertia using the parallel-axis theorem.
+- Updates the main spacecraft dry-mass and diagonal inertia budgets and exports a v1 JSON configuration.
+
+The current UI assumes zero products of inertia and does not infer density, material, hollow/solid volume or component mass from mesh geometry. External glTF sidecar resources are not bundled by the local file importer.
+
+## Remaining implementation gate
+
+Before this is called a complete spacecraft CAD/mass-properties module, add:
 - runtime schema validation and semantic checks (wet mass ≥ dry mass; positive-definite inertia; component totals reconciled to bus totals);
-- CAD import conversion/documentation and mesh unit/bounds validation;
-- editable component placement and assembly transforms;
-- mass-property aggregation and centre-of-mass calculation;
+- material/density and closed-volume validation for supported mesh imports;
+- editable component placement and assembly transforms with axis/unit conversion;
+- product-of-inertia support and CAD reference-export comparisons;
 - known reference spacecraft fixtures and round-trip import tests.
 
 Do not infer tank volume, propulsion performance, inertia or structural margins from a render mesh alone.
