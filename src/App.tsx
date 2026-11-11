@@ -659,6 +659,7 @@ function ContextCoach({ view }: { view: View }) {
   type CoachTarget = { element: HTMLElement; label: string; rect: DOMRect } | null;
   const [manual, setManual] = useState<GlossaryEntry | null>(null);
   const [target, setTarget] = useState<CoachTarget>(null);
+  const [dismissed, setDismissed] = useState(false);
   const [position, setPosition] = useState({ left: 16, top: 16, above: true });
   const closeTimer = useRef<number | null>(null);
   const active = manual || contextEntry(target?.label || null, view);
@@ -666,6 +667,7 @@ function ContextCoach({ view }: { view: View }) {
   useEffect(() => {
     setManual(null);
     setTarget(null);
+    setDismissed(false);
   }, [view]);
 
   useEffect(() => {
@@ -690,8 +692,10 @@ function ContextCoach({ view }: { view: View }) {
       const targetNode = event.target as HTMLElement | null;
       if (!targetNode || targetNode.closest('.context-coach')) return;
       const source = targetNode.closest('[data-context-label]') as HTMLElement | null;
-      if (source) pointAt(source);
-      else closeSoon();
+      if (source) {
+        setDismissed(false);
+        pointAt(source);
+      } else closeSoon();
     };
     const onPointerOut = (event: PointerEvent) => {
       if (event.pointerType === 'touch') return;
@@ -703,7 +707,19 @@ function ContextCoach({ view }: { view: View }) {
     };
     const onFocus = (event: FocusEvent) => {
       const source = (event.target as HTMLElement | null)?.closest('[data-context-label]') as HTMLElement | null;
-      if (source) pointAt(source);
+      if (source) {
+        setDismissed(false);
+        pointAt(source);
+      }
+    };
+    const onClick = (event: MouseEvent) => {
+      const targetNode = event.target as HTMLElement | null;
+      if (!targetNode || targetNode.closest('.context-coach')) return;
+      const source = targetNode.closest('[data-context-label]') as HTMLElement | null;
+      if (source) {
+        setDismissed(false);
+        pointAt(source);
+      }
     };
     const onResize = () => {
       setTarget(current => current?.element.isConnected ? { ...current, rect: current.element.getBoundingClientRect() } : null);
@@ -712,6 +728,7 @@ function ContextCoach({ view }: { view: View }) {
     document.addEventListener('pointerover', onPointerOver);
     document.addEventListener('pointerout', onPointerOut);
     document.addEventListener('focusin', onFocus);
+    document.addEventListener('click', onClick);
     window.addEventListener('resize', onResize);
     window.addEventListener('scroll', onResize, true);
     return () => {
@@ -719,6 +736,7 @@ function ContextCoach({ view }: { view: View }) {
       document.removeEventListener('pointerover', onPointerOver);
       document.removeEventListener('pointerout', onPointerOut);
       document.removeEventListener('focusin', onFocus);
+      document.removeEventListener('click', onClick);
       window.removeEventListener('resize', onResize);
       window.removeEventListener('scroll', onResize, true);
     };
@@ -744,7 +762,7 @@ function ContextCoach({ view }: { view: View }) {
     setPosition({ left, top, above });
   }, [target?.rect]);
 
-  if (!active) return null;
+  if (!active || dismissed) return null;
 
   const pinCurrent = () => setManual(current => current ? null : active);
 
@@ -760,9 +778,12 @@ function ContextCoach({ view }: { view: View }) {
           <span className="coach-kicker">ON-BOARD TUTOR</span>
           <strong>Context Coach</strong>
         </div>
-        <button className="coach-toggle" onClick={pinCurrent} aria-label={manual ? 'Unpin guidance' : 'Pin guidance'}>
-          {manual ? '−' : '+'}
-        </button>
+        <div className="coach-head-actions">
+          <button className="coach-toggle" type="button" onClick={pinCurrent} aria-label={manual ? 'Unpin guidance' : 'Pin guidance'}>
+            {manual ? '−' : '+'}
+          </button>
+          <button className="coach-dismiss" type="button" onClick={() => { setDismissed(true); setManual(null); }} aria-label="Close tutor">×</button>
+        </div>
       </div>
       <div className="coach-body">
         <div className="coach-location">
@@ -774,8 +795,8 @@ function ContextCoach({ view }: { view: View }) {
           <b>{active.term}</b>
           {active.acronym && <span>{active.acronym}</span>}
         </div>
-        <p>{active.definition}</p>
-        {active.calculation && <div className="coach-section"><small>HOW IT WORKS</small><span>{active.calculation}</span></div>}
+        <div className="coach-section coach-quick-explanation"><small>QUICK EXPLANATION</small><span>{active.definition}</span></div>
+        {active.calculation && <div className="coach-section"><small>ENGINEERING DETAIL</small><span>{active.calculation}</span></div>}
         {active.why && <div className="coach-section"><small>WHY IT MATTERS</small><span>{active.why}</span></div>}
         <div className="coach-meta">
           <span>{active.units || 'N/A'}</span>
