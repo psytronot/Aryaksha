@@ -47,3 +47,11 @@ The telemetry store now supports an optional append-only JSONL file when `ARYAKS
 ## JPL Horizons lunar state lookup
 
 The API adapter requests a geometric Moon state relative to Earth's centre from JPL Horizons using TDB, ICRF, and km/s source output converted to SI. The Mission Analysis panel exposes a point lookup. It records the kernel ID only if the API response explicitly reports one; otherwise it displays that the kernel is unreported. The service response does not supply formal position uncertainty for this query, so uncertainty is explicitly null. This point lookup is not yet connected to the 3D Moon renderer or a continuous local SPK kernel.
+
+## Current implementation boundaries
+
+- Spacecraft model import is local to the browser and supports GLB, self-contained glTF, OBJ and STL. External glTF sidecar assets are not bundled. The import path computes mesh bounds only; source units must be explicitly selected for OBJ/STL and material density is never inferred.
+- The component mass model updates the main spacecraft dry-mass and diagonal inertia budgets. Component products of inertia are assumed zero in the current UI; independent CAD exports are still required for verification.
+- The J2 option is wired into Orekit with a fixed EME2000 +Z axis. It is not a full Earth gravity field.
+- The JPL Horizons point query is not a local continuous ephemeris kernel and does not yet drive the 3D scene.
+- The telemetry store supports an optional file path but the live Render service has no confirmed persistent volume; production still reports process-memory storage until durable storage is provisioned.

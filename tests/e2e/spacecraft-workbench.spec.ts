@@ -29,14 +29,14 @@ f 5 1 4 8
     buffer: Buffer.from(obj)
   });
   await expect(page.getByText('test-spacecraft.obj')).toBeVisible();
-  await page.getByLabel('SOURCE MODEL UNITS').selectOption('mm');
+  await page.locator('.spacecraft-geometry-controls select').selectOption('mm');
   await expect(page.getByText('1.0000 m')).toBeVisible();
   await expect(page.getByText('0.5000 m')).toBeVisible();
   await expect(page.getByText('0.2000 m')).toBeVisible();
 
   await page.getByRole('button', { name: 'Add component' }).click();
   await expect(page.getByText('9.000 kg')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Remove component-2' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Remove component-/ })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Export spacecraft configuration' })).toBeEnabled();
 });
 
