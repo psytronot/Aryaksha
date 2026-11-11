@@ -86,7 +86,7 @@ test('live deployed UI loads the lazy simulation, tracking and calculator worksp
   await expect.poll(() => loadedAssets.some(url => /Earth3DScene-[^/]+\.js/.test(url))).toBe(true);
 
   await page.getByRole('button', { name: 'Satellite Tracking', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Satellite tracking & pass planning' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Catalog-derived orbit estimates & pass planning' })).toBeVisible();
   await expect.poll(() => loadedAssets.some(url => /SatelliteTrackingView-[^/]+\.js/.test(url))).toBe(true);
 
   await page.getByRole('button', { name: 'Calculator & Reference', exact: true }).click();
@@ -136,4 +136,20 @@ test('Earth 3D visible controls expose accessible names and labelled inputs', as
     return { unnamedButtons, unlabeledInputs, imagesWithoutAlt };
   });
   expect(audit).toEqual({ unnamedButtons: [], unlabeledInputs: [], imagesWithoutAlt: [] });
+});
+
+
+test('live deployed mission analysis reaches the authenticated Orekit service', async ({ page }) => {
+  test.skip(!process.env.PLAYWRIGHT_BASE_URL, 'Requires the deployed production URL and live Orekit service.');
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Mission Analysis', exact: true }).click();
+  await page.getByRole('spinbutton', { name: 'Propagation time in seconds' }).fill('600');
+  await page.getByRole('button', { name: 'Run analysis', exact: true }).click();
+  await expect(page.getByText(/Analysis completed · Orekit/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('95.65 min')).toBeVisible();
+  await expect(page.getByText(/Epoch 2000-01-01T12:09:27\\.816 TAI · Frame EME2000/)).toBeVisible();
+  await expect(page.getByText('Connected: this result came from the Orekit numerical-propagation service.')).toBeVisible();
+  expect(pageErrors).toEqual([]);
 });

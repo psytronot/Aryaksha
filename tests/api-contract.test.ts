@@ -3,11 +3,13 @@ import { describe, expect, it } from 'vitest';
 import requestSchema from '../schemas/orbit-analysis-request.v1.schema.json';
 import responseSchema from '../schemas/orbit-analysis-response.v1.schema.json';
 import errorSchema from '../schemas/api-error.v1.schema.json';
+import spacecraftSchema from '../schemas/spacecraft-configuration.v1.schema.json';
 
 const ajv = new Ajv({ allErrors: true, strict: true });
 const validateRequest = ajv.compile(requestSchema);
 const validateResponse = ajv.compile(responseSchema);
 const validateError = ajv.compile(errorSchema);
+const validateSpacecraft = ajv.compile(spacecraftSchema);
 
 const validRequest = {
   altitudeKm: 550,
@@ -20,6 +22,7 @@ const validResponse = {
   engine: 'Orekit',
   engineVersion: '13.1.9',
   fidelity: 'Orekit numerical propagation (two-body)',
+  forceModels: ['NewtonianAttraction (WGS-84 GM)'],
   assumptions: [
     'Orekit 13.1.9; Apache-2.0; Java 21',
     'Frame: EME2000; epoch: J2000; Earth gravity parameter: WGS-84',
@@ -72,6 +75,18 @@ describe('Orbit analysis API v1 JSON Schemas', () => {
     expect(validateResponse(validResponse)).toBe(true);
   });
 
+  it('accepts an explicit J2-only Orekit response and active force-model list', () => {
+    const j2Response = {
+      ...validResponse,
+      fidelity: 'Orekit numerical propagation (two-body + J2-only)',
+      forceModels: [
+        'NewtonianAttraction (WGS-84 GM)',
+        'J2OnlyPerturbation (constant WGS-84 J2, EME2000 +Z axis)'
+      ]
+    };
+    expect(validateResponse(j2Response)).toBe(true);
+  });
+
   it('rejects responses that omit the time scale or have malformed state vectors', () => {
     const missingTimeScale = {
       ...validResponse,
@@ -88,5 +103,42 @@ describe('Orbit analysis API v1 JSON Schemas', () => {
   it('accepts the standard error envelope', () => {
     expect(validateError({ error: 'The selected orbit intersects Earth at periapsis.' })).toBe(true);
     expect(validateError({ error: '' })).toBe(false);
+  });
+});
+
+
+describe('Spacecraft configuration v1 JSON Schema', () => {
+  const referenceConfiguration = {
+    schemaVersion: '1.0.0',
+    configurationId: 'ARY-SC-001',
+    name: 'Reference 6U spacecraft',
+    revision: 'A',
+    units: { length: 'm', mass: 'kg', angle: 'deg' },
+    referenceFrame: '+X forward, +Y starboard, +Z nadir',
+    geometry: { bus: { width: 0.226, height: 0.366, depth: 0.1 }, modelFormat: 'unknown' },
+    massProperties: { dryMassKg: 8.5 },
+    components: [
+      { componentId: 'BUS-01', type: 'bus', name: 'Primary structure', massKg: 4.2, positionM: [0, 0, 0], inertiaKgM2: [[0.08, 0, 0], [0, 0.09, 0], [0, 0, 0.1]] },
+      { componentId: 'PWR-01', type: 'solar-array', name: 'Deployable array', massKg: 1.1, powerW: 40 }
+    ],
+    provenance: { author: 'Aryaksha engineering', notes: 'Illustrative schema fixture; not flight hardware data.' }
+  };
+
+  it('accepts a fully unit-tagged spacecraft configuration with explicit body frame', () => {
+    expect(validateSpacecraft(referenceConfiguration)).toBe(true);
+  });
+
+  it('accepts component inertia tensors and rejects malformed component tensor shapes', () => {
+    const invalidTensor = {
+      ...referenceConfiguration,
+      components: [{ ...referenceConfiguration.components[0], inertiaKgM2: [[1, 0], [0, 1]] }]
+    };
+    expect(validateSpacecraft(invalidTensor)).toBe(false);
+  });
+
+  it('rejects missing unit declarations, dimensions and dry mass', () => {
+    expect(validateSpacecraft({ ...referenceConfiguration, units: undefined })).toBe(false);
+    expect(validateSpacecraft({ ...referenceConfiguration, geometry: { bus: { width: 0, height: 1, depth: 1 } } })).toBe(false);
+    expect(validateSpacecraft({ ...referenceConfiguration, massProperties: {} })).toBe(false);
   });
 });

@@ -15,7 +15,12 @@ import {
   PLANETARY_BODY_SPECS,
   planetaryPositionAt,
   SYSTEM_CAMERA_MARGIN,
-  SYSTEM_DISPLAY_DISTANCE_RATIO
+  SYSTEM_DISPLAY_DISTANCE_RATIO,
+  EARTH_EQUATORIAL_RADIUS_KM,
+  MOON_MEAN_RADIUS_KM,
+  EARTH_MOON_MEAN_CENTRE_DISTANCE_KM,
+  earthMoonCentreDistanceSceneUnits,
+  moonEphemerisPositionSceneUnits
 } from '../src/earth3dMath';
 import { applyEarthNightLightMask, atmosphereSolarResponse, createSunDrivenAtmosphereMaterial, EARTH_ATMOSPHERE_MODEL, makeFallbackNightLightsTexture } from '../src/earthVisuals';
 import { EARTH_IMAGERY_SOURCES, loadEarthImagery } from '../src/earthImagery';
@@ -400,5 +405,46 @@ describe('Earth cloud rotation relative to the rotating Earth frame', () => {
   it('returns a finite neutral rotation for invalid inputs', () => {
     expect(cloudRelativeRotation(Number.NaN)).toBe(0);
     expect(cloudRelativeRotation(Number.POSITIVE_INFINITY)).toBe(0);
+  });
+});
+
+
+describe('Earth–Moon engineering scale references', () => {
+  it('uses declared physical mean reference values and exposes presentation compression explicitly', () => {
+    expect(EARTH_EQUATORIAL_RADIUS_KM).toBe(6378.137);
+    expect(MOON_MEAN_RADIUS_KM).toBe(1737.4);
+    expect(EARTH_MOON_MEAN_CENTRE_DISTANCE_KM).toBe(384400);
+    const trueScale = earthMoonCentreDistanceSceneUnits(5.15, 1);
+    const presentationScale = earthMoonCentreDistanceSceneUnits(5.15, SYSTEM_DISPLAY_DISTANCE_RATIO);
+    expect(trueScale / 5.15).toBeCloseTo(384400 / 6378.137, 10);
+    expect(presentationScale / trueScale).toBeCloseTo(SYSTEM_DISPLAY_DISTANCE_RATIO, 10);
+    expect(trueScale).toBeGreaterThan(300);
+    expect(presentationScale).toBeLessThan(10);
+  });
+
+  it('falls back safely for invalid scale inputs rather than emitting non-finite geometry', () => {
+    expect(earthMoonCentreDistanceSceneUnits(Number.NaN, Number.NaN)).toBeCloseTo(5.15 * (384400 / 6378.137), 8);
+    expect(Number.isFinite(earthMoonCentreDistanceSceneUnits(-1, -1))).toBe(true);
+  });
+});
+
+describe('JPL Moon ephemeris scene-coordinate conversion', () => {
+  it('converts ICRF metres into the scene X/Z/Y axis convention', () => {
+    const position = moonEphemerisPositionSceneUnits([6378137, 12756274, 19134411]);
+    expect(position[0]).toBeCloseTo(5.15);
+    expect(position[1]).toBeCloseTo(15.45);
+    expect(position[2]).toBeCloseTo(10.3);
+  });
+
+  it('applies the compressed presentation display scale without changing source SI data', () => {
+    const position = moonEphemerisPositionSceneUnits([384400000, 0, 0], 5.15, 0.0225);
+    expect(position[0]).toBeCloseTo(5.15 * 384400 / 6378.137 * 0.0225);
+    expect(position[1]).toBe(0);
+    expect(position[2]).toBe(0);
+  });
+
+  it('rejects invalid scene conversion inputs', () => {
+    expect(() => moonEphemerisPositionSceneUnits([0, Number.NaN, 0])).toThrow();
+    expect(() => moonEphemerisPositionSceneUnits([0, 0, 0], 5.15, 0)).toThrow();
   });
 });

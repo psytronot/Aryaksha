@@ -1,21 +1,22 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity, ArrowRight, Battery, BookOpen, Calculator, Check, CircleHelp, Cpu, Download,
   Gauge, Globe2, Info, Layers3, Orbit, Play, Radio, RefreshCw, Rocket,
-  Satellite, Search, Settings2, Target, Thermometer, TriangleAlert, Wrench, Zap
+  Satellite, Scale, Search, Settings2, Target, Thermometer, TriangleAlert, Wrench, Zap
 } from 'lucide-react';
 const Earth3DScene = lazy(() => import('./Earth3DScene'));
 import AryakshaMark from './AryakshaMark';
 const ScientificCalculator = lazy(() => import('./ScientificCalculator'));
 const SatelliteTrackingView = lazy(() => import('./SatelliteTrackingView'));
 const MissionAnalysisView = lazy(() => import('./MissionAnalysisView'));
+const SpacecraftGeometryWorkbench = lazy(() => import('./SpacecraftGeometryWorkbench'));
 import { EARTH_RADIUS, orbitalSummary, propagateState, sampleOrbit, stateToLla } from './orbit';
 import { getGlossaryEntries, getGlossaryEntry, GlossaryEntry } from './glossary';
 import { generateContinuousGroundTrack, SubPoint } from './tracking';
 import { computeDayNightBoundary, solarSubpoint } from './daynight';
 import {
   Mission, Payload, Spacecraft, OrbitDesign, orbitFromAltitude, missionGeometry,
-  propulsionAnalysis, maneuverDeltaV, adcsAnalysis, powerAnalysis, thermalAnalysis,
+  propulsionAnalysis, massClosureAnalysis, maneuverDeltaV, adcsAnalysis, powerAnalysis, thermalAnalysis,
   communicationsAnalysis, systemVerification, formatNumber
 } from './engineering';
 
@@ -36,6 +37,8 @@ const spacecraftDefaults: Spacecraft = {
   settlingTimeS: 5, thermalAreaM2: 1.2, absorptivity: 0.7, emissivity: 0.85, batteryEfficiencyPct: 90, batteryDoDPct: 80, solarDegradationPct: 15, thermalHotFactor: 1.25, thermalColdFactor: 0.9
 };
 
+type MoonEphemerisSnapshot = { epoch: string; timeScale: 'TDB'; frame: 'ICRF'; positionM: readonly [number, number, number]; source: string; kernelId: string | null };
+
 type View = 'mission' | 'payload' | 'spacecraft' | 'orbit' | 'simulation' | 'tracking' | 'missionAnalysis' | 'analysis' | 'verification' | 'report' | 'instructions' | 'tools';
 const nav: { id: View; label: string; icon: React.ReactNode; group: string }[] = [
   { id: 'mission', label: 'Mission', icon: <Target size={16} />, group: 'DESIGN' },
@@ -54,6 +57,7 @@ const nav: { id: View; label: string; icon: React.ReactNode; group: string }[] =
 
 function App() {
   const [mission, setMission] = useState(missionDefaults);
+  const [moonEphemeris, setMoonEphemeris] = useState<MoonEphemerisSnapshot | null>(null);
   const [payload, setPayload] = useState(payloadDefaults);
   const [spacecraft, setSpacecraft] = useState(spacecraftDefaults);
   const [orbit, setOrbit] = useState<OrbitDesign>(orbitFromAltitude(550, 97.6));
@@ -67,6 +71,16 @@ function App() {
   const [selectedPreset, setSelectedPreset] = useState('Sun-Synchronous Reference');
   const [maneuverAltitude, setManeuverAltitude] = useState(700);
   const [maneuverInclination, setManeuverInclination] = useState(97.6);
+
+  const syncSpacecraftMassProperties = useCallback((properties: { totalMassKg: number; inertiaKgM2: readonly (readonly number[])[] }) => {
+    setSpacecraft(current => ({
+      ...current,
+      dryMassKg: properties.totalMassKg,
+      inertiaX: properties.inertiaKgM2[0][0],
+      inertiaY: properties.inertiaKgM2[1][1],
+      inertiaZ: properties.inertiaKgM2[2][2]
+    }));
+  }, []);
 
   const summary = useMemo(() => orbitalSummary(orbit), [orbit]);
   const duration = Math.max(3600, summary.period * 2);
@@ -140,6 +154,10 @@ function App() {
       `Period: ${formatNumber(summary.period / 60, 3)} min`, `Speed at epoch: ${formatNumber(summary.speed, 4)} km/s`, '',
       'PROPULSION',
       `Available delta-V: ${formatNumber(propulsion.deltaVms, 2)} m/s`, `Burn time: ${formatNumber(propulsion.burnTimeS, 1)} s`, '',
+      'MASS CLOSURE',
+      `Dry mass: ${formatNumber(verification.massClosure.dryMassKg, 2)} kg`, `Payload mass: ${formatNumber(verification.massClosure.payloadMassKg, 2)} kg`, `Propellant mass: ${formatNumber(verification.massClosure.propellantMassKg, 2)} kg`,
+      `Wet mass: ${formatNumber(verification.massClosure.wetMassKg, 2)} kg`, `Maximum allowable mass: ${formatNumber(verification.massClosure.maximumMassKg, 2)} kg`,
+      `Mass margin: ${formatNumber(verification.massClosure.marginKg, 2)} kg`, `Mass closure status: ${verification.massClosure.passes ? 'PASS' : 'FAIL'}`, '',
       'MISSION GEOMETRY',
       `Computed footprint radius: ${formatNumber(geometry.footprintRadiusKm, 1)} km`,
       `Estimated 48 h revisit: ${formatNumber(geometry.revisitDays, 2)} days`, '',
@@ -209,7 +227,7 @@ function App() {
           <button className="welcome-feature" onClick={() => { setView('mission'); document.querySelector('.shell')?.scrollIntoView({ behavior: 'smooth' }); }}><Cpu size={26}/><span><b>Build Projects</b><small>Turn curiosity into practical engineering work.</small></span><ArrowRight size={15}/></button>
         </div>
       </section>
-      <section className="about-kakshiya" id="about-aryaksha"><div className="about-orbit-visual" aria-hidden="true"><div className="about-earth"><Globe2 size={82}/></div><div className="about-orbit-line"/><span className="about-mini-sat"><Satellite size={22}/></span><span className="about-visual-label">LEARN · EXPERIMENT · CREATE</span></div><div className="about-copy"><p className="welcome-kicker">ABOUT ARYAKSHA</p><h2>A Space Lab for the Next Generation</h2><p>Aryaksha brings space exploration and engineering tools into one accessible place. Explore satellite movement, investigate orbital mechanics, experiment with preliminary spacecraft mission design and understand the engineering trade-offs behind a mission.</p><p>Whether you are taking your first steps into space science or building practical aerospace skills, Aryaksha is designed to help you learn by doing.</p><div className="about-values"><span><Rocket size={19}/> Student focused</span><span><Globe2 size={19}/> Explore space data</span><span><Wrench size={19}/> Hands-on tools</span></div><small className="about-disclaimer">Some tools use public orbital data; simulations are educational models, not flight-certified systems.</small></div></section>
+      <section className="about-kakshiya" id="about-aryaksha"><div className="about-orbit-visual" aria-hidden="true"><div className="about-earth"><Globe2 size={82}/></div><div className="about-orbit-line"/><span className="about-mini-sat"><Satellite size={22}/></span><span className="about-visual-label">LEARN · EXPERIMENT · CREATE</span></div><div className="about-copy"><p className="welcome-kicker">ABOUT ARYAKSHA</p><h2>A Space Lab for the Next Generation</h2><p>Aryaksha brings space exploration and engineering tools into one accessible place. Explore satellite movement, investigate orbital mechanics, experiment with preliminary spacecraft mission design and understand the engineering trade-offs behind a mission.</p><p>Whether you are taking your first steps into space science or building practical aerospace skills, Aryaksha is designed to help you learn by doing.</p><div className="about-values"><span><Rocket size={19}/> Student focused</span><span><Globe2 size={19}/> Explore space data</span><span><Wrench size={19}/> Hands-on tools</span></div><div className="about-stewardship" aria-label="Anonymous authorship"><b>AUTHORSHIP</b><span>Project author: Anonymous</span><span>Maintained as Aryaksha Space Exploration Lab</span><small>Personal identity intentionally withheld.</small></div><small className="about-disclaimer">Some tools use public orbital data; simulations are educational models, not flight-certified systems.</small></div></section>
       </>}
       <div className="shell">
         {mobileNavOpen && <div className="mobile-nav-backdrop" onClick={() => setMobileNavOpen(false)} />}
@@ -246,12 +264,12 @@ function App() {
           <Suspense fallback={<div role="status" className="page"><p>Loading workspace…</p></div>}>
           {view === 'mission' && <MissionView mission={mission} setMission={setMission} go={setView} />}
           {view === 'payload' && <PayloadView payload={payload} setPayload={setPayload} go={setView} />}
-          {view === 'spacecraft' && <SpacecraftView spacecraft={spacecraft} setSpacecraft={setSpacecraft} payload={payload} mission={mission} verification={verification} />}
+          {view === 'spacecraft' && <SpacecraftView spacecraft={spacecraft} setSpacecraft={setSpacecraft} mission={mission} verification={verification} onMassPropertiesChange={syncSpacecraftMassProperties} />}
           {view === 'orbit' && <OrbitView orbit={orbit} updateOrbit={updateOrbit} maneuverAltitude={maneuverAltitude} setManeuverAltitude={setManeuverAltitude} maneuverInclination={maneuverInclination} setManeuverInclination={setManeuverInclination} maneuver={maneuver} applyPreset={applyPreset} selectedPreset={selectedPreset} />}
-          {view === 'simulation' && <SimulationView model={model} current={currentState} seconds={seconds} duration={duration} running={running} setRunning={setRunning} playback={playback} setPlayback={setPlayback} setSeconds={setSeconds} mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} footprintAngle={geometry.footprintDeg} applyPreset={applyPreset} selectedPreset={selectedPreset} updateOrbit={updateOrbit} go={setView} />}
+          {view === 'simulation' && <SimulationView model={model} current={currentState} seconds={seconds} moonEphemeris={moonEphemeris} duration={duration} running={running} setRunning={setRunning} playback={playback} setPlayback={setPlayback} setSeconds={setSeconds} mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} footprintAngle={geometry.footprintDeg} applyPreset={applyPreset} selectedPreset={selectedPreset} updateOrbit={updateOrbit} go={setView} />}
           {view === 'tracking' && <SatelliteTrackingView />}
-          {view === 'missionAnalysis' && <MissionAnalysisView initialAltitudeKm={orbit.altitudeKm} initialInclinationDeg={orbit.i} initialEccentricity={orbit.e} />}
-          {view === 'analysis' && <AnalysisView mission={mission} orbit={orbit} geometry={geometry} power={power} thermal={thermal} comms={comms} adcs={adcs} propulsion={propulsion} />}
+          {view === 'missionAnalysis' && <MissionAnalysisView initialAltitudeKm={orbit.altitudeKm} initialInclinationDeg={orbit.i} initialEccentricity={orbit.e} onMoonEphemerisChange={setMoonEphemeris} />}
+          {view === 'analysis' && <AnalysisView mission={mission} orbit={orbit} geometry={geometry} power={power} thermal={thermal} comms={comms} adcs={adcs} propulsion={propulsion} massClosure={verification.massClosure} />}
           {view === 'verification' && <VerificationView verification={verification} />}
           {view === 'report' && <ReportView mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} summary={summary} geometry={geometry} verification={verification} onExport={exportReport} />}
           {view === 'instructions' && <InstructionsView />}
@@ -323,7 +341,7 @@ function PayloadView({ payload, setPayload, go }: { payload: Payload; setPayload
   </div>;
 }
 
-function SpacecraftView({ spacecraft, setSpacecraft, payload, mission, verification }: { spacecraft: Spacecraft; setSpacecraft: React.Dispatch<React.SetStateAction<Spacecraft>>; payload: Payload; mission: Mission; verification: ReturnType<typeof systemVerification> }) {
+function SpacecraftView({ spacecraft, setSpacecraft, mission, verification, onMassPropertiesChange }: { spacecraft: Spacecraft; setSpacecraft: React.Dispatch<React.SetStateAction<Spacecraft>>; mission: Mission; verification: ReturnType<typeof systemVerification>; onMassPropertiesChange: (properties: { totalMassKg: number; inertiaKgM2: readonly (readonly number[])[] }) => void }) {
   const update = (patch: Partial<Spacecraft>) => setSpacecraft(x => ({ ...x, ...patch }));
   return <div className="page">
     <PageHeader eyebrow="03 · SPACECRAFT" title="Build the vehicle around the mission." text="These are preliminary subsystem parameters. Aryaksha uses them to expose coupled mass, power, propulsion, ADCS, thermal and communications consequences." />
@@ -375,7 +393,8 @@ function SpacecraftView({ spacecraft, setSpacecraft, payload, mission, verificat
         <div className="callout"><Thermometer size={15} /><span>Thermal model is deliberately preliminary. It is a lumped-node estimate, not a spacecraft thermal qualification analysis.</span></div>
       </Card>
     </div>
-    <div className="bottom-bar"><b>Current wet mass: {formatNumber(verification.massKg,2)} kg</b><span>Limit {mission.maxMassKg} kg · {verification.massKg <= mission.maxMassKg ? 'PASS' : 'FAIL'}</span><span>Payload {payload.massKg} kg included.</span></div>
+    <SpacecraftGeometryWorkbench busDimensionsM={{ width: spacecraft.busWidthM, height: spacecraft.busHeightM, depth: spacecraft.busDepthM }} dryMassKg={spacecraft.dryMassKg} onMassPropertiesChange={onMassPropertiesChange} />
+    <div className="bottom-bar" data-testid="spacecraft-mass-closure"><b>WET MASS: {formatNumber(verification.massClosure.wetMassKg,2)} kg</b><span>LIMIT {mission.maxMassKg} kg · {verification.massClosure.passes ? 'PASS' : 'FAIL'}</span><span>MARGIN {formatNumber(verification.massClosure.marginKg,2)} kg</span><span>DRY / PAYLOAD / PROPELLANT FRACTIONS {formatNumber(verification.massClosure.dryMassFractionPct,1)} / {formatNumber(verification.massClosure.payloadMassFractionPct,1)} / {formatNumber(verification.massClosure.propellantMassFractionPct,1)}%</span></div>
   </div>;
 }
 
@@ -423,12 +442,12 @@ function OrbitView({ orbit, updateOrbit, maneuverAltitude, setManeuverAltitude, 
   </div>;
 }
 
-function SimulationView({ model, current, seconds, duration, running, setRunning, playback, setPlayback, setSeconds, mission, payload, spacecraft, orbit, footprintAngle, applyPreset, selectedPreset, updateOrbit, go }: { model: any[]; current: any; seconds: number; duration: number; running: boolean; setRunning: (v:boolean)=>void; playback:number; setPlayback:(v:number)=>void; setSeconds:(v:number)=>void; mission: Mission; payload: Payload; spacecraft: Spacecraft; orbit: OrbitDesign; footprintAngle:number; applyPreset:(name:string, altitude:number, inclination:number)=>void; selectedPreset:string; updateOrbit:(p:Partial<OrbitDesign>)=>void; go:(v:View)=>void }) {
+function SimulationView({ model, current, seconds, moonEphemeris, duration, running, setRunning, playback, setPlayback, setSeconds, mission, payload, spacecraft, orbit, footprintAngle, applyPreset, selectedPreset, updateOrbit, go }: { model: any[]; current: any; seconds: number; moonEphemeris: MoonEphemerisSnapshot | null; duration: number; running: boolean; setRunning: (v:boolean)=>void; playback:number; setPlayback:(v:number)=>void; setSeconds:(v:number)=>void; mission: Mission; payload: Payload; spacecraft: Spacecraft; orbit: OrbitDesign; footprintAngle:number; applyPreset:(name:string, altitude:number, inclination:number)=>void; selectedPreset:string; updateOrbit:(p:Partial<OrbitDesign>)=>void; go:(v:View)=>void }) {
   const orbitMetrics = orbitalSummary(orbit);
   return <div className="page simulation-page">
     <PageHeader eyebrow="05 · SIMULATION" title="Run the spacecraft, not a picture of it." text="The animation, telemetry and engineering results read from the same propagated state. The current model is deterministic two-body Keplerian propagation; J2, drag, SRP, third-body gravity and operational effects remain outside the model." />
     <div className="simulation-grid">
-      <div className="scene-wrap"><Earth3DScene model={model} current={current} seconds={seconds} name={mission.name} propagator="KEPLER" objectStatus="SIMULATED" missionType={mission.type} missionTarget={mission.target} payloadName={payload.name} payloadMassKg={payload.massKg} payloadPowerW={payload.powerW} spacecraftDryMassKg={spacecraft.dryMassKg} selectedPreset={selectedPreset} onApplyPreset={applyPreset} onUpdateOrbit={updateOrbit} onOpenMissionSetup={() => go('mission')} onOpenOrbitDesign={() => go('orbit')} footprintAngleDeg={footprintAngle} busWidthM={spacecraft.busWidthM} busHeightM={spacecraft.busHeightM} busDepthM={spacecraft.busDepthM} altitudeKm={orbit.altitudeKm} eccentricity={orbit.e} inclinationDeg={orbit.i} raanDeg={orbit.raan} argumentOfPerigeeDeg={orbit.argp} trueAnomalyDeg={orbit.nu} periodMin={orbitMetrics.period / 60} panelAreaM2={spacecraft.panelAreaM2} running={running} setRunning={setRunning} playback={playback} setPlayback={setPlayback} duration={duration} setSeconds={setSeconds} />
+      <div className="scene-wrap"><Earth3DScene model={model} current={current} seconds={seconds} moonEphemeris={moonEphemeris} name={mission.name} propagator="KEPLER" objectStatus="SIMULATED" missionType={mission.type} missionTarget={mission.target} payloadName={payload.name} payloadMassKg={payload.massKg} payloadPowerW={payload.powerW} spacecraftDryMassKg={spacecraft.dryMassKg} selectedPreset={selectedPreset} onApplyPreset={applyPreset} onUpdateOrbit={updateOrbit} onOpenMissionSetup={() => go('mission')} onOpenOrbitDesign={() => go('orbit')} footprintAngleDeg={footprintAngle} busWidthM={spacecraft.busWidthM} busHeightM={spacecraft.busHeightM} busDepthM={spacecraft.busDepthM} altitudeKm={orbit.altitudeKm} eccentricity={orbit.e} inclinationDeg={orbit.i} raanDeg={orbit.raan} argumentOfPerigeeDeg={orbit.argp} trueAnomalyDeg={orbit.nu} periodMin={orbitMetrics.period / 60} panelAreaM2={spacecraft.panelAreaM2} running={running} setRunning={setRunning} playback={playback} setPlayback={setPlayback} duration={duration} setSeconds={setSeconds} />
       </div>
     </div>
     <div className="earth3d-bottom-panels" data-testid="earth3d-bottom-panels">
@@ -554,11 +573,12 @@ function GroundTrackMap({ model, current }: { model: any[]; current: any }) {
   );
 }
 
-function AnalysisView({ mission, orbit, geometry, power, thermal, comms, adcs, propulsion }: { mission: Mission; orbit: OrbitDesign; geometry: ReturnType<typeof missionGeometry>; power: ReturnType<typeof powerAnalysis>; thermal: ReturnType<typeof thermalAnalysis>; comms: ReturnType<typeof communicationsAnalysis>; adcs: ReturnType<typeof adcsAnalysis>; propulsion: ReturnType<typeof propulsionAnalysis> }) {
+function AnalysisView({ mission, orbit, geometry, power, thermal, comms, adcs, propulsion, massClosure }: { mission: Mission; orbit: OrbitDesign; geometry: ReturnType<typeof missionGeometry>; power: ReturnType<typeof powerAnalysis>; thermal: ReturnType<typeof thermalAnalysis>; comms: ReturnType<typeof communicationsAnalysis>; adcs: ReturnType<typeof adcsAnalysis>; propulsion: ReturnType<typeof propulsionAnalysis>; massClosure: ReturnType<typeof massClosureAnalysis> }) {
   const modules = [
     { title: 'Mission geometry', icon: <Target size={17} />, status: geometry.passesWithinRequirement && geometry.revisitStatus === 'MEASURED', metrics: [['Footprint radius', `${formatNumber(geometry.footprintRadiusKm,1)} km`],['48 h revisit', `${formatNumber(geometry.revisitDays,2)} d`],['Access samples', String(geometry.accessCount)]], note: `Sampled access/revisit model. Revisit status: ${geometry.revisitStatus}.` },
     { title: 'ADCS', icon: <Activity size={17} />, status: adcs.pointingPass, metrics: [['Required torque', `${formatNumber(adcs.requiredTorqueNm,5)} Nm`],['Actuator margin', `${formatNumber(adcs.actuatorMarginNm,5)} Nm`],['Ground error', `${formatNumber(adcs.pointingGroundErrorM,1)} m`]], note: 'Pointing is evaluated consistently as ground error at the current orbit altitude.' },
     { title: 'Propulsion', icon: <Rocket size={17} />, status: propulsion.deltaVms > 0, metrics: [['Available ΔV', `${formatNumber(propulsion.deltaVms,1)} m/s`],['Burn time', `${formatNumber(propulsion.burnTimeS,1)} s`],['Wet mass', `${formatNumber(propulsion.wetMassKg,2)} kg`]], note: 'Tsiolkovsky rocket equation with constant Isp.' },
+    { title: 'Mass closure', icon: <Scale size={17} />, status: massClosure.passes, metrics: [['Dry mass', `${formatNumber(massClosure.dryMassKg,2)} kg`],['Payload mass', `${formatNumber(massClosure.payloadMassKg,2)} kg`],['Propellant', `${formatNumber(massClosure.propellantMassKg,2)} kg`],['Wet mass', `${formatNumber(massClosure.wetMassKg,2)} kg`],['Mass margin', `${formatNumber(massClosure.marginKg,2)} kg`]], note: `Dry + payload + propellant = wet mass. ${formatNumber(massClosure.usedMassPct,1)}% of the ${formatNumber(massClosure.maximumMassKg,2)} kg mission limit is used; no growth or contingency reserve is included.` },
     { title: 'Power', icon: <Zap size={17} />, status: power.pass, metrics: [['Generation', `${formatNumber(power.generationW,1)} W`],['Average load', `${formatNumber(power.averageLoadW,1)} W`],['Battery reserve', `${formatNumber(power.batteryEndWh,1)} Wh`]], note: 'Preliminary energy model with battery efficiency, DoD and EOL solar degradation.' },
     { title: 'Thermal', icon: <Thermometer size={17} />, status: thermal.pass, metrics: [['Nominal temp', `${formatNumber(thermal.temperatureC,1)} °C`],['Hot / cold', `${formatNumber(thermal.hotTemperatureC,1)} / ${formatNumber(thermal.coldTemperatureC,1)} °C`],['Hot margin', `${formatNumber(thermal.hotMarginC,1)} °C`]], note: 'Lumped-node radiative equilibrium with explicit hot/cold cases.' },
     { title: 'Communications', icon: <Radio size={17} />, status: comms.pass, metrics: [['Link margin', `${formatNumber(comms.marginDb,1)} dB`],['Daily capacity', `${formatNumber(comms.capacityGb,2)} GB`],['Data margin', `${formatNumber(comms.dataMarginGbPerDay,2)} GB/day`]], note: `Altitude-dependent preliminary link budget tied to ${comms.groundStation}.` },
@@ -644,6 +664,7 @@ function ContextCoach({ view }: { view: View }) {
   type CoachTarget = { element: HTMLElement; label: string; rect: DOMRect } | null;
   const [manual, setManual] = useState<GlossaryEntry | null>(null);
   const [target, setTarget] = useState<CoachTarget>(null);
+  const [dismissed, setDismissed] = useState(false);
   const [position, setPosition] = useState({ left: 16, top: 16, above: true });
   const closeTimer = useRef<number | null>(null);
   const active = manual || contextEntry(target?.label || null, view);
@@ -651,6 +672,7 @@ function ContextCoach({ view }: { view: View }) {
   useEffect(() => {
     setManual(null);
     setTarget(null);
+    setDismissed(false);
   }, [view]);
 
   useEffect(() => {
@@ -675,8 +697,10 @@ function ContextCoach({ view }: { view: View }) {
       const targetNode = event.target as HTMLElement | null;
       if (!targetNode || targetNode.closest('.context-coach')) return;
       const source = targetNode.closest('[data-context-label]') as HTMLElement | null;
-      if (source) pointAt(source);
-      else closeSoon();
+      if (source) {
+        setDismissed(false);
+        pointAt(source);
+      } else closeSoon();
     };
     const onPointerOut = (event: PointerEvent) => {
       if (event.pointerType === 'touch') return;
@@ -688,7 +712,19 @@ function ContextCoach({ view }: { view: View }) {
     };
     const onFocus = (event: FocusEvent) => {
       const source = (event.target as HTMLElement | null)?.closest('[data-context-label]') as HTMLElement | null;
-      if (source) pointAt(source);
+      if (source) {
+        setDismissed(false);
+        pointAt(source);
+      }
+    };
+    const onClick = (event: MouseEvent) => {
+      const targetNode = event.target as HTMLElement | null;
+      if (!targetNode || targetNode.closest('.context-coach')) return;
+      const source = targetNode.closest('[data-context-label]') as HTMLElement | null;
+      if (source) {
+        setDismissed(false);
+        pointAt(source);
+      }
     };
     const onResize = () => {
       setTarget(current => current?.element.isConnected ? { ...current, rect: current.element.getBoundingClientRect() } : null);
@@ -697,6 +733,7 @@ function ContextCoach({ view }: { view: View }) {
     document.addEventListener('pointerover', onPointerOver);
     document.addEventListener('pointerout', onPointerOut);
     document.addEventListener('focusin', onFocus);
+    document.addEventListener('click', onClick);
     window.addEventListener('resize', onResize);
     window.addEventListener('scroll', onResize, true);
     return () => {
@@ -704,6 +741,7 @@ function ContextCoach({ view }: { view: View }) {
       document.removeEventListener('pointerover', onPointerOver);
       document.removeEventListener('pointerout', onPointerOut);
       document.removeEventListener('focusin', onFocus);
+      document.removeEventListener('click', onClick);
       window.removeEventListener('resize', onResize);
       window.removeEventListener('scroll', onResize, true);
     };
@@ -719,24 +757,25 @@ function ContextCoach({ view }: { view: View }) {
     if (!target?.rect) return;
     const margin = 14;
     const width = Math.min(390, window.innerWidth - margin * 2);
-    const estimatedHeight = Math.min(420, Math.max(250, window.innerHeight * 0.52));
+    const estimatedHeight = Math.min(520, Math.max(260, window.innerHeight * 0.58));
     const above = target.rect.top > estimatedHeight + 24;
     const rawLeft = target.rect.left + target.rect.width / 2 - width / 2;
     const left = Math.max(margin, Math.min(rawLeft, window.innerWidth - width - margin));
-    const top = above
-      ? Math.max(margin, target.rect.top - 10)
-      : Math.min(window.innerHeight - margin, target.rect.bottom + 10);
+    const rawTop = above
+      ? target.rect.top - estimatedHeight - 10
+      : target.rect.bottom + 10;
+    const top = Math.max(margin, Math.min(rawTop, window.innerHeight - estimatedHeight - margin));
     setPosition({ left, top, above });
   }, [target?.rect]);
 
-  if (!active) return null;
+  if (!active || dismissed) return null;
 
   const pinCurrent = () => setManual(current => current ? null : active);
 
   return (
     <aside
       className={`context-coach is-open ${position.above ? 'coach-above' : 'coach-below'}`}
-      style={{ left: position.left, top: position.top }}
+      style={{ left: position.left, top: position.top, bottom: target || manual ? 'auto' : 0 }}
       aria-label="On-board tutor"
     >
       <div className="coach-connector" aria-hidden="true" />
@@ -745,9 +784,12 @@ function ContextCoach({ view }: { view: View }) {
           <span className="coach-kicker">ON-BOARD TUTOR</span>
           <strong>Context Coach</strong>
         </div>
-        <button className="coach-toggle" onClick={pinCurrent} aria-label={manual ? 'Unpin guidance' : 'Pin guidance'}>
-          {manual ? '−' : '+'}
-        </button>
+        <div className="coach-head-actions">
+          <button className="coach-toggle" type="button" onClick={pinCurrent} aria-label={manual ? 'Unpin guidance' : 'Pin guidance'}>
+            {manual ? '−' : '+'}
+          </button>
+          <button className="coach-dismiss" type="button" onClick={() => { setDismissed(true); setManual(null); }} aria-label="Close tutor">×</button>
+        </div>
       </div>
       <div className="coach-body">
         <div className="coach-location">
@@ -759,8 +801,8 @@ function ContextCoach({ view }: { view: View }) {
           <b>{active.term}</b>
           {active.acronym && <span>{active.acronym}</span>}
         </div>
-        <p>{active.definition}</p>
-        {active.calculation && <div className="coach-section"><small>HOW IT WORKS</small><span>{active.calculation}</span></div>}
+        <div className="coach-section coach-quick-explanation"><small>QUICK EXPLANATION</small><span>{active.definition}</span></div>
+        {active.calculation && <div className="coach-section"><small>ENGINEERING DETAIL</small><span>{active.calculation}</span></div>}
         {active.why && <div className="coach-section"><small>WHY IT MATTERS</small><span>{active.why}</span></div>}
         <div className="coach-meta">
           <span>{active.units || 'N/A'}</span>

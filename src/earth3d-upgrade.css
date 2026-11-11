@@ -731,3 +731,20 @@ html.earth3d-active pwa-install {
     font: 8px/1.35 ui-monospace, monospace;
   }
 }
+
+.earth3d-ephemeris-note{display:block;margin-top:7px;color:#8de7ff;font:10px/1.5 ui-monospace,SFMono-Regular,monospace;letter-spacing:.025em;text-transform:none}
+
+
+/* Keep the optional timeline in the document flow on desktop.
+   The mission-control shell has a fixed-height canvas frame, but the side HUDs
+   can exceed that height at desktop widths. The old overflow:hidden clipped
+   the fourth grid row (timeline) after playback state updates and auto-scroll.
+   Let the workspace grow and the page scroll instead of clipping controls. */
+@media (min-width: 1351px) {
+  .app-shell.simulation-active .earth3d-workspace {
+    height: auto;
+    min-height: 620px;
+    grid-template-rows: auto minmax(560px, auto) auto auto;
+    overflow: visible;
+  }
+}

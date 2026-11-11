@@ -7,6 +7,16 @@ export const EARTH_CAMERA_MARGIN = 1.35;
 // In SYSTEM view, compress only the displayed Earth-Moon centre separation.
 // Physical radii and the authoritative 384,400 km reference remain unchanged.
 export const SYSTEM_DISPLAY_DISTANCE_RATIO = 0.0225;
+export const EARTH_EQUATORIAL_RADIUS_KM = 6378.137;
+export const MOON_MEAN_RADIUS_KM = 1737.4;
+export const EARTH_MOON_MEAN_CENTRE_DISTANCE_KM = 384400;
+
+/** Convert the mean Earth–Moon centre distance to scene units. The ratio is 1 for true mean-distance scale and <1 for presentation compression. */
+export function earthMoonCentreDistanceSceneUnits(earthRadiusSceneUnits = 5.15, distanceScale = 1): number {
+  const safeEarthRadius = Number.isFinite(earthRadiusSceneUnits) && earthRadiusSceneUnits > 0 ? earthRadiusSceneUnits : 5.15;
+  const safeScale = Number.isFinite(distanceScale) && distanceScale > 0 ? distanceScale : 1;
+  return safeEarthRadius * (EARTH_MOON_MEAN_CENTRE_DISTANCE_KM / EARTH_EQUATORIAL_RADIUS_KM) * safeScale;
+}
 export const NIGHT_LIGHT_TWILIGHT_START = -0.18;
 export const NIGHT_LIGHT_TWILIGHT_END = 0.12;
 export const MOON_ORBIT_PERIOD_SECONDS = 27.321661 * 86400;
@@ -95,4 +105,22 @@ export function planetaryPositionAt(name: PlanetaryBodyName, elapsedSeconds: num
   const safeSeconds = Number.isFinite(elapsedSeconds) ? elapsedSeconds : 0;
   const phase = body.phaseOffsetRad + (safeSeconds / (body.orbitalPeriodDays * 86400)) * Math.PI * 2;
   return { x: Math.cos(phase) * body.orbitRadius, y: 0, z: Math.sin(phase) * body.orbitRadius };
+}
+
+/** Convert a geocentric ICRF position in metres into the scene's X/Z/Y axis order. */
+export function moonEphemerisPositionSceneUnits(
+  positionM: readonly [number, number, number],
+  earthRadiusSceneUnits = 5.15,
+  displayDistanceScale = 1
+): [number, number, number] {
+  if (!positionM.every(Number.isFinite) || !Number.isFinite(earthRadiusSceneUnits) || earthRadiusSceneUnits <= 0
+      || !Number.isFinite(displayDistanceScale) || displayDistanceScale <= 0 || displayDistanceScale > 1) {
+    throw new Error('Moon ephemeris scene conversion requires finite SI coordinates, positive Earth radius and display scale in (0, 1].');
+  }
+  const sceneUnitsPerMetre = earthRadiusSceneUnits / 6378137;
+  return [
+    positionM[0] * sceneUnitsPerMetre * displayDistanceScale,
+    positionM[2] * sceneUnitsPerMetre * displayDistanceScale,
+    positionM[1] * sceneUnitsPerMetre * displayDistanceScale
+  ];
 }
