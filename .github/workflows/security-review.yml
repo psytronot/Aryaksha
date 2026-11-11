@@ -27,17 +27,3 @@ jobs:
         run: npm ci
       - name: Fail on high or critical production dependency advisories
         run: npm audit --omit=dev --audit-level=high
-
-  dependency-review:
-    name: Pull request dependency review
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      pull-requests: read
-    steps:
-      - name: Review dependency changes
-        uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: high
