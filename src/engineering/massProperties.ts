@@ -31,13 +31,39 @@ function validateTensor(tensor: InertiaTensor, id: string): void {
     throw new Error(`Component ${id} has a non-finite or malformed inertia tensor.`);
   }
   const scale = Math.max(1, ...tensor.flat().map(Math.abs));
+  const tolerance = 1e-10 * scale * scale;
   for (let i = 0; i < 3; i += 1) {
-    if (tensor[i][i] < 0) throw new Error(`Component ${id} has a negative principal diagonal inertia.`);
+    if (tensor[i][i] < -1e-10 * scale) throw new Error(`Component ${id} has a negative principal diagonal inertia.`);
     for (let j = i + 1; j < 3; j += 1) {
       if (Math.abs(tensor[i][j] - tensor[j][i]) > 1e-10 * scale) {
         throw new Error(`Component ${id} inertia tensor must be symmetric.`);
       }
     }
+  }
+
+  // A real inertia tensor must be positive semidefinite. For a symmetric
+  // 3x3 matrix, non-negative principal minors provide a direct PSD check.
+  for (const [i, j] of [[0, 1], [0, 2], [1, 2]] as const) {
+    if (tensor[i][i] * tensor[j][j] - tensor[i][j] * tensor[i][j] < -tolerance) {
+      throw new Error(`Component ${id} inertia tensor must be positive semidefinite.`);
+    }
+  }
+  const determinant =
+    tensor[0][0] * (tensor[1][1] * tensor[2][2] - tensor[1][2] * tensor[2][1]) -
+    tensor[0][1] * (tensor[1][0] * tensor[2][2] - tensor[1][2] * tensor[2][0]) +
+    tensor[0][2] * (tensor[1][0] * tensor[2][1] - tensor[1][1] * tensor[2][0]);
+  if (determinant < -1e-10 * scale * scale * scale) {
+    throw new Error(`Component ${id} inertia tensor must be positive semidefinite.`);
+  }
+
+  // Principal moments obey the rigid-body triangle inequalities. These
+  // inequalities also hold for diagonal moments in any orthogonal frame.
+  if (
+    tensor[0][0] + tensor[1][1] < tensor[2][2] - 1e-10 * scale ||
+    tensor[0][0] + tensor[2][2] < tensor[1][1] - 1e-10 * scale ||
+    tensor[1][1] + tensor[2][2] < tensor[0][0] - 1e-10 * scale
+  ) {
+    throw new Error(`Component ${id} inertia tensor violates the rigid-body triangle inequality.`);
   }
 }
 
