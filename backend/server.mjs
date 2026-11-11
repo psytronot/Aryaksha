@@ -22,7 +22,7 @@ app.get('/api/_healthcheck', (_req, res) => res.json({ message: 'Success', servi
 app.get('/api/v1/health', (_req, res) => res.json({ status: 'ok', service: 'aryaksha-api' }));
 app.get('/api/v1/ephemeris/moon', apiRateLimit, async (req, res) => {
   const epochTdb = String(req.query.epochTdb ?? '');
-  if (!/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,9})?$/.test(epochTdb)) {
+  if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]{1,9})?$/.test(epochTdb)) {
     return res.status(400).json({ error: 'Provide epochTdb as YYYY-MM-DDTHH:mm:ss.sss without a timezone suffix.' });
   }
   try {
@@ -56,7 +56,7 @@ app.post('/api/v1/telemetry/ingest', apiRateLimit, (req, res) => {
 app.get('/api/v1/telemetry/:spacecraftId/latest', apiRateLimit, (req, res) => {
   const readToken = process.env.ARYAKSHA_TELEMETRY_READ_TOKEN;
   if (!readToken) return res.status(503).json({ error: 'Telemetry read access is not configured.' });
-  const suppliedToken = req.get('authorization')?.replace(/^Bearer\\s+/i, '') ?? '';
+  const suppliedToken = parseBearerToken(req.get('authorization'));
   if (!verifyTelemetryReadToken(suppliedToken, readToken)) return res.status(401).json({ error: 'Telemetry read authentication failed.' });
   const record = telemetryStore.latest(req.params.spacecraftId);
   if (!record) return res.status(404).json({ error: 'No telemetry record is available for this spacecraft in the current process.' });
