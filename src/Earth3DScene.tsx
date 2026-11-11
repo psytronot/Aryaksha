@@ -919,9 +919,11 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       const stopAnimation = () => {
         if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
         frameRef.current = null;
+        container.dataset.renderingState = 'paused';
       };
       const startAnimation = () => {
         if (!mounted || document.hidden || !canvasInViewport || frameRef.current !== null) return;
+        container.dataset.renderingState = 'active';
         frameRef.current = requestAnimationFrame(animate);
       };
       const onVisibilityChange = () => {
