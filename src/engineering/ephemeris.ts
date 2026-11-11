@@ -27,24 +27,47 @@ export class EphemerisUnavailableError extends Error {
   }
 }
 
+/** Parse explicit ISO timestamps without silently assigning a timezone to date-only or local-time strings. */
+function parseEphemerisTimestamp(value: string): number {
+  if (typeof value !== 'string' || !value.trim()) return Number.NaN;
+  // Ephemeris epochs must carry an explicit UTC designator or numeric offset.
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value)) {
+    return Number.NaN;
+  }
+  return Date.parse(value);
+}
+
 /** Validate provenance and coverage before an ephemeris state can enter a scene or analysis. */
 export function validateEphemerisState(
   state: EphemerisState,
   expected: { body: EphemerisBody; epoch: string; frame: EphemerisFrame; timeScale: EphemerisTimeScale }
 ): string[] {
   const issues: string[] = [];
+  const stateEpoch = parseEphemerisTimestamp(state.epoch);
+  const requestedEpoch = parseEphemerisTimestamp(expected.epoch);
+  const start = parseEphemerisTimestamp(state.coverageStart);
+  const end = parseEphemerisTimestamp(state.coverageEnd);
+  const timestampsValid = [stateEpoch, requestedEpoch, start, end].every(Number.isFinite);
+
+  if (!timestampsValid) {
+    issues.push('Ephemeris epoch and coverage dates must be valid timestamps.');
+  } else {
+    if (stateEpoch !== requestedEpoch) issues.push('Ephemeris epoch does not match the requested epoch.');
+    if (start > end) {
+      issues.push('Ephemeris coverage interval is invalid.');
+    } else {
+      if (requestedEpoch < start || requestedEpoch > end) {
+        issues.push('Requested epoch is outside the declared ephemeris kernel coverage.');
+      }
+      if (stateEpoch < start || stateEpoch > end) {
+        issues.push('Ephemeris state epoch is outside the declared coverage.');
+      }
+    }
+  }
+
   if (state.body !== expected.body) issues.push('Ephemeris body does not match the requested body.');
-  if (Date.parse(state.epoch) !== Date.parse(expected.epoch)) issues.push('Ephemeris epoch does not match the requested epoch.');
   if (state.frame !== expected.frame) issues.push('Ephemeris frame does not match the requested frame.');
   if (state.timeScale !== expected.timeScale) issues.push('Ephemeris time scale does not match the requested time scale.');
-  const parseEpoch = (value: string) => Date.parse(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(value) ? value + 'Z' : value);
-  const stateEpoch = parseEpoch(state.epoch);
-  const requestedEpoch = parseEpoch(expected.epoch);
-  const start = parseEpoch(state.coverageStart);
-  const end = parseEpoch(state.coverageEnd);
-  if (![stateEpoch, requestedEpoch, start, end].every(Number.isFinite) || requestedEpoch < start || requestedEpoch > end) {
-    issues.push('Requested epoch is outside the declared ephemeris kernel coverage.');
-  }
   if (state.kernelId === null) {
     if (state.source !== 'JPL-HORIZONS') issues.push('A kernel identifier is required for this ephemeris provider.');
   } else if (typeof state.kernelId !== 'string' || !state.kernelId.trim()) {
