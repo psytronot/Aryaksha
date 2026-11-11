@@ -26,13 +26,20 @@ export function boundsToMetres(bounds: GeometryBounds, unit: GeometryUnit): Geom
   for (let axis = 0; axis < 3; axis += 1) {
     if (bounds.max[axis] < bounds.min[axis]) throw new Error('Geometry maximum bounds must not be smaller than minimum bounds.');
   }
+  if (!Object.prototype.hasOwnProperty.call(METRES_PER_UNIT, unit)) {
+    throw new Error('Geometry unit must be one of m, cm, mm or in.');
+  }
   const factor = METRES_PER_UNIT[unit];
   const dimensions = bounds.max.map((value, axis) => (value - bounds.min[axis]) * factor);
+  const centreM = bounds.min.map((value, axis) => (value * 0.5 + bounds.max[axis] * 0.5) * factor) as [number, number, number];
+  if (![...dimensions, ...centreM].every(Number.isFinite)) {
+    throw new Error('Converted geometry is outside the supported numeric range.');
+  }
   if (dimensions.some(value => value <= 0)) throw new Error('Imported geometry must have non-zero width, height and depth.');
   return {
     width: dimensions[0],
     height: dimensions[1],
     depth: dimensions[2],
-    centreM: bounds.min.map((value, axis) => (value + bounds.max[axis]) * 0.5 * factor) as [number, number, number]
+    centreM
   };
 }
