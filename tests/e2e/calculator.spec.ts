@@ -1,0 +1,31 @@
+import { expect, test } from '@playwright/test';
+
+test('engineering calculator evaluates expressions, angle mode and invalid operations', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Calculator & Reference', exact: true }).click();
+  const calculator = page.locator('.calculator-card');
+  await expect(calculator).toBeVisible();
+  const keys = calculator.locator('.calculator-keys');
+  const display = calculator.locator('.calculator-display strong');
+  await keys.getByRole('button', { name: '2', exact: true }).click();
+  await keys.getByRole('button', { name: '+', exact: true }).click();
+  await keys.getByRole('button', { name: '2', exact: true }).click();
+  await keys.getByRole('button', { name: '=', exact: true }).click();
+  await expect(display).toHaveText('4');
+  await calculator.getByRole('button', { name: 'AC', exact: true }).click();
+  await keys.getByRole('button', { name: 'sin(', exact: true }).click();
+  await keys.getByRole('button', { name: '9', exact: true }).click();
+  await keys.getByRole('button', { name: '0', exact: true }).click();
+  await keys.getByRole('button', { name: ')', exact: true }).click();
+  await keys.getByRole('button', { name: '=', exact: true }).click();
+  await expect(display).toHaveText('1');
+  await calculator.getByRole('button', { name: 'AC', exact: true }).click();
+  await keys.getByRole('button', { name: '1', exact: true }).click();
+  await keys.getByRole('button', { name: '÷', exact: true }).click();
+  await keys.getByRole('button', { name: '0', exact: true }).click();
+  await keys.getByRole('button', { name: '=', exact: true }).click();
+  await expect(calculator.locator('.calculator-error')).toHaveText('Division by zero');
+  await calculator.getByRole('button', { name: 'AC', exact: true }).click();
+  await calculator.locator('.calculator-constants').getByRole('button', { name: /Earth μ/ }).click();
+  await expect(display).toHaveText('398600.4418');
+});
