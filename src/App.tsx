@@ -9,6 +9,7 @@ import AryakshaMark from './AryakshaMark';
 const ScientificCalculator = lazy(() => import('./ScientificCalculator'));
 const SatelliteTrackingView = lazy(() => import('./SatelliteTrackingView'));
 const MissionAnalysisView = lazy(() => import('./MissionAnalysisView'));
+const SpacecraftGeometryWorkbench = lazy(() => import('./SpacecraftGeometryWorkbench'));
 import { EARTH_RADIUS, orbitalSummary, propagateState, sampleOrbit, stateToLla } from './orbit';
 import { getGlossaryEntries, getGlossaryEntry, GlossaryEntry } from './glossary';
 import { generateContinuousGroundTrack, SubPoint } from './tracking';
