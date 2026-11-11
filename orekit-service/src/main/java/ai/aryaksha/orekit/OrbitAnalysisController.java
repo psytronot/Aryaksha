@@ -1,5 +1,7 @@
 package ai.aryaksha.orekit;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.List;
 import java.util.Map;
 
@@ -30,8 +32,11 @@ public class OrbitAnalysisController {
     private static final double MAX_INTEGRATOR_STEP_SECONDS = 60.0;
     private static final double POSITION_ERROR_METRES = 1.0;
 
-    @Value("${ARYAKSHA_ALLOWED_ORIGIN:https://orbital-lab-lq22ug.v2.appdeploy.ai}")
-    private String allowedOrigin;
+    private final String serviceToken;
+
+    public OrbitAnalysisController(@Value("${ARYAKSHA_OREKIT_SERVICE_TOKEN:}") String serviceToken) {
+        this.serviceToken = serviceToken;
+    }
 
     public record AnalysisRequest(double altitudeKm, double inclinationDeg, double eccentricity, double elapsedSeconds) {
         public AnalysisRequest(double altitudeKm, double inclinationDeg, double eccentricity) {
@@ -55,7 +60,21 @@ public class OrbitAnalysisController {
     }
 
     @PostMapping("/orbit/analysis")
-    public AnalysisResponse analyze(@RequestBody AnalysisRequest input) {
+    public AnalysisResponse analyzeHttp(
+        @RequestBody AnalysisRequest input,
+        @RequestHeader(value = "X-Aryaksha-Service-Token", required = false) String providedToken
+    ) {
+        authorizeServiceRequest(providedToken);
+        return compute(input);
+    }
+
+    // Direct calculation entry point used by deterministic unit tests; HTTP traffic
+    // must pass through analyzeHttp and its service-to-service authentication.
+    AnalysisResponse analyze(AnalysisRequest input) {
+        return compute(input);
+    }
+
+    private AnalysisResponse compute(AnalysisRequest input) {
         validate(input);
         double aKm = EARTH_RADIUS_KM + input.altitudeKm();
         double rpKm = aKm * (1 - input.eccentricity());
@@ -114,6 +133,32 @@ public class OrbitAnalysisController {
             Map.of("engineAdapter", "orekit-http", "status", "connected",
                    "note", "Computed by the independently hosted Orekit service using numerical two-body propagation."));
     }
+
+    private void authorizeServiceRequest(String providedToken) {
+        if (serviceToken == null || serviceToken.isBlank()) {
+            throw new ServiceAuthenticationNotConfiguredException();
+        }
+        if (providedToken == null || !MessageDigest.isEqual(
+                serviceToken.getBytes(StandardCharsets.UTF_8),
+                providedToken.getBytes(StandardCharsets.UTF_8))) {
+            throw new UnauthorizedServiceRequestException();
+        }
+    }
+
+    @ExceptionHandler(UnauthorizedServiceRequestException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public Map<String, String> unauthorizedServiceRequest() {
+        return Map.of("error", "A valid service credential is required.");
+    }
+
+    @ExceptionHandler(ServiceAuthenticationNotConfiguredException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public Map<String, String> serviceAuthenticationNotConfigured() {
+        return Map.of("error", "Service authentication is not configured.");
+    }
+
+    private static final class UnauthorizedServiceRequestException extends RuntimeException {}
+    private static final class ServiceAuthenticationNotConfiguredException extends RuntimeException {}
 
     private void validate(AnalysisRequest input) {
         if (input == null || !Double.isFinite(input.altitudeKm())
