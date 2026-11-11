@@ -82,8 +82,11 @@ test('Earth 3D responds to native two-pointer touch pinch on mobile Chromium', a
 
   // The PLANETS camera reuses the same two-pointer handler but has its own
   // fit-distance baseline; verify native touch pinch in both directions.
-  const solarSystemScene = page.getByRole('button', { name: 'Solar system scene', exact: true });
-  await solarSystemScene.scrollIntoViewIfNeeded();
+  // The scene gallery is opt-in; expose it before selecting the planetary view.
+  const timeline = page.getByRole('region', { name: 'Mission timeline and scene gallery' });
+  await page.getByRole('button', { name: 'Show mission timeline' }).click();
+  await expect(timeline).toBeVisible();
+  const solarSystemScene = timeline.getByRole('button', { name: 'Solar system scene', exact: true });
   await solarSystemScene.click();
   await expect(container).toHaveAttribute('data-camera-mode', 'PLANETS');
   await expect(container).toHaveAttribute('data-planetary-visible', 'true');

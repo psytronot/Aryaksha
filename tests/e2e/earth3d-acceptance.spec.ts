@@ -527,26 +527,26 @@ test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without sh
   const cameraModes = page.locator('[aria-label="Camera modes"]');
   await cameraModes.getByRole('button', { name: 'EARTH', exact: true }).click();
   await page.waitForTimeout(400);
-  const desktopScene = page.locator('.simulation-grid');
-  await desktopScene.scrollIntoViewIfNeeded();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(page.locator('.earth3d-workspace')).toBeInViewport();
   const desktopPath = test.info().outputPath('earth3d-desktop-earth-1536x1024.png');
-  await desktopScene.screenshot({ path: desktopPath, timeout: 60_000, animations: 'disabled' });
+  await page.screenshot({ path: desktopPath, timeout: 60_000, animations: 'disabled' });
   await test.info().attach('earth3d-desktop-earth-1536x1024.png', { path: desktopPath, contentType: 'image/png' });
 
   await cameraModes.getByRole('button', { name: 'MOON', exact: true }).click();
   await page.waitForTimeout(400);
   const moonPath = test.info().outputPath('earth3d-desktop-moon-1536x1024.png');
-  await desktopScene.screenshot({ path: moonPath, timeout: 60_000, animations: 'disabled' });
+  await page.screenshot({ path: moonPath, timeout: 60_000, animations: 'disabled' });
   await test.info().attach('earth3d-desktop-moon-1536x1024.png', { path: moonPath, contentType: 'image/png' });
 
   await page.setViewportSize({ width: 390, height: 844 });
   await cameraModes.getByRole('button', { name: 'SYSTEM', exact: true }).click();
-  const mobileScene = page.locator('.earth3d-workspace');
   const mobileCanvas = page.locator('.earth3d-canvas');
-  await mobileScene.scrollIntoViewIfNeeded();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(mobileCanvas).toBeInViewport();
   await page.waitForTimeout(400);
   const mobilePath = test.info().outputPath('earth3d-mobile-system-390x844.png');
-  await mobileScene.screenshot({ path: mobilePath, timeout: 60_000, animations: 'disabled' });
+  await page.screenshot({ path: mobilePath, timeout: 60_000, animations: 'disabled' });
   await test.info().attach('earth3d-mobile-system-390x844.png', { path: mobilePath, contentType: 'image/png' });
 
   const mobileCanvasBounds = await mobileCanvas.boundingBox();
@@ -607,6 +607,41 @@ test('Earth 3D uses deterministic local textures when NASA imagery is blocked by
   expect(pageErrors).toEqual([]);
 });
 
+
+test('Earth 3D desktop timeline is opt-in and never overlays the globe', async ({ page }) => {
+  await page.setViewportSize({ width: 1536, height: 1024 });
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const workspace = page.locator('.earth3d-workspace');
+  const canvas = page.locator('.earth3d-canvas');
+  const bottomBar = page.locator('.earth3d-bottom-bar');
+  const timeline = page.getByRole('region', { name: 'Mission timeline and scene gallery' });
+  const toggle = page.getByRole('button', { name: 'Show mission timeline' });
+  await expect(timeline).toBeHidden();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(workspace).toHaveAttribute('data-timeline-open', 'false');
+
+  await toggle.click();
+  await expect(timeline).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Hide mission timeline' })).toHaveAttribute('aria-expanded', 'true');
+  await expect(workspace).toHaveAttribute('data-timeline-open', 'true');
+
+  const canvasBox = await canvas.boundingBox();
+  const bottomBarBox = await bottomBar.boundingBox();
+  const timelineBox = await timeline.boundingBox();
+  expect(canvasBox).not.toBeNull();
+  expect(bottomBarBox).not.toBeNull();
+  expect(timelineBox).not.toBeNull();
+  expect(bottomBarBox!.y).toBeGreaterThanOrEqual(canvasBox!.y + canvasBox!.height - 1);
+  expect(timelineBox!.y).toBeGreaterThanOrEqual(canvasBox!.y + canvasBox!.height - 1);
+
+  await page.getByRole('button', { name: 'Hide mission timeline' }).click();
+  await expect(timeline).toBeHidden();
+  await expect(workspace).toHaveAttribute('data-timeline-open', 'false');
+});
+
 test('Earth 3D releases its WebGL context on unmount and remounts cleanly', async ({ page }) => {
   test.setTimeout(60_000);
   const pageErrors: string[] = [];
@@ -649,6 +684,8 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
 
   const timeline = page.getByRole("region", { name: "Mission timeline and scene gallery" });
   const simulationControls = page.getByTestId("earth3d-simulation-controls");
+  await expect(timeline).toBeHidden();
+  await page.getByRole("button", { name: "Show mission timeline" }).click();
   await expect(timeline).toBeVisible();
   await expect(simulationControls).toBeVisible();
   const canvasLayer = page.locator(".earth3d-canvas");
@@ -701,6 +738,8 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   await systemSceneButton.click();
   await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "SYSTEM", exact: true })).toHaveClass(/active/);
   await expect(timeline.getByRole("button", { name: "Earth and Moon scene" })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Hide mission timeline" }).click();
+  await expect(timeline).toBeHidden();
 });
 
 test("Earth 3D Earth scene shortcut selects the Earth camera", async ({ page }) => {
@@ -709,6 +748,7 @@ test("Earth 3D Earth scene shortcut selects the Earth camera", async ({ page }) 
   await page.goto("/");
   await page.getByRole("button", { name: "Simulation", exact: true }).click();
   const timeline = page.getByRole("region", { name: "Mission timeline and scene gallery" });
+  await page.getByRole("button", { name: "Show mission timeline" }).click();
   await timeline.getByRole("button", { name: "Earth scene", exact: true }).click();
   await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "EARTH", exact: true })).toHaveClass(/active/);
   await expect(timeline.getByRole("button", { name: "Earth scene", exact: true })).toHaveAttribute("aria-pressed", "true");
@@ -723,6 +763,7 @@ test("Earth 3D timeline and scene gallery remain touch-usable on mobile", async 
     .getByRole("button", { name: "Simulation", exact: true }).click();
 
   const timeline = page.getByRole("region", { name: "Mission timeline and scene gallery" });
+  await page.getByRole("button", { name: "Show mission timeline" }).click();
   await timeline.scrollIntoViewIfNeeded();
   await expect(timeline).toBeVisible();
   await expect(timeline.getByRole("button", { name: "Earth scene" })).toBeVisible();
@@ -781,6 +822,7 @@ test('Earth 3D Moon camera tracks the Earth-facing hemisphere on desktop and mob
   await page.getByRole('button', { name: 'Reset camera framing' }).click();
   await expect.poll(facingDot, { timeout: 10000 }).toBeGreaterThan(0.999);
   const timeline = page.getByRole('region', { name: 'Mission timeline and scene gallery' });
+  await page.getByRole('button', { name: 'Show mission timeline' }).click();
   await timeline.getByRole('button', { name: 'Advance simulation by 10 seconds' }).click();
   await expect.poll(facingDot, { timeout: 10000 }).toBeGreaterThan(0.999);
   const workspace = page.locator('.earth3d-workspace');
@@ -1066,20 +1108,18 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   const workspaceBounds = await page.locator('.earth3d-workspace').boundingBox();
   const bottomBounds = await bottom.boundingBox();
   const legendBounds = await page.locator('.earth3d-bottom-bar').boundingBox();
-  const timelineBounds = await page.locator('.earth3d-timeline').boundingBox();
+  await expect(page.getByRole('region', { name: 'Mission timeline and scene gallery' })).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Show mission timeline' })).toBeVisible();
   expect(canvasBounds).not.toBeNull();
   expect(workspaceBounds).not.toBeNull();
   expect(bottomBounds).not.toBeNull();
   expect(legendBounds).not.toBeNull();
-  expect(timelineBounds).not.toBeNull();
   expect(canvasBounds!.width).toBeGreaterThan(700);
   expect(canvasBounds!.height).toBeGreaterThan(600);
   expect(workspaceBounds!.height).toBeLessThanOrEqual(681);
   expect(bottomBounds!.y).toBeLessThan(850);
   expect(legendBounds!.x).toBeGreaterThanOrEqual(canvasBounds!.x);
-  expect(timelineBounds!.x).toBeGreaterThanOrEqual(canvasBounds!.x);
   expect(legendBounds!.x + legendBounds!.width).toBeLessThanOrEqual(canvasBounds!.x + canvasBounds!.width + 1);
-  expect(timelineBounds!.x + timelineBounds!.width).toBeLessThanOrEqual(canvasBounds!.x + canvasBounds!.width + 1);
 
   // Read the sticky navigation geometry and pointer target before the WebGL
   // screenshot. Chromium can keep the canvas compositor busy after a large

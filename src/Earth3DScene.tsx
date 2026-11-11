@@ -340,6 +340,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   const [imageryState, setImageryState] = useState<'loading' | 'nasa' | 'partial' | 'fallback'>('loading');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mobileHudOpen, setMobileHudOpen] = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(false);
   const [missionSetupTab, setMissionSetupTab] = useState<'presets' | 'custom'>('presets');
   const [imageryStatus, setImageryStatus] = useState('Loading NASA Earth, cloud and lunar imagery…');
   const [wallTime, setWallTime] = useState(() => new Date());
@@ -1036,7 +1037,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   return (
     <div className="page">
       <div className="page-header earth3d-page-header"><div><small>3D MISSION VIEW</small><h1>Earth 3D</h1><p>A local spacecraft-tracking globe with asynchronous NASA Earth imagery, orbital path, vectors and mission HUD.</p><small className="earth3d-imagery-status" data-testid="earth-imagery-status" data-imagery-state={imageryState} role="status" aria-live="polite">{imageryStatus}</small><small>Scale disclosure: Earth diameter is approximately {Math.round(trueEarthToBusRatio).toLocaleString()} times the maximum bus dimension at true scale. Spacecraft geometry is enlarged by {visualExaggeration.toLocaleString()}× for visibility; dimensions are not shown to physical scale.</small></div></div>
-      <article ref={workspaceRef} className="earth3d-workspace glass-panel">
+      <article ref={workspaceRef} className="earth3d-workspace glass-panel" data-timeline-open={timelineOpen ? "true" : "false"}>
         <div className="earth3d-canvas" ref={containerRef} role="region" aria-label="Interactive 3D Earth with trackable spacecraft" />
         <div className="earth3d-topbar">
           <div className="earth3d-object">
@@ -1124,9 +1125,9 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         </div>
         <div className="earth3d-bottom-bar">
           <span><i className="legend-spacecraft" /> SPACECRAFT</span><span><i className="legend-orbit" /> ORBIT</span><span><i className="legend-footprint" /> FOOTPRINT · FOV GEOMETRY</span><span><i className="legend-vector" /> VECTORS</span>
-          <span className="earth3d-help">DRAG TO ORBIT · WHEEL TO ZOOM · SYSTEM FRAMES EARTH + MOON · TRACK FOLLOWS SATELLITE</span>{cameraMode === "SYSTEM" && <span className="earth3d-scale-note" data-testid="earth3d-scale-note">SCHEMATIC SYSTEM · {(1 / SYSTEM_DISPLAY_DISTANCE_RATIO).toFixed(1)}× CENTRE-DISTANCE COMPRESSION · PHYSICAL RADII RETAINED · NOT TO SCALE</span>}{cameraMode === "PLANETS" && <span className="earth3d-scale-note" data-testid="earth3d-planetary-scale-note">SCHEMATIC SOLAR SYSTEM · ORBIT RADII + BODY SIZES EXAGGERATED · NOT TO SCALE · NOT EPHEMERIS-GRADE</span>}
+          <span className="earth3d-help">DRAG TO ORBIT · WHEEL TO ZOOM · SYSTEM FRAMES EARTH + MOON · TRACK FOLLOWS SATELLITE</span><button type="button" className="earth3d-timeline-toggle" aria-label={timelineOpen ? "Hide mission timeline" : "Show mission timeline"} aria-expanded={timelineOpen} aria-controls="earth3d-timeline" onClick={() => setTimelineOpen(value => !value)}>{timelineOpen ? "HIDE TIMELINE" : "TIMELINE"}</button>{cameraMode === "SYSTEM" && <span className="earth3d-scale-note" data-testid="earth3d-scale-note">SCHEMATIC SYSTEM · {(1 / SYSTEM_DISPLAY_DISTANCE_RATIO).toFixed(1)}× CENTRE-DISTANCE COMPRESSION · PHYSICAL RADII RETAINED · NOT TO SCALE</span>}{cameraMode === "PLANETS" && <span className="earth3d-scale-note" data-testid="earth3d-planetary-scale-note">SCHEMATIC SOLAR SYSTEM · ORBIT RADII + BODY SIZES EXAGGERATED · NOT TO SCALE · NOT EPHEMERIS-GRADE</span>}
         </div>
-        <div className="earth3d-timeline" role="region" aria-label="Mission timeline and scene gallery" data-testid="earth3d-timeline">
+        <div id="earth3d-timeline" className="earth3d-timeline" role="region" aria-label="Mission timeline and scene gallery" data-testid="earth3d-timeline" hidden={!timelineOpen}>
           <div className="earth3d-timeline-heading"><span>MISSION TIMELINE / SCENE GALLERY</span><b>T+ {Number(seconds || 0).toFixed(1)} s</b></div>
           <SceneGallery
             cameraMode={cameraMode}
