@@ -221,7 +221,7 @@ class OrbitAnalysisControllerTest {
     void httpAnalysisEndpointRejectsMissingServiceCredential() throws Exception {
         http.perform(post("/api/v1/orbit/analysis")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\\"altitudeKm\\":550,\\"inclinationDeg\\":97.6,\\"eccentricity\\":0.001}"))
+                .content("{\"altitudeKm\":550,\"inclinationDeg\":97.6,\"eccentricity\":0.001}"))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.error").value("A valid service credential is required."));
     }
@@ -231,7 +231,7 @@ class OrbitAnalysisControllerTest {
         http.perform(post("/api/v1/orbit/analysis")
                 .header("X-Aryaksha-Service-Token", "wrong-secret")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\\"altitudeKm\\":550,\\"inclinationDeg\\":97.6,\\"eccentricity\\":0.001}"))
+                .content("{\"altitudeKm\":550,\"inclinationDeg\":97.6,\"eccentricity\":0.001}"))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.error").value("A valid service credential is required."));
     }
