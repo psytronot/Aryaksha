@@ -44,4 +44,38 @@ describe('JPL Horizons ephemeris provenance', () => {
       body: 'MOON', epoch: state.epoch, frame: 'ICRF', timeScale: 'TDB'
     })).toEqual([]);
   });
+
+  it('rejects reversed coverage intervals and states outside their declared coverage', () => {
+    expect(validateEphemerisState({
+      ...state,
+      epoch: '2031-01-01T00:00:00.000Z',
+      coverageStart: '2032-01-01T00:00:00.000Z',
+      coverageEnd: '2030-01-01T00:00:00.000Z'
+    }, {
+      body: 'MOON', epoch: '2031-01-01T00:00:00.000Z', frame: 'GCRF', timeScale: 'TDB'
+    })).toEqual(expect.arrayContaining([
+      'Ephemeris coverage interval is invalid.',
+      'Ephemeris state epoch is outside the declared coverage.'
+    ]));
+  });
+
+  it('rejects invalid calendar epochs and negative-zero/non-finite uncertainty values', () => {
+    expect(validateEphemerisState({
+      ...state,
+      epoch: 'not-a-date',
+      positionUncertaintyM: Number.POSITIVE_INFINITY
+    }, {
+      body: 'MOON', epoch: 'not-a-date', frame: 'GCRF', timeScale: 'TDB'
+    })).toEqual(expect.arrayContaining([
+      'Ephemeris epoch and coverage dates must be valid timestamps.',
+      'Ephemeris uncertainty must be finite or explicitly unknown.'
+    ]));
+    expect(validateEphemerisState({
+      ...state,
+      positionUncertaintyM: -1
+    }, {
+      body: 'MOON', epoch: state.epoch, frame: 'GCRF', timeScale: 'TDB'
+    })).toContain('Ephemeris uncertainty cannot be negative.');
+  });
+
 });
