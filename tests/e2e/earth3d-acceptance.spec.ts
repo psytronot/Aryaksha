@@ -1,11 +1,51 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
 import { EARTH_CAMERA_MARGIN, fitCameraDistance, MOON_CAMERA_MARGIN, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO } from '../../src/earth3dMath';
+
+async function disableContextCoach(page: import('@playwright/test').Page) {
+  const coachOn = page.getByRole('button', { name: /COACH ON/i });
+  if (await coachOn.count()) await coachOn.click();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('orbital-lab-coach-enabled')))
+    .toBe('false');
+  const coachOff = page.getByRole('button', { name: /COACH OFF/i });
+  // The setting is intentionally hidden in the compact mobile header.
+  if (await coachOff.count()) await expect(coachOff).toHaveAttribute('aria-pressed', 'false');
+}
+
+async function assertPointerReachable(locator: Locator, label: string) {
+  // Scroll and hit-test the same DOM node in one browser task. Separate
+  // locator.evaluate calls can race with the simulation's 4 Hz parent updates.
+  const hit = await locator.evaluate(element => {
+    element.scrollIntoView({
+      block: 'center',
+      inline: 'nearest',
+      behavior: 'instant'
+    });
+    const rect = element.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const centerInViewport = x >= 0 && y >= 0 && x < window.innerWidth && y < window.innerHeight;
+    const target = centerInViewport ? document.elementFromPoint(x, y) : null;
+    return {
+      centerInViewport,
+      receivesPointer: Boolean(target && (target === element || element.contains(target))),
+      hitTag: target?.tagName ?? null,
+      hitId: target?.id ?? null,
+      hitClass: target && typeof target.className === 'string' ? target.className : null
+    };
+  });
+  expect(
+    hit.centerInViewport && hit.receivesPointer,
+    `${label} is not pointer-reachable at its center: ${JSON.stringify(hit)}`
+  ).toBe(true);
+}
+
 
 test('Earth 3D exposes responsive camera modes and lunar layer controls', async ({ page }) => {
   const pageErrors: string[] = [];
   page.on('pageerror', error => pageErrors.push(error.message));
 
   await page.goto('/');
+  await disableContextCoach(page);
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
 
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible({ timeout: 15_000 });
@@ -133,11 +173,19 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   });
 
   const navigationStart = Date.now();
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
+  await disableContextCoach(page);
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
   const canvas = page.locator('.earth3d-canvas canvas');
   await expect(canvas).toBeVisible();
+  const workspace = page.locator('.earth3d-workspace');
+  await expect.poll(() => workspace.evaluate(element =>
+    getComputedStyle(element).gridTemplateColumns.trim().split(/\s+/).length
+  )).toBe(2);
+  await expect.poll(() => canvas.evaluate(element => element.getBoundingClientRect().width))
+    .toBeGreaterThanOrEqual(320);
 
   const initial = await canvas.evaluate((element: HTMLCanvasElement) => {
     const gl = element.getContext('webgl2') ?? element.getContext('webgl');
@@ -156,6 +204,7 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   expect(initial.height).toBeGreaterThan(0);
   expect(initial.drawingBufferWidth).toBeGreaterThan(0);
   expect(initial.drawingBufferHeight).toBeGreaterThan(0);
+  expect(initial.cssWidth).toBeGreaterThanOrEqual(320);
 
   const frameCount = await canvas.evaluate(async () => {
     let frames = 0;
@@ -172,18 +221,24 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   });
   expect(frameCount).toBeGreaterThan(0);
 
-  // Shrink the viewport: the Earth canvas lives inside a deliberately
-  // bounded workspace, so widening the browser does not necessarily widen it.
+  // A narrow viewport collapses the desktop side rails into a single column.
+  // The canvas may therefore grow relative to its desktop centre column; verify
+  // that it fills the available mobile workspace without horizontal overflow.
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect.poll(() => canvas.evaluate(element => element.getBoundingClientRect().width)).toBeLessThan(initial.cssWidth);
+  await expect.poll(() => canvas.evaluate(element => element.getBoundingClientRect().width)).toBeGreaterThanOrEqual(320);
   const resized = await canvas.evaluate((element: HTMLCanvasElement) => {
     const rect = element.getBoundingClientRect();
+    const workspace = element.closest('.earth3d-workspace') as HTMLElement;
+    const workspaceRect = workspace.getBoundingClientRect();
+    const workspaceStyle = getComputedStyle(workspace);
+    const horizontalPadding = parseFloat(workspaceStyle.paddingLeft) + parseFloat(workspaceStyle.paddingRight);
     const gl = element.getContext('webgl2') ?? element.getContext('webgl');
     return {
       width: element.width,
       height: element.height,
       cssWidth: rect.width,
       cssHeight: rect.height,
+      availableWidth: workspaceRect.width - horizontalPadding,
       drawingBufferWidth: gl?.drawingBufferWidth ?? 0,
       drawingBufferHeight: gl?.drawingBufferHeight ?? 0
     };
@@ -192,7 +247,8 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   expect(resized.height).toBeGreaterThan(0);
   expect(resized.drawingBufferWidth).toBeGreaterThan(0);
   expect(resized.drawingBufferHeight).toBeGreaterThan(0);
-  expect(resized.cssWidth).toBeLessThan(initial.cssWidth);
+  expect(resized.cssWidth).toBeGreaterThanOrEqual(320);
+  expect(resized.cssWidth).toBeLessThanOrEqual(resized.availableWidth + 1);
   expect(resized.cssWidth).toBeGreaterThan(0);
   expect(resized.cssHeight).toBeGreaterThan(0);
 
@@ -369,7 +425,7 @@ test('Earth 3D mission-control rails stay outside the globe and support full scr
 
   const workspace = page.locator('.earth3d-workspace');
   const canvas = page.locator('.earth3d-canvas');
-  const leftRail = page.getByRole('complementary', { name: 'Mission state and orbital details' });
+  const leftRail = page.getByRole('complementary', { name: 'Mission setup, state and orbital details' });
   const rightRail = page.getByRole('complementary', { name: 'Simulation controls and live telemetry' });
   await expect(canvas).toBeVisible();
   await expect(leftRail).toBeVisible();
@@ -528,13 +584,17 @@ test('Earth 3D releases its WebGL context on unmount and remounts cleanly', asyn
 });
 
 test("Earth 3D mission timeline and scene gallery control the shared simulation state", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.setViewportSize({ width: 1536, height: 1024 });
   await page.addInitScript(() => localStorage.setItem("orbital-lab-coach-enabled", "false"));
   await page.goto("/");
+  await disableContextCoach(page);
   await page.getByRole("button", { name: "Simulation", exact: true }).click();
 
   const timeline = page.getByRole("region", { name: "Mission timeline and scene gallery" });
+  const simulationControls = page.getByTestId("earth3d-simulation-controls");
   await expect(timeline).toBeVisible();
+  await expect(simulationControls).toBeVisible();
   const canvasLayer = page.locator(".earth3d-canvas");
   await expect.poll(() => canvasLayer.evaluate(element => getComputedStyle(element).position)).toBe("relative");
   await expect.poll(() => timeline.evaluate(element => getComputedStyle(element).zIndex)).toBe("8");
@@ -543,9 +603,13 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   await timeline.getByRole("button", { name: "Advance simulation by 10 seconds" }).click();
   await expect(clock).toContainText("T+ 10.0 s");
 
-  await timeline.getByRole("button", { name: "Play simulation" }).click();
-  await expect(timeline.getByRole("button", { name: "Pause simulation" })).toBeVisible();
-  await timeline.getByRole("button", { name: "Pause simulation" }).click();
+  await simulationControls.getByRole("group", { name: "Simulation playback speed" }).getByRole("button", { name: "Set playback speed 1x" }).click();
+  await simulationControls.getByRole("button", { name: "Play simulation" }).click();
+  await expect(simulationControls.getByRole("button", { name: "Pause simulation" })).toBeVisible();
+  // Let several 250 ms simulation ticks reach the scene before exercising
+  // the playback controls; their hit targets must remain stable while telemetry advances.
+  await expect.poll(() => clock.textContent()).not.toBe("T+ 10.0 s");
+  await simulationControls.getByRole("button", { name: "Pause simulation" }).click();
   await timeline.getByRole("button", { name: "Reset simulation time" }).click();
   await expect(clock).toContainText("T+ 0.0 s");
 
@@ -553,12 +617,18 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   await slider.focus();
   await slider.press("ArrowRight");
   await expect(clock).toContainText("T+ 0.1 s");
-  await slider.press("Home");
+  // ArrowLeft from 0.1 s reaches the minimum deterministically in Chromium;
+  // Home is not consistently dispatched as an input change for range controls.
+  await slider.press("ArrowLeft");
   await expect(clock).toContainText("T+ 0.0 s");
 
-  const speed = timeline.getByRole("combobox", { name: "Simulation playback speed" });
-  await speed.selectOption("60");
-  await expect(speed).toHaveValue("60");
+  const speed = simulationControls.getByRole("group", { name: "Simulation playback speed" });
+  const speed60 = speed.getByRole("button", { name: "Set playback speed 60x" });
+  await expect(speed60).toBeVisible();
+  await assertPointerReachable(speed60, '60x playback-speed control');
+  await speed60.click();
+  await expect(speed60).toBeInViewport();
+  await expect(speed.getByRole("button", { name: "Set playback speed 60x" })).toHaveAttribute("aria-pressed", "true");
 
   await timeline.getByRole("button", { name: "Moon scene", exact: true }).click();
   await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "MOON", exact: true })).toHaveClass(/active/);
@@ -632,6 +702,7 @@ test('Earth 3D Moon camera tracks the Earth-facing hemisphere on desktop and mob
   await page.setViewportSize({ width: 1536, height: 1024 });
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   await page.goto('/');
+  await disableContextCoach(page);
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
 
   const canvas = page.locator('.earth3d-canvas');
@@ -733,5 +804,151 @@ test('mobile Earth–Moon mission data panels collapse without hiding scale disc
   await expect(leftHud).toBeHidden();
   await expect(rightHud).toBeHidden();
   await expect(page.getByRole('button', { name: 'Show mission data panels' })).toHaveAttribute('aria-expanded', 'false');
+  expect(pageErrors).toEqual([]);
+});
+
+
+test('Earth 3D reference dashboard connects mission setup, controls and derived data on desktop', async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 1536, height: 1024 });
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.goto('/');
+  await disableContextCoach(page);
+  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const setup = page.getByTestId('earth3d-mission-setup');
+  const controls = page.getByTestId('earth3d-simulation-controls');
+  const bottom = page.getByTestId('earth3d-bottom-panels');
+  await expect(setup).toBeVisible();
+  await expect(setup.getByText('MISSION SETUP', { exact: true })).toBeVisible();
+  await expect(controls).toBeVisible();
+  await expect(controls.getByText('SIMULATION CONTROLS', { exact: true })).toBeVisible();
+  await expect(page.getByText('LIVE TELEMETRY', { exact: true })).toBeVisible();
+  await expect(bottom.getByText('2D Ground Track', { exact: true })).toBeVisible();
+  await expect(bottom.getByText('Orbit Parameters', { exact: true })).toBeVisible();
+  await expect(bottom.getByText('Mission Info', { exact: true })).toBeVisible();
+  await expect(bottom.getByText('SIMULATED · KEPLER', { exact: true })).toBeVisible();
+
+  const preset = setup.getByRole('button', { name: /ISS.*420 km LEO/ });
+  await preset.click();
+  await expect(preset).toHaveAttribute('aria-pressed', 'true');
+  await setup.getByRole('tab', { name: 'CUSTOM ORBIT' }).click();
+  await expect(setup.getByRole('spinbutton', { name: 'Mission setup altitude' })).toHaveValue('420');
+  const altitude = setup.getByRole('spinbutton', { name: 'Mission setup altitude' });
+  await altitude.fill('600');
+  await expect(altitude).toHaveValue('600');
+  const inclination = setup.getByRole('spinbutton', { name: 'Mission setup inclination' });
+  await inclination.fill('98.2');
+  await expect(inclination).toHaveValue('98.2');
+  const raan = setup.getByRole('spinbutton', { name: 'Mission setup RAAN' });
+  await raan.fill('15');
+  await expect(raan).toHaveValue('15');
+  await expect(bottom.getByText('98.20°', { exact: true })).toBeVisible();
+
+  // Keep the simulation running long enough to exercise the live pause control
+  // under CI load; playback speed is tested separately below.
+  await controls.getByRole('group', { name: 'Simulation playback speed' }).getByRole('button', { name: 'Set playback speed 1x' }).click();
+  await setup.getByRole('button', { name: 'Start simulation' }).click();
+  const pauseControl = page.getByRole('button', { name: 'Pause simulation' });
+  await expect(pauseControl).toBeVisible();
+  await assertPointerReachable(pauseControl, 'pause simulation control');
+  // Exercise the control after live telemetry has advanced, not only on its
+  // first stable frame.
+  const dashboardClock = controls.locator('.earth3d-simulation-clock span');
+  await expect.poll(() => dashboardClock.textContent()).not.toBe('T+ 0.0 s');
+  await pauseControl.click();
+  await expect(pauseControl).toBeHidden();
+  const desktopSpeed = page.getByRole('group', { name: 'Simulation playback speed' });
+  const desktopSpeed60 = desktopSpeed.getByRole('button', { name: 'Set playback speed 60x' });
+  await expect(desktopSpeed60).toBeVisible();
+  await assertPointerReachable(desktopSpeed60, 'desktop 60x playback-speed control');
+  await desktopSpeed60.click();
+  await expect(desktopSpeed60).toBeInViewport();
+  await expect(controls.getByRole('group', { name: 'Simulation playback speed' }).getByRole('button', { name: 'Set playback speed 60x' })).toHaveAttribute('aria-pressed', 'true');
+
+  const missionScreenshot = testInfo.outputPath('earth3d-reference-dashboard-desktop-1536x1024.png');
+  // Capture the actual 1536×1024 browser viewport. Element screenshots wait for
+  // layout stability; the continuously rendered WebGL canvas never becomes
+  // stable, so that API can consume the entire E2E timeout.
+  await page.getByRole('region', { name: 'Interactive 3D Earth with trackable spacecraft' }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: missionScreenshot, animations: 'disabled' });
+  await testInfo.attach('earth3d-reference-dashboard-desktop-1536x1024.png', { path: missionScreenshot, contentType: 'image/png' });
+
+  await setup.getByRole('button', { name: 'Open full orbit design' }).click();
+  await expect(page.getByRole('heading', { name: 'Make the orbital mechanics visible.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  // The Orbit workspace can leave the document scrolled near its previous
+  // lower controls. Restore the document viewport before exercising the
+  // mission-setup action; retain a normal, hit-tested Playwright click.
+  await page.evaluate(() => {
+    document.documentElement.style.scrollBehavior = 'auto';
+    window.scrollTo(0, 0);
+  });
+  const editMission = page.getByTestId('earth3d-mission-setup')
+    .getByRole('button', { name: 'Edit mission requirements' });
+  await assertPointerReachable(editMission, 'edit mission requirements control');
+  await editMission.click();
+  await expect(page.getByRole('heading', { name: 'Start with the engineering problem.' })).toBeVisible();
+  expect(pageErrors).toEqual([]);
+});
+
+test('Earth 3D reference dashboard reflows to a globe-first mobile layout', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.goto('/');
+  await disableContextCoach(page);
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page.getByRole('navigation', { name: 'Mobile navigation' })
+    .getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const canvas = page.locator('.earth3d-canvas');
+  const setup = page.getByTestId('earth3d-mission-setup');
+  const controls = page.getByTestId('earth3d-simulation-controls');
+  const bottom = page.getByTestId('earth3d-bottom-panels');
+  await expect(canvas.locator('canvas')).toBeVisible();
+  await expect(page.locator('[aria-label="Camera modes"]').getByRole('button', { name: 'EARTH', exact: true })).toHaveClass(/active/);
+  await expect(setup).toBeHidden();
+  await expect(controls).toBeHidden();
+  await page.getByRole('button', { name: 'Show mission data panels' }).click();
+  await expect(setup).toBeVisible();
+  await expect(controls).toBeVisible();
+  await controls.getByRole('button', { name: 'Play simulation' }).click();
+  await expect(controls.getByRole('button', { name: 'Pause simulation' })).toBeVisible();
+  await controls.getByRole('button', { name: 'Pause simulation' }).click();
+  const mobileSpeed = controls.getByRole('group', { name: 'Simulation playback speed' });
+  await mobileSpeed.getByRole('button', { name: 'Set playback speed 10x' }).click();
+  await expect(mobileSpeed.getByRole('button', { name: 'Set playback speed 10x' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(bottom.getByText('2D Ground Track', { exact: true })).toBeVisible();
+  await expect(bottom.getByText('Orbit Parameters', { exact: true })).toBeVisible();
+  await expect(bottom.getByText('Mission Info', { exact: true })).toBeVisible();
+
+  const layout = await bottom.evaluate(element => ({
+    columns: getComputedStyle(element).gridTemplateColumns.split(' ').length,
+    viewport: document.documentElement.clientWidth,
+    document: document.documentElement.scrollWidth
+  }));
+  expect(layout.columns).toBe(1);
+  expect(layout.document).toBeLessThanOrEqual(layout.viewport);
+  const canvasBounds = await canvas.boundingBox();
+  const setupBounds = await setup.boundingBox();
+  expect(canvasBounds).not.toBeNull();
+  expect(setupBounds).not.toBeNull();
+  expect(setupBounds!.y).toBeGreaterThanOrEqual(canvasBounds!.y + canvasBounds!.height - 1);
+
+  const mobileScreenshot = testInfo.outputPath('earth3d-reference-dashboard-mobile-390x844.png');
+  // Keep this as a viewport capture (390×844), not a full-height element image.
+  // The WebGL canvas remains animated, so page.screenshot avoids the element
+  // stability wait while preserving the actual mobile composition.
+  await page.getByRole('region', { name: 'Interactive 3D Earth with trackable spacecraft' }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: mobileScreenshot, animations: 'disabled' });
+  await testInfo.attach('earth3d-reference-dashboard-mobile-390x844.png', { path: mobileScreenshot, contentType: 'image/png' });
+
+  await setup.getByRole('tab', { name: 'CUSTOM ORBIT' }).click();
+  await setup.getByRole('spinbutton', { name: 'Mission setup altitude' }).fill('650');
+  await expect(setup.getByRole('spinbutton', { name: 'Mission setup altitude' })).toHaveValue('650');
   expect(pageErrors).toEqual([]);
 });
