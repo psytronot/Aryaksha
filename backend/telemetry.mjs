@@ -50,3 +50,11 @@ export function createTelemetryStore({ maxRecords = 1000 } = {}) {
     history() { return [...history]; }
   };
 }
+
+/** Constant-time comparison for the separately scoped read token. */
+export function verifyTelemetryReadToken(supplied, expected) {
+  if (typeof supplied !== 'string' || typeof expected !== 'string' || !supplied || !expected) return false;
+  const suppliedBytes = Buffer.from(supplied);
+  const expectedBytes = Buffer.from(expected);
+  return suppliedBytes.length === expectedBytes.length && timingSafeEqual(suppliedBytes, expectedBytes);
+}

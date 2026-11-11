@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { createTelemetryStore, verifyAndParseTelemetry } from '../backend/telemetry.mjs';
+import { createTelemetryStore, verifyAndParseTelemetry, verifyTelemetryReadToken } from '../backend/telemetry.mjs';
 
 const secret = 'test-only-secret';
 const payload = {
@@ -38,5 +38,14 @@ describe('authenticated telemetry ingestion', () => {
     expect(store.accept({ ...payload, sequence: 2 }).status).toBe(409);
     expect(store.accept({ ...payload, sequence: 1 }).status).toBe(409);
     expect(store.latest(payload.spacecraftId).sequence).toBe(2);
+  });
+});
+
+describe('telemetry read authorization', () => {
+  it('requires a non-empty exact bearer token and rejects mismatches', () => {
+    expect(verifyTelemetryReadToken('read-secret', 'read-secret')).toBe(true);
+    expect(verifyTelemetryReadToken('wrong', 'read-secret')).toBe(false);
+    expect(verifyTelemetryReadToken('', 'read-secret')).toBe(false);
+    expect(verifyTelemetryReadToken('read-secret', '')).toBe(false);
   });
 });

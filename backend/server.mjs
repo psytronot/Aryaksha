@@ -3,7 +3,7 @@ import path from 'node:path';
 import * as satellite from 'satellite.js';
 import { createRateLimiter, securityHeaders } from './security.mjs';
 import { createPlanetaryImageryHandler } from './planetaryImagery.mjs';
-import { createTelemetryStore, verifyAndParseTelemetry } from './telemetry.mjs';
+import { createTelemetryStore, verifyAndParseTelemetry, verifyTelemetryReadToken } from './telemetry.mjs';
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -41,6 +41,10 @@ app.post('/api/v1/telemetry/ingest', apiRateLimit, (req, res) => {
   });
 });
 app.get('/api/v1/telemetry/:spacecraftId/latest', apiRateLimit, (req, res) => {
+  const readToken = process.env.ARYAKSHA_TELEMETRY_READ_TOKEN;
+  if (!readToken) return res.status(503).json({ error: 'Telemetry read access is not configured.' });
+  const suppliedToken = req.get('authorization')?.replace(/^Bearer\\s+/i, '') ?? '';
+  if (!verifyTelemetryReadToken(suppliedToken, readToken)) return res.status(401).json({ error: 'Telemetry read authentication failed.' });
   const record = telemetryStore.latest(req.params.spacecraftId);
   if (!record) return res.status(404).json({ error: 'No telemetry record is available for this spacecraft in the current process.' });
   return res.json({ record, persisted: false, storage: 'process-memory' });
