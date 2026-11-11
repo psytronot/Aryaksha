@@ -172,7 +172,7 @@
           },
           "modelUri": {
             "type": "string",
-            "format": "uri"
+            "pattern": "^https?://"
           },
           "source": {
             "type": "string"
@@ -192,7 +192,7 @@
         },
         "createdAt": {
           "type": "string",
-          "format": "date-time"
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})$"
         },
         "notes": {
           "type": "string"
