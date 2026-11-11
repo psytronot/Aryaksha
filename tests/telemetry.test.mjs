@@ -1,4 +1,7 @@
 import { createHmac } from 'node:crypto';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createTelemetryStore, verifyAndParseTelemetry, verifyTelemetryReadToken, parseBearerToken } from '../backend/telemetry.mjs';
 
@@ -58,5 +61,31 @@ describe('telemetry bearer header parsing', () => {
     expect(parseBearerToken('Bearer')).toBe('');
     expect(parseBearerToken('Bearer read secret')).toBe('');
     expect(parseBearerToken(undefined)).toBe('');
+  });
+});
+
+describe('optional durable telemetry store', () => {
+  it('replays accepted records and sequence state from an append-only file', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'aryaksha-telemetry-'));
+    const storagePath = join(directory, 'telemetry.jsonl');
+    try {
+      const first = createTelemetryStore({ storagePath });
+      expect(first.persisted).toBe(true);
+      expect(first.storage).toBe('append-only-file');
+      expect(first.accept({ ...payload, sequence: 11 }).ok).toBe(true);
+
+      const restarted = createTelemetryStore({ storagePath });
+      expect(restarted.latest(payload.spacecraftId).sequence).toBe(11);
+      expect(restarted.accept({ ...payload, sequence: 10 }).status).toBe(409);
+      expect(restarted.accept({ ...payload, sequence: 12 }).ok).toBe(true);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('reports process memory as non-durable when no persistent path is configured', () => {
+    const store = createTelemetryStore({ storagePath: undefined });
+    expect(store.persisted).toBe(false);
+    expect(store.storage).toBe('process-memory');
   });
 });

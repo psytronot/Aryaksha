@@ -1,3 +1,5 @@
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 const DEFAULT_WINDOW_MS = 5 * 60 * 1000;
@@ -31,9 +33,25 @@ export function verifyAndParseTelemetry({ rawBody, timestamp, signature, secret,
   return { ok: true, record: { ...record, receivedAt: new Date(nowMs).toISOString(), provenance: 'authenticated-source' } };
 }
 
-export function createTelemetryStore({ maxRecords = 1000 } = {}) {
+export function createTelemetryStore({ maxRecords = 1000, storagePath = process.env.ARYAKSHA_TELEMETRY_STORE_PATH } = {}) {
   const latestBySpacecraft = new Map();
   const history = [];
+  if (storagePath) {
+    mkdirSync(dirname(storagePath), { recursive: true });
+    if (existsSync(storagePath)) {
+      const existing = readFileSync(storagePath, 'utf8').split(/\\r?\\n/).filter(Boolean);
+      for (const line of existing) {
+        try {
+          const record = JSON.parse(line);
+          if (typeof record.spacecraftId !== 'string' || !Number.isSafeInteger(record.sequence)) continue;
+          const previous = latestBySpacecraft.get(record.spacecraftId);
+          if (!previous || record.sequence > previous.sequence) latestBySpacecraft.set(record.spacecraftId, record);
+          history.push(record);
+        } catch { /* Ignore incomplete/corrupt trailing records; retain valid history. */ }
+      }
+      while (history.length > maxRecords) history.shift();
+    }
+  }
   return {
     accept(record) {
       const previous = latestBySpacecraft.get(record.spacecraftId);
@@ -41,13 +59,21 @@ export function createTelemetryStore({ maxRecords = 1000 } = {}) {
         return { ok: false, status: 409, error: 'Telemetry sequence must increase monotonically for each spacecraft.' };
       }
       const frozen = Object.freeze({ ...record, positionM: [...record.positionM], velocityMps: [...record.velocityMps] });
+      if (storagePath) {
+        appendFileSync(storagePath, JSON.stringify(frozen) + '\\n', { encoding: 'utf8', mode: 0o600 });
+      }
       latestBySpacecraft.set(record.spacecraftId, frozen);
       history.push(frozen);
       while (history.length > maxRecords) history.shift();
+      if (storagePath && history.length === maxRecords) {
+        writeFileSync(storagePath, history.map(item => JSON.stringify(item)).join('\\n') + '\\n', { encoding: 'utf8', mode: 0o600 });
+      }
       return { ok: true, record: frozen };
     },
     latest(spacecraftId) { return latestBySpacecraft.get(spacecraftId) ?? null; },
-    history() { return [...history]; }
+    history() { return [...history]; },
+    get persisted() { return Boolean(storagePath); },
+    get storage() { return storagePath ? 'append-only-file' : 'process-memory'; }
   };
 }
 

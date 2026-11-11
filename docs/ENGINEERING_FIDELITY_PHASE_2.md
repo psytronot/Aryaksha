@@ -39,3 +39,11 @@ Acceptance: reference truth vectors with source/version/epoch/frame, position/ve
 - **Two-body propagation:** Orekit numerical integration with Newtonian central gravity only.
 - **Precision ephemeris:** unavailable until a real DE kernel and provider adapter are provisioned.
 - **Perturbed propagation:** unavailable until the corresponding force models and environmental inputs are validated.
+
+## Durable telemetry storage adapter
+
+The telemetry store now supports an optional append-only JSONL file when `ARYAKSHA_TELEMETRY_STORE_PATH` points to a persistent mounted volume. It replays sequence state on process startup and reports its storage mode in API responses. Without that environment variable, it remains process-memory only. The current Render web service has no confirmed persistent disk attached, so production durability is **not enabled** by this code change alone. Do not set a path on an ephemeral filesystem and call it durable.
+
+## JPL Horizons lunar state lookup
+
+The API adapter requests a geometric Moon state relative to Earth's centre from JPL Horizons using TDB, ICRF, and km/s source output converted to SI. The Mission Analysis panel exposes a point lookup. It records the kernel ID only if the API response explicitly reports one; otherwise it displays that the kernel is unreported. The service response does not supply formal position uncertainty for this query, so uncertainty is explicitly null. This point lookup is not yet connected to the 3D Moon renderer or a continuous local SPK kernel.

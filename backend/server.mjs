@@ -48,8 +48,8 @@ app.post('/api/v1/telemetry/ingest', apiRateLimit, (req, res) => {
   if (!accepted.ok) return res.status(accepted.status).json({ error: accepted.error });
   return res.status(202).json({
     accepted: true,
-    persisted: false,
-    storage: 'process-memory',
+    persisted: telemetryStore.persisted,
+    storage: telemetryStore.storage,
     record: accepted.record
   });
 });
@@ -60,7 +60,7 @@ app.get('/api/v1/telemetry/:spacecraftId/latest', apiRateLimit, (req, res) => {
   if (!verifyTelemetryReadToken(suppliedToken, readToken)) return res.status(401).json({ error: 'Telemetry read authentication failed.' });
   const record = telemetryStore.latest(req.params.spacecraftId);
   if (!record) return res.status(404).json({ error: 'No telemetry record is available for this spacecraft in the current process.' });
-  return res.json({ record, persisted: false, storage: 'process-memory' });
+  return res.json({ record, persisted: telemetryStore.persisted, storage: telemetryStore.storage });
 });
 app.get('/api/imagery/:assetId', apiRateLimit, planetaryImageryHandler);
 
