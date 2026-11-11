@@ -44,6 +44,24 @@ export function missionGeometry(mission:Mission,payload:Payload,orbit:OrbitDesig
   return{target,footprintDeg,footprintRadiusKm:EARTH_RADIUS*footprintDeg*Math.PI/180,horizonDeg,accessCount:starts.length,accessFraction:duration>0?accessSeconds/duration:0,accessSeconds,revisitDays,revisitStatus,passesWithinRequirement:Number.isFinite(revisitDays)&&revisitDays<=mission.revisitDays,valid:true};
 }
 
+export function massClosureAnalysis(mission:Mission,payload:Payload,spacecraft:Spacecraft){
+  const inputs=[mission.maxMassKg,spacecraft.dryMassKg,payload.massKg,spacecraft.propellantKg];
+  const validInputs=inputs.every(value=>Number.isFinite(value)&&value>=0)&&mission.maxMassKg>0;
+  const dryMassKg=spacecraft.dryMassKg;
+  const payloadMassKg=payload.massKg;
+  const propellantMassKg=spacecraft.propellantKg;
+  const wetMassKg=dryMassKg+payloadMassKg+propellantMassKg;
+  const maximumMassKg=mission.maxMassKg;
+  const marginKg=maximumMassKg-wetMassKg;
+  const usedMassPct=maximumMassKg>0?wetMassKg/maximumMassKg*100:Number.NaN;
+  const fraction=(mass:number)=>wetMassKg>0?mass/wetMassKg*100:0;
+  return {
+    validInputs,dryMassKg,payloadMassKg,propellantMassKg,wetMassKg,maximumMassKg,marginKg,usedMassPct,
+    dryMassFractionPct:fraction(dryMassKg),payloadMassFractionPct:fraction(payloadMassKg),propellantMassFractionPct:fraction(propellantMassKg),
+    passes:validInputs&&marginKg>=0
+  };
+}
+
 export function propulsionAnalysis(spacecraft:Spacecraft,payloadMassKg:number){
   const prop=Math.max(0,spacecraft.propellantKg),m0=spacecraft.dryMassKg+payloadMassKg+prop,mf=spacecraft.dryMassKg+payloadMassKg,deltaV=m0>mf&&spacecraft.ispS>0?spacecraft.ispS*G0*Math.log(m0/mf):0,massFlow=spacecraft.thrustN>0&&spacecraft.ispS>0?spacecraft.thrustN/(spacecraft.ispS*G0):0,burnTime=massFlow>0?prop/massFlow:0,initialAcceleration=m0>0?spacecraft.thrustN/m0:0;
   return{wetMassKg:m0,dryPlusPayloadKg:mf,deltaVms:deltaV,massFlowKgs:massFlow,burnTimeS:burnTime,initialAccelerationMs2:initialAcceleration};
@@ -116,7 +134,7 @@ export function communicationsAnalysis(mission:Mission,payload:Payload,spacecraf
   return{groundStation:station,referenceElevationDeg:elevation,rangeKm,fsplDb,receivedDbm,noiseDbm,cnrDb,marginDb,referenceContactMinutes:contactMin,contactsPerDay,capacityGb,generatedGbPerDay,storageOverflowGb,dataMarginGbPerDay,pass:marginDb>=0&&storageOverflowGb<=0&&dataMarginGbPerDay>=0};
 }
 export function systemVerification(mission:Mission,payload:Payload,spacecraft:Spacecraft,orbit:OrbitDesign){
-  const geometry=missionGeometry(mission,payload,orbit),propulsion=propulsionAnalysis(spacecraft,payload.massKg),power=powerAnalysis(mission,payload,spacecraft,orbit),thermal=thermalAnalysis(payload,spacecraft),comms=communicationsAnalysis(mission,payload,spacecraft,orbit),adcs=adcsAnalysis(spacecraft,payload,orbit),massKg=propulsion.wetMassKg;
+  const geometry=missionGeometry(mission,payload,orbit),propulsion=propulsionAnalysis(spacecraft,payload.massKg),massClosure=massClosureAnalysis(mission,payload,spacecraft),power=powerAnalysis(mission,payload,spacecraft,orbit),thermal=thermalAnalysis(payload,spacecraft),comms=communicationsAnalysis(mission,payload,spacecraft,orbit),adcs=adcsAnalysis(spacecraft,payload,orbit),massKg=massClosure.wetMassKg;
   const finite=[mission.revisitDays,mission.lifetimeYears,mission.minElevationDeg,mission.maxMassKg,payload.massKg,payload.powerW,payload.dataRateMbps,payload.fovDeg,payload.resolutionM,payload.dutyCyclePct,payload.focalLengthMm,payload.detectorPitchUm,spacecraft.dryMassKg,spacecraft.panelAreaM2,spacecraft.solarEfficiency,spacecraft.batteryWh,spacecraft.basePowerW,spacecraft.txPowerW,spacecraft.frequencyMHz,spacecraft.bandwidthMHz,spacecraft.downlinkMbps,spacecraft.dataStorageGb,spacecraft.thrustN,spacecraft.ispS,spacecraft.propellantKg,spacecraft.inertiaX,spacecraft.inertiaY,spacecraft.inertiaZ,spacecraft.pointingAccuracyDeg,spacecraft.settlingTimeS,spacecraft.thermalAreaM2,spacecraft.absorptivity,spacecraft.emissivity,spacecraft.batteryEfficiencyPct,spacecraft.batteryDoDPct,spacecraft.solarDegradationPct,spacecraft.thermalHotFactor,spacecraft.thermalColdFactor,orbit.altitudeKm,orbit.e,orbit.i,orbit.raan,orbit.argp,orbit.nu].every(Number.isFinite);
   const validOrbit=finite&&orbit.altitudeKm>=120&&orbit.altitudeKm<=50000&&orbit.e>=0&&orbit.e<1&&orbit.i>=0&&orbit.i<=180;
   const validPayload=payload.massKg>=0&&payload.fovDeg>0&&payload.fovDeg<=180&&payload.resolutionM>0&&payload.dutyCyclePct>=0&&payload.dutyCyclePct<=100&&payload.focalLengthMm>0&&payload.detectorPitchUm>0;
@@ -126,7 +144,7 @@ export function systemVerification(mission:Mission,payload:Payload,spacecraft:Sp
   const maneuver=maneuverDeltaV(orbit,Math.max(120,orbit.altitudeKm+100),orbit.i),maneuverFeasible=propulsion.deltaVms>=maneuver.totalDvMs;
   const checks=[
     {id:'SYS-INPUT',name:'Engineering inputs valid',value:validInputs?1:0,limit:1,unit:'bool',pass:validInputs},
-    {id:'SYS-MASS',name:'Spacecraft mass limit',value:massKg,limit:mission.maxMassKg,unit:'kg',pass:massKg<=mission.maxMassKg},
+    {id:'SYS-MASS',name:'Spacecraft mass limit',value:massKg,limit:mission.maxMassKg,unit:'kg',pass:massClosure.passes},
     {id:'MIS-REV',name:'Target revisit',value:geometry.revisitDays,limit:mission.revisitDays,unit:'days',pass:geometry.passesWithinRequirement&&geometry.valid},
     {id:'PAY-GSD',name:'Payload GSD',value:gsdM,limit:payload.resolutionM,unit:'m',pass:gsdPass},
     {id:'ADCS-POINT',name:'Pointing ground error',value:adcs.pointingGroundErrorM,limit:adcs.allowedGroundErrorM,unit:'m',pass:adcs.pointingPass},
@@ -136,6 +154,6 @@ export function systemVerification(mission:Mission,payload:Payload,spacecraft:Sp
     {id:'COMMS-LINK',name:'Communications/data capacity',value:comms.dataMarginGbPerDay,limit:0,unit:'GB/day',pass:comms.pass},
     {id:'PROP-DV',name:'Available propulsion ΔV',value:propulsion.deltaVms,limit:maneuver.totalDvMs,unit:'m/s',pass:maneuverFeasible}
   ];
-  return{geometry,propulsion,power,thermal,comms,adcs,massKg,maneuver,performance:{gsdM,requirementM:payload.resolutionM,pass:gsdPass},checks,passCount:checks.filter(x=>x.pass).length,failCount:checks.filter(x=>!x.pass).length};
+  return{geometry,propulsion,massClosure,power,thermal,comms,adcs,massKg,maneuver,performance:{gsdM,requirementM:payload.resolutionM,pass:gsdPass},checks,passCount:checks.filter(x=>x.pass).length,failCount:checks.filter(x=>!x.pass).length};
 }
 export function formatNumber(value:number,digits=2){return Number.isFinite(value)?value.toFixed(digits):'N/A';}
