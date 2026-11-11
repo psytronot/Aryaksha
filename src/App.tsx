@@ -775,7 +775,7 @@ function ContextCoach({ view }: { view: View }) {
   return (
     <aside
       className={`context-coach is-open ${position.above ? 'coach-above' : 'coach-below'}`}
-      style={{ left: position.left, top: position.top, bottom: 'auto' }}
+      style={{ left: position.left, top: position.top, bottom: target || manual ? 'auto' : 0 }}
       aria-label="On-board tutor"
     >
       <div className="coach-connector" aria-hidden="true" />
