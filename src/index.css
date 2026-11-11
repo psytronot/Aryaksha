@@ -166,3 +166,7 @@ html.aryaksha-app-active pwa-install {
   .coach-head-actions button{min-width:40px;min-height:40px}
   .coach-body{max-height:min(48vh,420px);max-height:min(48dvh,420px);padding-bottom:max(16px,env(safe-area-inset-bottom))}
 }
+
+.about-stewardship{display:grid;gap:5px;margin-top:18px;padding:12px 14px;border:1px solid rgba(81,221,255,.16);border-radius:10px;background:rgba(81,221,255,.035);color:#d5dce4;font-size:11px}
+.about-stewardship>b{font:700 9px ui-monospace,monospace;letter-spacing:.12em;color:var(--cyan)}
+.about-stewardship small{color:var(--muted);font-size:10px}
