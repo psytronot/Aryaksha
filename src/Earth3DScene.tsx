@@ -761,10 +761,12 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       // Bound GPU work so the interactive workspace stays responsive on mid-range
       // laptops and mobile devices. Simulation state still advances on its own
       // clock; rendering is capped independently at 45 fps desktop / 30 fps mobile.
+      let canvasInViewport = true;
       let lastRenderAt = 0;
       const minimumFrameIntervalMs = window.matchMedia('(max-width: 720px)').matches ? 1000 / 30 : 1000 / 45;
       const animate = (frameTime = performance.now()) => {
-        if (!mounted) return;
+        frameRef.current = null;
+        if (!mounted || document.hidden || !canvasInViewport) return;
         if (frameTime - lastRenderAt < minimumFrameIntervalMs) {
           frameRef.current = requestAnimationFrame(animate);
           return;
@@ -914,9 +916,33 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         }
         frameRef.current = requestAnimationFrame(animate);
       };
+      const stopAnimation = () => {
+        if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+        frameRef.current = null;
+      };
+      const startAnimation = () => {
+        if (!mounted || document.hidden || !canvasInViewport || frameRef.current !== null) return;
+        frameRef.current = requestAnimationFrame(animate);
+      };
+      const onVisibilityChange = () => {
+        if (document.hidden) stopAnimation();
+        else startAnimation();
+      };
+      document.addEventListener('visibilitychange', onVisibilityChange);
+      const visibilityObserver = typeof IntersectionObserver !== 'undefined'
+        ? new IntersectionObserver(entries => {
+          canvasInViewport = entries.some(entry => entry.isIntersecting);
+          if (canvasInViewport) startAnimation();
+          else stopAnimation();
+        }, { rootMargin: '120px' })
+        : null;
+      visibilityObserver?.observe(container);
       resize();
-      animate();
+      startAnimation();
       cleanup = () => {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+        visibilityObserver?.disconnect();
+        stopAnimation();
         observer.disconnect();
         window.removeEventListener('resize', scheduleResize);
         window.removeEventListener('orientationchange', scheduleResize);
