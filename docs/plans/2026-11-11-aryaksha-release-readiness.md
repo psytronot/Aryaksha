@@ -168,8 +168,10 @@ Commit the Orekit numerical-validation deliverable independently of UI work.
 - Inspect existing Coach/Tutor implementation paths before edits; exact component paths are to be discovered from repository imports.
 - Inspect/modify: `tests/e2e/acceptance-workflows.spec.ts`
 - Inspect/modify: `tests/e2e/earth3d-acceptance.spec.ts`
-- Add a focused browser spec under `tests/e2e/` only where existing specs cannot isolate Coach/Tutor behavior.
-- Inspect/modify the corresponding calculator and report component files discovered from `src/App.tsx` imports.
+- Create: `tests/e2e/coach-tutor-acceptance.spec.ts`
+- Modify only the Coach/Tutor component and state owner identified by repository import/search before editing; the exact component path is not yet verified.
+- Modify: `src/ScientificCalculator.tsx` only if calculator behavior is reproduced as defective.
+- Modify: `tests/e2e/acceptance-workflows.spec.ts` for report-export acceptance where needed.
 
 **Interfaces:**
 - Consumes: existing Coach/Tutor prompt, explanation and panel controls; calculator form inputs; report export actions.
@@ -181,7 +183,7 @@ Cover opening/closing Coach/Tutor, submitting a simple prompt, switching between
 
 - [ ] **Step 2: Verify red**
 
-Run: `npm run test:e2e -- tests/e2e/<focused-coach-tutor-spec>.spec.ts`
+Run: `npm run test:e2e -- tests/e2e/coach-tutor-acceptance.spec.ts`
 
 Expected: failures identify an actual missing or incorrect user-visible behavior, not missing test setup.
 
@@ -208,7 +210,7 @@ Commit Coach/Tutor and calculator usability changes separately from numerical en
 **Files:**
 - Inspect/modify: `backend/telemetry.mjs`
 - Inspect/modify: `backend/server.mjs`
-- Add/modify backend telemetry tests under the repository's existing test convention.
+- Modify: `tests/backend-api.test.mjs` for telemetry route behavior and `tests/security.test.mjs` for signature/replay security behavior.
 - Inspect/modify: `.github/workflows/ci.yml`
 - Inspect/modify: `docs/ENGINEERING_FIDELITY_PHASE_2.md`
 - Inspect/modify: `docs/TRACKING_DATA_PROVENANCE.md`
@@ -223,7 +225,9 @@ Cover valid HMAC, invalid signature, stale timestamp, replayed timestamp/sequenc
 
 - [ ] **Step 2: Verify red**
 
-Run the focused backend test command discovered from `package.json` and existing backend test layout. Expected: the tests fail because the required behavior is absent, not because the test runner cannot discover the file.
+Run: `npm test -- --run tests/backend-api.test.mjs tests/security.test.mjs`
+
+Expected: the new assertions fail because the required behavior is absent, not because the test runner cannot discover the files.
 
 - [ ] **Step 3: Implement security behavior and state the storage contract**
 
@@ -231,7 +235,9 @@ Retain constant-time signature comparison. Enforce freshness and monotonic seque
 
 - [ ] **Step 4: Verify focused pass**
 
-Run the focused telemetry test command. Expected: all signature, freshness, replay, sequence and isolation cases pass.
+Run: `npm test -- --run tests/backend-api.test.mjs tests/security.test.mjs`
+
+Expected: all signature, freshness, replay, sequence and isolation cases pass.
 
 - [ ] **Step 5: Verify CI and deployment evidence**
 
