@@ -677,8 +677,10 @@ function ContextCoach({ view }: { view: View }) {
       const targetNode = event.target as HTMLElement | null;
       if (!targetNode || targetNode.closest('.context-coach')) return;
       const source = targetNode.closest('[data-context-label]') as HTMLElement | null;
-      if (source) pointAt(source);
-      else closeSoon();
+      if (source) {
+        setDismissed(false);
+        pointAt(source);
+      } else closeSoon();
     };
     const onPointerOut = (event: PointerEvent) => {
       if (event.pointerType === 'touch') return;
