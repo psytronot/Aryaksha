@@ -206,17 +206,25 @@ export function createSpaceEnvironment(moonRadius: number, moonDistance: number)
     moon,
     moonOrbit,
     bodies,
-    update(elapsedSeconds: number, displayDistanceScale = 1) {
+    update(elapsedSeconds: number, displayDistanceScale = 1, moonPositionScene?: readonly [number, number, number]) {
       const safeElapsedSeconds = Number.isFinite(elapsedSeconds) ? elapsedSeconds : 0;
       const phase = (safeElapsedSeconds / MOON_ORBIT_PERIOD_SECONDS) * Math.PI * 2;
       const distanceScale = Number.isFinite(displayDistanceScale)
         ? Math.max(0.01, Math.min(1, displayDistanceScale))
         : 1;
-      moon.position.set(
-        Math.cos(phase) * moonDistance * distanceScale,
-        0,
-        Math.sin(phase) * moonDistance * distanceScale
-      );
+      if (moonPositionScene && moonPositionScene.every(Number.isFinite)) {
+        moon.position.set(
+          moonPositionScene[0] * distanceScale,
+          moonPositionScene[1] * distanceScale,
+          moonPositionScene[2] * distanceScale
+        );
+      } else {
+        moon.position.set(
+          Math.cos(phase) * moonDistance * distanceScale,
+          0,
+          Math.sin(phase) * moonDistance * distanceScale
+        );
+      }
       moonOrbit.scale.setScalar(distanceScale);
       moon.rotation.y = moonSynchronousYaw(phase);
       bodies.forEach((body) => {

@@ -13,7 +13,7 @@ const label: React.CSSProperties = { display: 'block', color: '#91a9c4', fontSiz
 const inputStyle: React.CSSProperties = { width: '100%', background: '#081525', border: '1px solid #28435f', color: '#e6f1ff', borderRadius: 8, padding: '11px 12px', fontSize: 14 };
 const buttonStyle: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8, border: 0, borderRadius: 8, padding: '11px 15px', background: 'linear-gradient(135deg,#0e7490,#2563eb)', color: 'white', fontWeight: 700, cursor: 'pointer' };
 
-export default function MissionAnalysisView({ initialAltitudeKm = 550, initialInclinationDeg = 97.6, initialEccentricity = 0.001 }: { initialAltitudeKm?: number; initialInclinationDeg?: number; initialEccentricity?: number }) {
+export default function MissionAnalysisView({ initialAltitudeKm = 550, initialInclinationDeg = 97.6, initialEccentricity = 0.001, onMoonEphemerisChange }: { initialAltitudeKm?: number; initialInclinationDeg?: number; initialEccentricity?: number; onMoonEphemerisChange?: (state: { epoch: string; timeScale: 'TDB'; frame: 'ICRF'; positionM: readonly [number, number, number]; source: string; kernelId: string | null } | null) => void }) {
   const [altitudeKm, setAltitudeKm] = useState(String(Math.max(120, initialAltitudeKm)));
   const [inclinationDeg, setInclinationDeg] = useState(String(initialInclinationDeg));
   const [eccentricity, setEccentricity] = useState(String(Math.min(.8, Math.max(0, initialEccentricity))));
@@ -31,12 +31,13 @@ export default function MissionAnalysisView({ initialAltitudeKm = 550, initialIn
   const [moonError, setMoonError] = useState('');
 
   const fetchMoonEphemeris = async () => {
-    setMoonBusy(true); setMoonError(''); setMoonState(null);
+    setMoonBusy(true); setMoonError(''); setMoonState(null); onMoonEphemerisChange?.(null);
     try {
       const response = await fetch('/api/v1/ephemeris/moon?epochTdb=' + encodeURIComponent(moonEpochTdb));
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'JPL Horizons lookup failed.');
       setMoonState(payload);
+      onMoonEphemerisChange?.(payload);
     } catch (cause) {
       setMoonError(cause instanceof Error ? cause.message : 'JPL Horizons is unavailable.');
     } finally { setMoonBusy(false); }

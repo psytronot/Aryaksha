@@ -37,6 +37,7 @@ type Earth3DSceneProps = {
   payloadPowerW?: number;
   spacecraftDryMassKg?: number;
   selectedPreset?: string;
+  moonEphemeris?: { epoch: string; timeScale: 'TDB'; frame: 'ICRF'; positionM: readonly [number, number, number]; source: string; kernelId: string | null } | null;
   onApplyPreset?: (name: string, altitudeKm: number, inclinationDeg: number) => void;
   onUpdateOrbit?: (patch: { altitudeKm?: number; i?: number; raan?: number }) => void;
   onOpenMissionSetup?: () => void;
@@ -307,13 +308,14 @@ function scenePosition(r: number[], scale: number) {
   return new THREE.Vector3(r[0] * scale, r[2] * scale, r[1] * scale);
 }
 
-export default function Earth3DScene({ model, current, seconds, name, propagator, objectStatus = 'SIMULATED', footprintAngleDeg = 0.52, busWidthM = 0.1, busHeightM = 0.2, busDepthM = 0.1, altitudeKm = 550, eccentricity = 0, inclinationDeg = 0, raanDeg = 0, argumentOfPerigeeDeg = 0, trueAnomalyDeg = 0, periodMin = 95, panelAreaM2 = 0.6, missionType = 'Earth Observation', missionTarget = '—', payloadName = 'Payload', payloadMassKg = 0, payloadPowerW = 0, spacecraftDryMassKg = 0, selectedPreset = 'Sun-Synchronous Reference', onApplyPreset, onUpdateOrbit, onOpenMissionSetup, onOpenOrbitDesign, running, setRunning, playback, setPlayback, duration, setSeconds }: Earth3DSceneProps) {
+export default function Earth3DScene({ model, current, seconds, name, propagator, objectStatus = 'SIMULATED', footprintAngleDeg = 0.52, busWidthM = 0.1, busHeightM = 0.2, busDepthM = 0.1, altitudeKm = 550, eccentricity = 0, inclinationDeg = 0, raanDeg = 0, argumentOfPerigeeDeg = 0, trueAnomalyDeg = 0, periodMin = 95, panelAreaM2 = 0.6, missionType = 'Earth Observation', missionTarget = '—', payloadName = 'Payload', payloadMassKg = 0, payloadPowerW = 0, spacecraftDryMassKg = 0, selectedPreset = 'Sun-Synchronous Reference', moonEphemeris = null, onApplyPreset, onUpdateOrbit, onOpenMissionSetup, onOpenOrbitDesign, running, setRunning, playback, setPlayback, duration, setSeconds }: Earth3DSceneProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
   const modelRef = useRef(model);
   const currentRef = useRef(current);
   const designRef = useRef({ busWidthM, busHeightM, busDepthM, panelAreaM2 });
   const secondsRef = useRef(seconds);
+  const moonEphemerisRef = useRef(moonEphemeris);
   const simulationTimeRef = useRef<string>('2026-01-01T00:00:00.000Z');
   const initialCameraMode: CameraMode = typeof window !== 'undefined' && window.matchMedia('(max-width: 800px)').matches ? 'EARTH' : 'TRACK';
   const cameraModeRef = useRef<CameraMode>(initialCameraMode);
@@ -369,6 +371,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
     return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
   }, []);
   secondsRef.current = seconds;
+  moonEphemerisRef.current = moonEphemeris;
   cameraModeRef.current = cameraMode;
   showFootprintRef.current = showFootprint;
   showVectorsRef.current = showVectors;
@@ -818,7 +821,12 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         sun.position.copy(earthSunUniform.value).multiplyScalar(30);
         rim.position.copy(earthSunUniform.value).multiplyScalar(-14);
         const mode = cameraModeRef.current;
-        spaceEnvironment.update(simSeconds, mode === 'SYSTEM' ? earthMoonDistanceScaleRef.current : 1);
+        const moonDisplayScale = mode === 'SYSTEM' ? earthMoonDistanceScaleRef.current : 1;
+        const ephemeris = moonEphemerisRef.current;
+        const moonPositionScene = ephemeris
+          ? [ephemeris.positionM[0] * scale, ephemeris.positionM[2] * scale, ephemeris.positionM[1] * scale] as [number, number, number]
+          : undefined;
+        spaceEnvironment.update(simSeconds, moonDisplayScale, moonPositionScene);
         const moonPhase = (simSeconds / MOON_ORBIT_PERIOD_SECONDS) * Math.PI * 2;
         const isPlanetaryMode = mode === 'PLANETS';
         spaceEnvironment.group.visible = showSpaceEnvironmentRef.current && !isPlanetaryMode;
@@ -1039,9 +1047,9 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   const visualExaggeration = 1_000_000;
   return (
     <div className="page">
-      <div className="page-header earth3d-page-header"><div><small>3D MISSION VIEW</small><h1>Earth 3D</h1><p>A local spacecraft-tracking globe with asynchronous NASA Earth imagery, orbital path, vectors and mission HUD.</p><small className="earth3d-imagery-status" data-testid="earth-imagery-status" data-imagery-state={imageryState} role="status" aria-live="polite">{imageryStatus}</small><small>Scale disclosure: Earth diameter is approximately {Math.round(trueEarthToBusRatio).toLocaleString()} times the maximum bus dimension at true scale. Spacecraft geometry is enlarged by {visualExaggeration.toLocaleString()}× for visibility; dimensions are not shown to physical scale.</small></div></div>
+      <div className="page-header earth3d-page-header"><div><small>3D MISSION VIEW</small><h1>Earth 3D</h1><p>A local spacecraft-tracking globe with asynchronous NASA Earth imagery, orbital path, vectors and mission HUD.</p>{moonEphemeris && <small className="earth3d-ephemeris-note">MOON POSITION SNAPSHOT · {moonEphemeris.source} · {moonEphemeris.epoch} TDB · {moonEphemeris.frame}. Moon orientation and orbit line remain schematic.</small>}<small className="earth3d-imagery-status" data-testid="earth-imagery-status" data-imagery-state={imageryState} role="status" aria-live="polite">{imageryStatus}</small><small>Scale disclosure: Earth diameter is approximately {Math.round(trueEarthToBusRatio).toLocaleString()} times the maximum bus dimension at true scale. Spacecraft geometry is enlarged by {visualExaggeration.toLocaleString()}× for visibility; dimensions are not shown to physical scale.</small></div></div>
       <article ref={workspaceRef} className="earth3d-workspace glass-panel" data-timeline-open={timelineOpen ? "true" : "false"}>
-        <div className="earth3d-canvas" ref={containerRef} role="region" aria-label="Interactive 3D Earth with trackable spacecraft" />
+        <div className="earth3d-canvas" ref={containerRef} data-moon-ephemeris={moonEphemeris ? 'JPL-HORIZONS-SNAPSHOT' : 'circular-mean-display'} role="region" aria-label="Interactive 3D Earth with trackable spacecraft" />
         <div className="earth3d-topbar">
           <div className="earth3d-object">
             <span className="earth3d-live-dot" />
