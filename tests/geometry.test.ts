@@ -21,4 +21,16 @@ describe('spacecraft mesh geometry unit conversion', () => {
     expect(() => boundsToMetres({ min: [2, 0, 0], max: [1, 1, 1] }, 'm')).toThrow(/maximum/);
     expect(() => boundsToMetres({ min: [0, 0, 0], max: [1, 1, 0] }, 'm')).toThrow(/non-zero/);
   });
+
+  it('rejects unsupported runtime units and numeric overflow', () => {
+    expect(() => boundsToMetres(
+      { min: [0, 0, 0], max: [1, 1, 1] },
+      'ft' as never
+    )).toThrow(/supported geometry unit/);
+    expect(() => boundsToMetres(
+      { min: [-Number.MAX_VALUE, 0, 0], max: [Number.MAX_VALUE, 1, 1] },
+      'm'
+    )).toThrow(/outside the supported numeric range/);
+  });
+
 });
