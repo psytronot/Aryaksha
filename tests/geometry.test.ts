@@ -26,7 +26,7 @@ describe('spacecraft mesh geometry unit conversion', () => {
     expect(() => boundsToMetres(
       { min: [0, 0, 0], max: [1, 1, 1] },
       'ft' as never
-    )).toThrow(/supported geometry unit/);
+    )).toThrow(/Geometry unit must be one of/);
     expect(() => boundsToMetres(
       { min: [-Number.MAX_VALUE, 0, 0], max: [Number.MAX_VALUE, 1, 1] },
       'm'
