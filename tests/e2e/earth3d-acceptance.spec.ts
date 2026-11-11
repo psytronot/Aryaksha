@@ -720,21 +720,15 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   await expect(speed60).toBeVisible();
   await assertPointerReachable(speed60, '60x playback-speed control');
   await speed60.click();
-  await expect(speed60).toBeInViewport();
   await expect(speed.getByRole("button", { name: "Set playback speed 60x" })).toHaveAttribute("aria-pressed", "true");
 
-  await timeline.getByRole("button", { name: "Moon scene", exact: true }).click();
+  const moonSceneButton = timeline.getByRole("button", { name: "Moon scene", exact: true });
+  await assertPointerReachable(moonSceneButton, 'Moon scene control');
+  await moonSceneButton.click();
   await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "MOON", exact: true })).toHaveClass(/active/);
   await expect(timeline.getByRole("button", { name: "Moon scene", exact: true })).toHaveAttribute("aria-pressed", "true");
   const systemSceneButton = timeline.getByRole("button", { name: "Earth and Moon scene" });
-  await systemSceneButton.scrollIntoViewIfNeeded();
-  await expect(systemSceneButton).toBeInViewport();
-  const systemSceneHitTarget = await systemSceneButton.evaluate(button => {
-    const rect = button.getBoundingClientRect();
-    const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
-    return hit === button || button.contains(hit);
-  });
-  expect(systemSceneHitTarget).toBe(true);
+  await assertPointerReachable(systemSceneButton, 'Earth and Moon scene control');
   await systemSceneButton.click();
   await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "SYSTEM", exact: true })).toHaveClass(/active/);
   await expect(timeline.getByRole("button", { name: "Earth and Moon scene" })).toHaveAttribute("aria-pressed", "true");
@@ -1074,7 +1068,7 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   await disableContextCoach(page);
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
 
-  const primaryNav = page.getByTestId('simulation-primary-nav');
+  const primaryNav = page.getByRole('navigation', { name: 'Simulation workspace navigation' });
   const canvas = page.locator('.earth3d-canvas');
   const bottom = page.getByTestId('earth3d-bottom-panels');
   const earthCamera = page.locator('.earth-camera-controls').getByRole('button', { name: 'EARTH', exact: true });
@@ -1109,7 +1103,7 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   const bottomBounds = await bottom.boundingBox();
   const legendBounds = await page.locator('.earth3d-bottom-bar').boundingBox();
   await expect(page.getByRole('region', { name: 'Mission timeline and scene gallery' })).toBeHidden();
-  await expect(page.getByRole('button', { name: 'Show mission timeline' })).toBeVisible();
+  await expect(page.locator('button.earth3d-timeline-toggle[aria-label="Show mission timeline"]')).toBeVisible();
   expect(canvasBounds).not.toBeNull();
   expect(workspaceBounds).not.toBeNull();
   expect(bottomBounds).not.toBeNull();
