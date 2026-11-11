@@ -105,7 +105,7 @@ describe('Spacecraft configuration v1 JSON Schema', () => {
     geometry: { bus: { width: 0.226, height: 0.366, depth: 0.1 }, modelFormat: 'unknown' },
     massProperties: { dryMassKg: 8.5 },
     components: [
-      { componentId: 'BUS-01', type: 'bus', name: 'Primary structure', massKg: 4.2 },
+      { componentId: 'BUS-01', type: 'bus', name: 'Primary structure', massKg: 4.2, positionM: [0, 0, 0], inertiaKgM2: [[0.08, 0, 0], [0, 0.09, 0], [0, 0, 0.1]] },
       { componentId: 'PWR-01', type: 'solar-array', name: 'Deployable array', massKg: 1.1, powerW: 40 }
     ],
     provenance: { author: 'Aryaksha engineering', notes: 'Illustrative schema fixture; not flight hardware data.' }
@@ -113,6 +113,14 @@ describe('Spacecraft configuration v1 JSON Schema', () => {
 
   it('accepts a fully unit-tagged spacecraft configuration with explicit body frame', () => {
     expect(validateSpacecraft(referenceConfiguration)).toBe(true);
+  });
+
+  it('accepts component inertia tensors and rejects malformed component tensor shapes', () => {
+    const invalidTensor = {
+      ...referenceConfiguration,
+      components: [{ ...referenceConfiguration.components[0], inertiaKgM2: [[1, 0], [0, 1]] }]
+    };
+    expect(validateSpacecraft(invalidTensor)).toBe(false);
   });
 
   it('rejects missing unit declarations, dimensions and dry mass', () => {

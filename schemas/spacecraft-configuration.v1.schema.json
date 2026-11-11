@@ -155,7 +155,7 @@
           },
           "massKg": {
             "type": "number",
-            "minimum": 0
+            "exclusiveMinimum": 0
           },
           "powerW": {
             "type": "number",
@@ -176,6 +176,19 @@
           },
           "source": {
             "type": "string"
+          },
+          "inertiaKgM2": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "number"
+              }
+            }
           }
         }
       }
