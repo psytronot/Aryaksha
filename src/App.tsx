@@ -376,7 +376,7 @@ function SpacecraftView({ spacecraft, setSpacecraft, payload, mission, verificat
         <div className="callout"><Thermometer size={15} /><span>Thermal model is deliberately preliminary. It is a lumped-node estimate, not a spacecraft thermal qualification analysis.</span></div>
       </Card>
     </div>
-    <SpacecraftGeometryWorkbench />
+    <SpacecraftGeometryWorkbench busDimensionsM={{ width: spacecraft.busWidthM, height: spacecraft.busHeightM, depth: spacecraft.busDepthM }} dryMassKg={spacecraft.dryMassKg} />
     <div className="bottom-bar"><b>Current wet mass: {formatNumber(verification.massKg,2)} kg</b><span>Limit {mission.maxMassKg} kg · {verification.massKg <= mission.maxMassKg ? 'PASS' : 'FAIL'}</span><span>Payload {payload.massKg} kg included.</span></div>
   </div>;
 }

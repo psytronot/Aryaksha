@@ -4,13 +4,13 @@ This phase addresses the five workstreams tracked in issue #111. A UI state or s
 
 ## 1. Earth–Moon precision ephemeris
 
-The new `src/engineering/ephemeris.ts` boundary accepts only provenance-complete states from a declared JPL-DE/Orekit-JPL kernel, checks the requested body/frame/time scale/epoch and refuses requests outside kernel coverage. It deliberately has no circular-orbit fallback. The current visual Moon model is still a presentation approximation until a licensed/approved DE kernel is provisioned and an Orekit adapter is connected.
+The `backend/horizonsEphemeris.mjs` adapter now queries JPL Horizons for a geocentric Moon state at a user-supplied TDB epoch. The Mission Analysis panel displays its ICRF position and velocity in SI units and records the API/kernel provenance when exposed. Formal position uncertainty is explicitly unknown when the API does not supply it. The point lookup is not yet connected to the 3D Moon renderer or a continuous local SPK kernel; the visual Moon model remains a presentation approximation.
 
 Acceptance: documented kernel version and coverage; UTC/TT/TDB conversion tests; reference comparisons against JPL Horizons or SPICE; error budget declared for the chosen time span.
 
 ## 2. Spacecraft geometry and mass properties
 
-`src/engineering/massProperties.ts` computes total mass, body-frame centre of mass and composite inertia tensor using the parallel-axis theorem. Component dimensions/meshes remain separate from mass data: mesh bounds are not mass properties. The current spacecraft JSON Schema is a configuration contract, not a CAD importer. CAD/mesh import must preserve units, axis convention, scale, component transforms and material density before mass properties can be considered geometry-derived.
+`src/SpacecraftGeometryWorkbench.tsx` imports GLB, self-contained glTF, OBJ and STL meshes for local interactive inspection. It computes bounds only after the user explicitly selects source units; the preview's normalised display scale is never used as engineering dimensions. `src/engineering/massProperties.ts` combines user-entered component masses, centres of mass and diagonal intrinsic inertia values using the parallel-axis theorem. Mesh bounds do not infer density, hollow/solid volume or mass distribution. STEP must be converted to a supported mesh format before import.
 
 Acceptance: fixtures for supported glTF/GLB/OBJ/STL inputs; unit/axis conversion; density and hollow/solid volume rules; comparison against an independent CAD mass-properties export.
 
@@ -22,13 +22,13 @@ Acceptance: TLS, per-device secret management/rotation, durable append-only stor
 
 ## 4. Perturbed Orekit dynamics
 
-The production Orekit endpoint remains explicitly two-body. J2, third-body gravity, atmospheric drag, solar radiation pressure and manoeuvres must be enabled only with validated gravity coefficients, planetary ephemerides, space-weather/atmosphere inputs, spacecraft area/mass/reflectivity and thrust models. Do not add force names to a response unless those models were actually instantiated in the propagator.
+The Orekit endpoint now supports `TWO_BODY` and `J2`. The J2 option instantiates Orekit's `J2OnlyPerturbation` with a constant WGS-84 J2 coefficient and the EME2000 +Z symmetry axis. It is a limited J2-only model: Earth pole motion/EOP, higher harmonics, drag, SRP, third-body gravity and manoeuvres are not included. The independent J2 and third-body reference functions remain separate cross-checks. The API returns the actual active force-model list.
 
 Acceptance: one-force-at-a-time differential tests, force parameter provenance, integration tolerance convergence, and benchmark comparisons against GMAT/Orekit reference cases.
 
 ## 5. Independent numerical validation
 
-The existing Orekit reference tests cover a known 550 km orbit and state-vector finiteness. Phase 2 adds an independent conservation-based validation suite for two-body propagation. This is a baseline only; it does not validate perturbed dynamics or establish mission-grade accuracy.
+The Orekit tests cover a known 550 km orbit, two-body energy/angular-momentum conservation and a differential J2 case that must change the propagated state. These are baseline checks, not independent truth-trajectory validation or mission-grade accuracy evidence.
 
 Acceptance: reference truth vectors with source/version/epoch/frame, position/velocity residuals, conservation diagnostics, convergence tests and a documented error budget per scenario.
 
@@ -37,8 +37,8 @@ Acceptance: reference truth vectors with source/version/epoch/frame, position/ve
 - **Catalog estimate:** TLE/GP + SGP4, not spacecraft telemetry.
 - **Authenticated telemetry:** signed external state-vector input, currently process-memory only.
 - **Two-body propagation:** Orekit numerical integration with Newtonian central gravity only.
-- **Precision ephemeris:** unavailable until a real DE kernel and provider adapter are provisioned.
-- **Perturbed propagation:** unavailable until the corresponding force models and environmental inputs are validated.
+- **JPL lunar state lookup:** JPL Horizons point query in TDB/ICRF; formal uncertainty may be unknown; not yet connected to 3D scene playback.
+- **Perturbed propagation:** J2-only option is active with a fixed-axis approximation; other perturbations remain unavailable until their environmental inputs are validated.
 
 ## Durable telemetry storage adapter
 

@@ -33,3 +33,7 @@ Never reuse the presentation-scale transform in numerical calculations. Scene di
 ## Verification
 
 Unit tests verify the physical constants, the true mean-distance conversion and the presentation compression ratio. Browser acceptance must also verify that both modes fit on desktop and portrait viewports and that the visible scale disclosure changes with the toggle.
+
+## JPL Horizons point lookup boundary
+
+The Mission Analysis panel can request the Moon's geometric state relative to Earth's centre from JPL Horizons at an explicitly supplied TDB calendar epoch. The adapter requests ICRF vectors and converts km and km/s to metres and metres per second. It records the kernel identifier only when the response reports one and reports formal position uncertainty as unknown when unavailable. This point lookup is not yet wired into the 3D scene's animation or a continuous local SPK kernel; the scene's circular mean-distance display remains a visual approximation.

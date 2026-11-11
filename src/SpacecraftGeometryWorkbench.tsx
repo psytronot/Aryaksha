@@ -58,7 +58,7 @@ function disposeObject(root: THREE.Object3D) {
   });
 }
 
-export default function SpacecraftGeometryWorkbench() {
+export default function SpacecraftGeometryWorkbench({ busDimensionsM, dryMassKg }: { busDimensionsM: { width: number; height: number; depth: number }; dryMassKg: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -66,9 +66,10 @@ export default function SpacecraftGeometryWorkbench() {
   const modelRef = useRef<THREE.Object3D | null>(null);
   const [model, setModel] = useState<LoadedModel | null>(null);
   const [unit, setUnit] = useState<GeometryUnit | 'unknown'>('unknown');
-  const [components, setComponents] = useState<ComponentRow[]>(initialComponents);
+  const [components, setComponents] = useState<ComponentRow[]>(() => initialComponents.map(row => ({ ...row, massKg: dryMassKg })));
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [previewError, setPreviewError] = useState('');
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -88,7 +89,9 @@ export default function SpacecraftGeometryWorkbench() {
     scene.add(new THREE.AxesHelper(1.4));
     const camera = new THREE.PerspectiveCamera(42, 1, 0.01, 1000);
     camera.position.set(5, 3.6, 6);
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    let renderer: THREE.WebGLRenderer;
+    try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false }); }
+    catch { setPreviewError('WebGL is unavailable in this browser. Geometry import and mass calculations remain available.'); return; }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -126,6 +129,10 @@ export default function SpacecraftGeometryWorkbench() {
       controlsRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    setComponents(rows => rows.length === 1 && rows[0].id === 'bus' ? [{ ...rows[0], massKg: dryMassKg }] : rows);
+  }, [dryMassKg]);
 
   useEffect(() => {
     const scene = sceneRef.current;
@@ -197,7 +204,8 @@ export default function SpacecraftGeometryWorkbench() {
       units: { length: 'm', mass: 'kg', angle: 'deg' },
       referenceFrame: 'Spacecraft body frame: +X forward, +Y starboard, +Z nadir; confirm axis convention against the source CAD model.',
       geometry: {
-        ...(dimensions ? { bus: { width: dimensions.width, height: dimensions.height, depth: dimensions.depth }, boundingBox: { width: dimensions.width, height: dimensions.height, depth: dimensions.depth } } : {}),
+        bus: { width: busDimensionsM.width, height: busDimensionsM.height, depth: busDimensionsM.depth },
+        ...(dimensions ? { boundingBox: { width: dimensions.width, height: dimensions.height, depth: dimensions.depth } } : {}),
         ...(model ? { modelFormat: model.format, geometrySource: model.name } : {})
       },
       massProperties: {
@@ -227,6 +235,7 @@ export default function SpacecraftGeometryWorkbench() {
       <div className="spacecraft-geometry-preview">
         <canvas ref={canvasRef} aria-label="Interactive 3D spacecraft model preview" />
         {!model && <div className="spacecraft-geometry-empty"><Box size={30} /><b>3D model preview</b><span>Import a GLB, glTF, OBJ or STL model to begin</span></div>}
+        {previewError && <div className="spacecraft-geometry-overlay" role="status">{previewError}</div>}
         {loading && <div className="spacecraft-geometry-overlay">Loading geometry…</div>}
       </div>
       <div className="spacecraft-geometry-controls">
@@ -262,7 +271,7 @@ export default function SpacecraftGeometryWorkbench() {
         <div><small>TOTAL MASS</small><b>{massProperties.totalMassKg.toFixed(3)} kg</b></div>
         <div><small>CENTRE OF MASS (X, Y, Z)</small><b>{massProperties.centreOfMassM.map(value => value.toFixed(4)).join(', ')} m</b></div>
         <div><small>IXX / IYY / IZZ</small><b>{massProperties.inertiaKgM2[0][0].toFixed(4)} / {massProperties.inertiaKgM2[1][1].toFixed(4)} / {massProperties.inertiaKgM2[2][2].toFixed(4)} kg·m²</b></div>
-        <button type="button" onClick={exportConfiguration} disabled={!dimensions && !!model}><Download size={14} /> Export spacecraft configuration</button>
+        <button type="button" onClick={exportConfiguration}><Download size={14} /> Export spacecraft configuration</button>
       </div>}
       <p className="spacecraft-geometry-disclaimer">Engineering boundary: imported mesh bounds do not establish material density, hollow/solid volume or mass distribution. This calculator combines user-entered component mass properties using the parallel-axis theorem. Products of inertia are assumed zero; confirm component axes and CAD mass properties independently.</p>
     </div>
