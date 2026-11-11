@@ -25,3 +25,16 @@ for (const viewport of [{ width: 768, height: 1024 }, { width: 1024, height: 768
     await expect(camera.getByRole('button', { name: 'MOON', exact: true })).toBeVisible();
   });
 }
+
+
+test('Earth 3D pauses offscreen rendering and resumes when brought back into view', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/');
+  await page.locator('.sidebar').getByRole('button', { name: 'Simulation', exact: true }).click();
+  const canvas = page.locator('.earth3d-canvas');
+  await expect(canvas).toHaveAttribute('data-rendering-state', 'active');
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect(canvas).toHaveAttribute('data-rendering-state', 'paused');
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(canvas).toHaveAttribute('data-rendering-state', 'active');
+});
