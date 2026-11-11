@@ -7,7 +7,7 @@ import { EARTH_IMAGERY_SOURCES, loadEarthImagery } from './earthImagery';
 import { loadPlanetaryImagery, PLANETARY_IMAGERY_SOURCES } from './planetaryImagery';
 import { formatIstDateTime } from './time';
 import { createSpaceEnvironment } from './solarSystem';
-import { cloudRelativeRotation, earthCameraDistance, earthMoonCentreDistanceSceneUnits, fitCameraDistance, MOON_CAMERA_MARGIN, MOON_ORBIT_PERIOD_SECONDS, moonCameraYaw, PLANETARY_BODY_SPECS, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO, type PlanetaryBodyName } from './earth3dMath';
+import { cloudRelativeRotation, earthCameraDistance, earthMoonCentreDistanceSceneUnits, moonEphemerisPositionSceneUnits, fitCameraDistance, MOON_CAMERA_MARGIN, MOON_ORBIT_PERIOD_SECONDS, moonCameraYaw, PLANETARY_BODY_SPECS, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO, type PlanetaryBodyName } from './earth3dMath';
 import { disposeObjectResources, updateFootprint } from './earth3dGeometry';
 import './earth3d-upgrade.css';
 
@@ -824,7 +824,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         const moonDisplayScale = mode === 'SYSTEM' ? earthMoonDistanceScaleRef.current : 1;
         const ephemeris = moonEphemerisRef.current;
         const moonPositionScene = ephemeris
-          ? [ephemeris.positionM[0] * scale, ephemeris.positionM[2] * scale, ephemeris.positionM[1] * scale] as [number, number, number]
+          ? moonEphemerisPositionSceneUnits(ephemeris.positionM, earthRadius, moonDisplayScale)
           : undefined;
         spaceEnvironment.update(simSeconds, moonDisplayScale, moonPositionScene);
         const moonPhase = (simSeconds / MOON_ORBIT_PERIOD_SECONDS) * Math.PI * 2;

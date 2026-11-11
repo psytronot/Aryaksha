@@ -426,3 +426,24 @@ describe('Earth–Moon engineering scale references', () => {
     expect(Number.isFinite(earthMoonCentreDistanceSceneUnits(-1, -1))).toBe(true);
   });
 });
+
+describe('JPL Moon ephemeris scene-coordinate conversion', () => {
+  it('converts ICRF metres into the scene X/Z/Y axis convention', () => {
+    const position = moonEphemerisPositionSceneUnits([6378137, 12756274, 19134411]);
+    expect(position[0]).toBeCloseTo(5.15);
+    expect(position[1]).toBeCloseTo(15.45);
+    expect(position[2]).toBeCloseTo(10.3);
+  });
+
+  it('applies the compressed presentation display scale without changing source SI data', () => {
+    const position = moonEphemerisPositionSceneUnits([384400000, 0, 0], 5.15, 0.0225);
+    expect(position[0]).toBeCloseTo(5.15 * 384400 / 6378.137 * 0.0225);
+    expect(position[1]).toBe(0);
+    expect(position[2]).toBe(0);
+  });
+
+  it('rejects invalid scene conversion inputs', () => {
+    expect(() => moonEphemerisPositionSceneUnits([0, Number.NaN, 0])).toThrow();
+    expect(() => moonEphemerisPositionSceneUnits([0, 0, 0], 5.15, 0)).toThrow();
+  });
+});
