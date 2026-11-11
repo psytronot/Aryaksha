@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'node:path';
 import * as satellite from 'satellite.js';
+import { rateLimit } from 'express-rate-limit';
 import { createRateLimiter, securityHeaders } from './security.mjs';
 import { createPlanetaryImageryHandler } from './planetaryImagery.mjs';
 import { createTelemetryStore, verifyAndParseTelemetry, verifyTelemetryReadToken, parseBearerToken } from './telemetry.mjs';
@@ -15,7 +16,13 @@ app.disable('x-powered-by');
 app.set('trust proxy', 1);
 app.use(securityHeaders);
 app.use(express.json({ limit: '64kb', strict: false, verify: (req, _res, buffer) => { req.rawBody = Buffer.from(buffer); } }));
-const apiRateLimit = createRateLimiter({ windowMs: 60_000, maxRequests: 60 });
+const apiRateLimit = rateLimit({
+  windowMs: 60_000,
+  limit: 60,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Rate limit exceeded. Retry after the reset window.' }
+});
 const planetaryImageryHandler = createPlanetaryImageryHandler();
 const telemetryStore = createTelemetryStore({ maxRecords: 1000, storagePath: process.env.ARYAKSHA_TELEMETRY_STORE_PATH });
 app.get('/api/_healthcheck', (_req, res) => res.json({ message: 'Success', service: 'aryaksha-api' }));
