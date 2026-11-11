@@ -40,7 +40,17 @@ f 5 1 4 8
   await expect(page.getByRole('button', { name: 'Export spacecraft configuration' })).toBeEnabled();
 });
 
-test('mission analysis exposes J2 selection and JPL Horizons lunar state lookup', async ({ page }) => {
+test('mission analysis exposes J2 selection and applies JPL lunar snapshot to Earth 3D', async ({ page }) => {
+  await page.route('**/api/v1/ephemeris/moon?*', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      body: 'MOON', epoch: '2026-11-11T21:00:00.000', timeScale: 'TDB', frame: 'ICRF',
+      positionM: [384400000, 1200000, -900000], velocityMps: [-30, 1020, 2],
+      source: 'JPL-HORIZONS', kernelId: 'DE441', coverageStart: '2026-11-11T21:00:00.000',
+      coverageEnd: '2026-11-11T21:00:00.000', positionUncertaintyM: null
+    })
+  }));
   await page.goto('/');
   const coachOn = page.getByRole('button', { name: /COACH ON/i });
   if (await coachOn.count()) await coachOn.click();
@@ -52,4 +62,10 @@ test('mission analysis exposes J2 selection and JPL Horizons lunar state lookup'
   await expect(page.getByRole('combobox', { name: 'Orbital force model' })).toHaveValue('J2');
   await expect(page.getByRole('heading', { name: 'JPL Horizons lunar ephemeris' })).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'Moon ephemeris epoch in TDB' })).toHaveValue('2026-11-11T21:00:00.000');
+  await page.getByRole('button', { name: 'Fetch lunar state' }).click();
+  await expect(page.getByText('DE441')).toBeVisible();
+  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  const scene = page.locator('.earth3d-canvas');
+  await expect(scene).toHaveAttribute('data-moon-ephemeris', 'JPL-HORIZONS-SNAPSHOT');
+  await expect(page.getByText(/MOON POSITION SNAPSHOT · JPL-HORIZONS/)).toBeVisible();
 });

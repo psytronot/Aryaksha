@@ -105,6 +105,7 @@ export default function MissionAnalysisView({ initialAltitudeKm = 550, initialIn
           <div><b>Position (m)</b><p style={{ overflowWrap: 'anywhere' }}>{moonState.positionM.map(v => v.toFixed(3)).join(', ')}</p></div>
           <div><b>Velocity (m/s)</b><p style={{ overflowWrap: 'anywhere' }}>{moonState.velocityMps.map(v => v.toFixed(6)).join(', ')}</p></div>
         </div>
+        <button style={{ ...buttonStyle, marginTop: 6, background: '#25384b' }} type="button" onClick={() => { setMoonState(null); onMoonEphemerisChange?.(null); }}>Clear 3D snapshot</button>
         <p style={{ color: '#91a9c4', fontSize: 11 }}>Formal position uncertainty: {moonState.positionUncertaintyM === null ? 'not supplied by this query' : moonState.positionUncertaintyM + ' m'}. Geometric state, no light-time correction. This is a point lookup, not a continuous ephemeris kernel loaded into the 3D scene.</p>
       </div>}
     </div>

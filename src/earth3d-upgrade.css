@@ -731,3 +731,5 @@ html.earth3d-active pwa-install {
     font: 8px/1.35 ui-monospace, monospace;
   }
 }
+
+.earth3d-ephemeris-note{display:block;margin-top:7px;color:#8de7ff;font:10px/1.5 ui-monospace,SFMono-Regular,monospace;letter-spacing:.025em;text-transform:none}
