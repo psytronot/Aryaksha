@@ -237,6 +237,17 @@ class OrbitAnalysisControllerTest {
     }
 
     @Test
+    void httpAnalysisEndpointFailsClosedWhenServiceCredentialIsNotConfigured() throws Exception {
+        MockMvc unconfigured = MockMvcBuilders.standaloneSetup(new OrbitAnalysisController("")).build();
+        unconfigured.perform(post("/api/v1/orbit/analysis")
+                .header("X-Aryaksha-Service-Token", "test-secret")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"altitudeKm\":550,\"inclinationDeg\":97.6,\"eccentricity\":0.001}"))
+            .andExpect(status().isServiceUnavailable())
+            .andExpect(jsonPath("$.error").value("Service authentication is not configured."));
+    }
+
+    @Test
     void httpAnalysisEndpointReturnsStructuredErrorForMalformedJson() throws Exception {
         http.perform(post("/api/v1/orbit/analysis")
                 .contentType(MediaType.APPLICATION_JSON)
