@@ -86,7 +86,7 @@ test('live deployed UI loads the lazy simulation, tracking and calculator worksp
   await expect.poll(() => loadedAssets.some(url => /Earth3DScene-[^/]+\.js/.test(url))).toBe(true);
 
   await page.getByRole('button', { name: 'Satellite Tracking', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Satellite tracking & pass planning' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Catalog-derived orbit estimates & pass planning' })).toBeVisible();
   await expect.poll(() => loadedAssets.some(url => /SatelliteTrackingView-[^/]+\.js/.test(url))).toBe(true);
 
   await page.getByRole('button', { name: 'Calculator & Reference', exact: true }).click();
