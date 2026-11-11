@@ -1,3 +1,5 @@
+import { expect, test } from '@playwright/test';
+
 test('desktop tutor reopens on hover after the user dismisses it', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
