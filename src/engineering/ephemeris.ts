@@ -37,10 +37,11 @@ export function validateEphemerisState(
   if (Date.parse(state.epoch) !== Date.parse(expected.epoch)) issues.push('Ephemeris epoch does not match the requested epoch.');
   if (state.frame !== expected.frame) issues.push('Ephemeris frame does not match the requested frame.');
   if (state.timeScale !== expected.timeScale) issues.push('Ephemeris time scale does not match the requested time scale.');
-  const epoch = Date.parse(state.epoch);
+  const stateEpoch = Date.parse(state.epoch);
+  const requestedEpoch = Date.parse(expected.epoch);
   const start = Date.parse(state.coverageStart);
   const end = Date.parse(state.coverageEnd);
-  if (![epoch, start, end].every(Number.isFinite) || epoch < start || epoch > end) {
+  if (![stateEpoch, requestedEpoch, start, end].every(Number.isFinite) || requestedEpoch < start || requestedEpoch > end) {
     issues.push('Requested epoch is outside the declared ephemeris kernel coverage.');
   }
   if (!state.kernelId.trim()) issues.push('Ephemeris kernel identifier is required.');
