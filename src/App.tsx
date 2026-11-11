@@ -16,7 +16,7 @@ import { generateContinuousGroundTrack, SubPoint } from './tracking';
 import { computeDayNightBoundary, solarSubpoint } from './daynight';
 import {
   Mission, Payload, Spacecraft, OrbitDesign, orbitFromAltitude, missionGeometry,
-  propulsionAnalysis, maneuverDeltaV, adcsAnalysis, powerAnalysis, thermalAnalysis,
+  propulsionAnalysis, massClosureAnalysis, maneuverDeltaV, adcsAnalysis, powerAnalysis, thermalAnalysis,
   communicationsAnalysis, systemVerification, formatNumber
 } from './engineering';
 
@@ -154,6 +154,10 @@ function App() {
       `Period: ${formatNumber(summary.period / 60, 3)} min`, `Speed at epoch: ${formatNumber(summary.speed, 4)} km/s`, '',
       'PROPULSION',
       `Available delta-V: ${formatNumber(propulsion.deltaVms, 2)} m/s`, `Burn time: ${formatNumber(propulsion.burnTimeS, 1)} s`, '',
+      'MASS CLOSURE',
+      `Dry mass: ${formatNumber(verification.massClosure.dryMassKg, 2)} kg`, `Payload mass: ${formatNumber(verification.massClosure.payloadMassKg, 2)} kg`, `Propellant mass: ${formatNumber(verification.massClosure.propellantMassKg, 2)} kg`,
+      `Wet mass: ${formatNumber(verification.massClosure.wetMassKg, 2)} kg`, `Maximum allowable mass: ${formatNumber(verification.massClosure.maximumMassKg, 2)} kg`,
+      `Mass margin: ${formatNumber(verification.massClosure.marginKg, 2)} kg`, `Mass closure status: ${verification.massClosure.passes ? 'PASS' : 'FAIL'}`, '';
       'MISSION GEOMETRY',
       `Computed footprint radius: ${formatNumber(geometry.footprintRadiusKm, 1)} km`,
       `Estimated 48 h revisit: ${formatNumber(geometry.revisitDays, 2)} days`, '',
@@ -265,7 +269,7 @@ function App() {
           {view === 'simulation' && <SimulationView model={model} current={currentState} seconds={seconds} moonEphemeris={moonEphemeris} duration={duration} running={running} setRunning={setRunning} playback={playback} setPlayback={setPlayback} setSeconds={setSeconds} mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} footprintAngle={geometry.footprintDeg} applyPreset={applyPreset} selectedPreset={selectedPreset} updateOrbit={updateOrbit} go={setView} />}
           {view === 'tracking' && <SatelliteTrackingView />}
           {view === 'missionAnalysis' && <MissionAnalysisView initialAltitudeKm={orbit.altitudeKm} initialInclinationDeg={orbit.i} initialEccentricity={orbit.e} onMoonEphemerisChange={setMoonEphemeris} />}
-          {view === 'analysis' && <AnalysisView mission={mission} orbit={orbit} geometry={geometry} power={power} thermal={thermal} comms={comms} adcs={adcs} propulsion={propulsion} />}
+          {view === 'analysis' && <AnalysisView mission={mission} orbit={orbit} geometry={geometry} power={power} thermal={thermal} comms={comms} adcs={adcs} propulsion={propulsion} massClosure={verification.massClosure} />}
           {view === 'verification' && <VerificationView verification={verification} />}
           {view === 'report' && <ReportView mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} summary={summary} geometry={geometry} verification={verification} onExport={exportReport} />}
           {view === 'instructions' && <InstructionsView />}
@@ -390,7 +394,7 @@ function SpacecraftView({ spacecraft, setSpacecraft, payload, mission, verificat
       </Card>
     </div>
     <SpacecraftGeometryWorkbench busDimensionsM={{ width: spacecraft.busWidthM, height: spacecraft.busHeightM, depth: spacecraft.busDepthM }} dryMassKg={spacecraft.dryMassKg} onMassPropertiesChange={onMassPropertiesChange} />
-    <div className="bottom-bar"><b>Current wet mass: {formatNumber(verification.massKg,2)} kg</b><span>Limit {mission.maxMassKg} kg · {verification.massKg <= mission.maxMassKg ? 'PASS' : 'FAIL'}</span><span>Payload {payload.massKg} kg included.</span></div>
+    <div className="bottom-bar" data-testid="spacecraft-mass-closure"><b>WET MASS: {formatNumber(verification.massClosure.wetMassKg,2)} kg</b><span>LIMIT {mission.maxMassKg} kg · {verification.massClosure.passes ? 'PASS' : 'FAIL'}</span><span>MARGIN {formatNumber(verification.massClosure.marginKg,2)} kg</span><span>DRY / PAYLOAD / PROPELLANT FRACTIONS {formatNumber(verification.massClosure.dryMassFractionPct,1)} / {formatNumber(verification.massClosure.payloadMassFractionPct,1)} / {formatNumber(verification.massClosure.propellantMassFractionPct,1)}%</span></div>
   </div>;
 }
 
@@ -569,11 +573,12 @@ function GroundTrackMap({ model, current }: { model: any[]; current: any }) {
   );
 }
 
-function AnalysisView({ mission, orbit, geometry, power, thermal, comms, adcs, propulsion }: { mission: Mission; orbit: OrbitDesign; geometry: ReturnType<typeof missionGeometry>; power: ReturnType<typeof powerAnalysis>; thermal: ReturnType<typeof thermalAnalysis>; comms: ReturnType<typeof communicationsAnalysis>; adcs: ReturnType<typeof adcsAnalysis>; propulsion: ReturnType<typeof propulsionAnalysis> }) {
+function AnalysisView({ mission, orbit, geometry, power, thermal, comms, adcs, propulsion, massClosure }: { mission: Mission; orbit: OrbitDesign; geometry: ReturnType<typeof missionGeometry>; power: ReturnType<typeof powerAnalysis>; thermal: ReturnType<typeof thermalAnalysis>; comms: ReturnType<typeof communicationsAnalysis>; adcs: ReturnType<typeof adcsAnalysis>; propulsion: ReturnType<typeof propulsionAnalysis>; massClosure: ReturnType<typeof massClosureAnalysis> }) {
   const modules = [
     { title: 'Mission geometry', icon: <Target size={17} />, status: geometry.passesWithinRequirement && geometry.revisitStatus === 'MEASURED', metrics: [['Footprint radius', `${formatNumber(geometry.footprintRadiusKm,1)} km`],['48 h revisit', `${formatNumber(geometry.revisitDays,2)} d`],['Access samples', String(geometry.accessCount)]], note: `Sampled access/revisit model. Revisit status: ${geometry.revisitStatus}.` },
     { title: 'ADCS', icon: <Activity size={17} />, status: adcs.pointingPass, metrics: [['Required torque', `${formatNumber(adcs.requiredTorqueNm,5)} Nm`],['Actuator margin', `${formatNumber(adcs.actuatorMarginNm,5)} Nm`],['Ground error', `${formatNumber(adcs.pointingGroundErrorM,1)} m`]], note: 'Pointing is evaluated consistently as ground error at the current orbit altitude.' },
     { title: 'Propulsion', icon: <Rocket size={17} />, status: propulsion.deltaVms > 0, metrics: [['Available ΔV', `${formatNumber(propulsion.deltaVms,1)} m/s`],['Burn time', `${formatNumber(propulsion.burnTimeS,1)} s`],['Wet mass', `${formatNumber(propulsion.wetMassKg,2)} kg`]], note: 'Tsiolkovsky rocket equation with constant Isp.' },
+    { title: 'Mass closure', icon: <Scale size={17} />, status: massClosure.passes, metrics: [['Dry mass', `${formatNumber(massClosure.dryMassKg,2)} kg`],['Payload mass', `${formatNumber(massClosure.payloadMassKg,2)} kg`],['Propellant', `${formatNumber(massClosure.propellantMassKg,2)} kg`],['Wet mass', `${formatNumber(massClosure.wetMassKg,2)} kg`],['Mass margin', `${formatNumber(massClosure.marginKg,2)} kg`]], note: `Dry + payload + propellant = wet mass. ${formatNumber(massClosure.usedMassPct,1)}% of the ${formatNumber(massClosure.maximumMassKg,2)} kg mission limit is used; no growth or contingency reserve is included.` },
     { title: 'Power', icon: <Zap size={17} />, status: power.pass, metrics: [['Generation', `${formatNumber(power.generationW,1)} W`],['Average load', `${formatNumber(power.averageLoadW,1)} W`],['Battery reserve', `${formatNumber(power.batteryEndWh,1)} Wh`]], note: 'Preliminary energy model with battery efficiency, DoD and EOL solar degradation.' },
     { title: 'Thermal', icon: <Thermometer size={17} />, status: thermal.pass, metrics: [['Nominal temp', `${formatNumber(thermal.temperatureC,1)} °C`],['Hot / cold', `${formatNumber(thermal.hotTemperatureC,1)} / ${formatNumber(thermal.coldTemperatureC,1)} °C`],['Hot margin', `${formatNumber(thermal.hotMarginC,1)} °C`]], note: 'Lumped-node radiative equilibrium with explicit hot/cold cases.' },
     { title: 'Communications', icon: <Radio size={17} />, status: comms.pass, metrics: [['Link margin', `${formatNumber(comms.marginDb,1)} dB`],['Daily capacity', `${formatNumber(comms.capacityGb,2)} GB`],['Data margin', `${formatNumber(comms.dataMarginGbPerDay,2)} GB/day`]], note: `Altitude-dependent preliminary link budget tied to ${comms.groundStation}.` },
