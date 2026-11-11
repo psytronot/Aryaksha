@@ -373,8 +373,11 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       const sceneFog = new THREE.Fog('#01040a', 24, 52);
       scene.fog = sceneFog;
       const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 3500);
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
-      const pixelRatioForViewport = () => Math.min(window.devicePixelRatio || 1, window.matchMedia('(max-width: 720px)').matches ? 1.25 : 1.75);
+      const isCompactViewport = window.matchMedia('(max-width: 720px)').matches;
+      const renderer = new THREE.WebGLRenderer({ antialias: !isCompactViewport, alpha: false, powerPreference: 'high-performance' });
+      // Cap mobile backing resolution to avoid rendering a large high-DPI canvas
+      // on thermally and memory-constrained phones. CSS dimensions remain crisp.
+      const pixelRatioForViewport = () => Math.min(window.devicePixelRatio || 1, window.matchMedia('(max-width: 720px)').matches ? 1 : 1.5);
       renderer.setPixelRatio(pixelRatioForViewport());
       renderer.setSize(Math.max(container.clientWidth, 1), Math.max(container.clientHeight, 1), false);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -906,6 +909,11 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
             <div className="earth3d-card-heading"><small>MISSION SETUP</small><span>{missionType}</span></div>
             <b className="earth3d-mission-setup-name">{name || 'MySat-1'}</b>
             <span className="earth3d-mission-setup-target">{missionTarget} · {payloadName}</span>
+            <div className="earth3d-mission-setup-actions">
+              <button type="button" aria-label="Edit mission requirements" onClick={() => onOpenMissionSetup?.()}>MISSION</button>
+              <button type="button" aria-label="Open full orbit design" onClick={() => onOpenOrbitDesign?.()}>ORBIT</button>
+              <button type="button" className="primary-action" aria-label={running ? 'Simulation already running' : 'Start simulation'} onClick={() => setRunning(true)} disabled={running}>{running ? 'RUNNING' : 'START SIMULATION'}</button>
+            </div>
             <div className="earth3d-mission-setup-tabs" role="tablist" aria-label="Mission setup mode">
               <button type="button" role="tab" aria-selected={missionSetupTab === 'presets'} className={missionSetupTab === 'presets' ? 'active' : ''} onClick={() => setMissionSetupTab('presets')}>QUICK PRESETS</button>
               <button type="button" role="tab" aria-selected={missionSetupTab === 'custom'} className={missionSetupTab === 'custom' ? 'active' : ''} onClick={() => setMissionSetupTab('custom')}>CUSTOM ORBIT</button>
@@ -926,11 +934,6 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
                 <small>Edits update the existing two-body orbit state; J2 and drag are not propagated.</small>
               </div>
             )}
-            <div className="earth3d-mission-setup-actions">
-              <button type="button" aria-label="Edit mission requirements" onClick={() => onOpenMissionSetup?.()}>MISSION</button>
-              <button type="button" aria-label="Open full orbit design" onClick={() => onOpenOrbitDesign?.()}>ORBIT</button>
-              <button type="button" className="primary-action" aria-label={running ? 'Simulation already running' : 'Start simulation'} onClick={() => setRunning(true)} disabled={running}>{running ? 'RUNNING' : 'START SIMULATION'}</button>
-            </div>
             <div className="earth3d-mission-setup-meta"><span>PAYLOAD {payloadMassKg.toFixed(1)} kg · {payloadPowerW.toFixed(1)} W</span><span>DRY MASS {spacecraftDryMassKg.toFixed(1)} kg</span></div>
           </div>
           <div className="earth3d-hud-card"><small>POSITION / WGS84</small><b>{Number(current?.lla?.lat || 0).toFixed(3)}°</b><b>{Number(current?.lla?.lon || 0).toFixed(3)}°</b><span>ALT {Number(current?.lla?.alt || 0).toFixed(1)} km</span></div>
