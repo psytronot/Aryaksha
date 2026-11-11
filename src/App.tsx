@@ -57,6 +57,7 @@ const nav: { id: View; label: string; icon: React.ReactNode; group: string }[] =
 
 function App() {
   const [mission, setMission] = useState(missionDefaults);
+  const [moonEphemeris, setMoonEphemeris] = useState<MoonEphemerisSnapshot | null>(null);
   const [payload, setPayload] = useState(payloadDefaults);
   const [spacecraft, setSpacecraft] = useState(spacecraftDefaults);
   const [orbit, setOrbit] = useState<OrbitDesign>(orbitFromAltitude(550, 97.6));
@@ -261,7 +262,7 @@ function App() {
           {view === 'payload' && <PayloadView payload={payload} setPayload={setPayload} go={setView} />}
           {view === 'spacecraft' && <SpacecraftView spacecraft={spacecraft} setSpacecraft={setSpacecraft} payload={payload} mission={mission} verification={verification} onMassPropertiesChange={syncSpacecraftMassProperties} />}
           {view === 'orbit' && <OrbitView orbit={orbit} updateOrbit={updateOrbit} maneuverAltitude={maneuverAltitude} setManeuverAltitude={setManeuverAltitude} maneuverInclination={maneuverInclination} setManeuverInclination={setManeuverInclination} maneuver={maneuver} applyPreset={applyPreset} selectedPreset={selectedPreset} />}
-          {view === 'simulation' && <SimulationView model={model} current={currentState} seconds={seconds} duration={duration} running={running} setRunning={setRunning} playback={playback} setPlayback={setPlayback} setSeconds={setSeconds} mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} footprintAngle={geometry.footprintDeg} applyPreset={applyPreset} selectedPreset={selectedPreset} updateOrbit={updateOrbit} go={setView} />}
+          {view === 'simulation' && <SimulationView model={model} current={currentState} seconds={seconds} moonEphemeris={moonEphemeris} duration={duration} running={running} setRunning={setRunning} playback={playback} setPlayback={setPlayback} setSeconds={setSeconds} mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} footprintAngle={geometry.footprintDeg} applyPreset={applyPreset} selectedPreset={selectedPreset} updateOrbit={updateOrbit} go={setView} />}
           {view === 'tracking' && <SatelliteTrackingView />}
           {view === 'missionAnalysis' && <MissionAnalysisView initialAltitudeKm={orbit.altitudeKm} initialInclinationDeg={orbit.i} initialEccentricity={orbit.e} onMoonEphemerisChange={setMoonEphemeris} />}
           {view === 'analysis' && <AnalysisView mission={mission} orbit={orbit} geometry={geometry} power={power} thermal={thermal} comms={comms} adcs={adcs} propulsion={propulsion} />}
