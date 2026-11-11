@@ -780,8 +780,8 @@ function ContextCoach({ view }: { view: View }) {
           <b>{active.term}</b>
           {active.acronym && <span>{active.acronym}</span>}
         </div>
-        <p>{active.definition}</p>
-        {active.calculation && <div className="coach-section"><small>HOW IT WORKS</small><span>{active.calculation}</span></div>}
+        <div className="coach-section coach-quick-explanation"><small>QUICK EXPLANATION</small><span>{active.definition}</span></div>
+        {active.calculation && <div className="coach-section"><small>ENGINEERING DETAIL</small><span>{active.calculation}</span></div>}
         {active.why && <div className="coach-section"><small>WHY IT MATTERS</small><span>{active.why}</span></div>}
         <div className="coach-meta">
           <span>{active.units || 'N/A'}</span>
