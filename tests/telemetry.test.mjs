@@ -42,6 +42,22 @@ describe('authenticated telemetry ingestion', () => {
     expect(store.accept({ ...payload, sequence: 1 }).status).toBe(409);
     expect(store.latest(payload.spacecraftId).sequence).toBe(2);
   });
+
+  it('isolates sequence ordering and latest state between spacecraft', () => {
+    const store = createTelemetryStore();
+    expect(store.accept({ ...payload, spacecraftId: 'ARY-SC-001', sequence: 8 }).ok).toBe(true);
+    expect(store.accept({ ...payload, spacecraftId: 'ARY-SC-002', sequence: 1 }).ok).toBe(true);
+    expect(store.latest('ARY-SC-001').sequence).toBe(8);
+    expect(store.latest('ARY-SC-002').sequence).toBe(1);
+    expect(store.latest('ARY-SC-003')).toBeNull();
+  });
+
+  it('rejects ingestion when the server signing secret is missing', () => {
+    const rawBody = Buffer.from(JSON.stringify(payload));
+    expect(verifyAndParseTelemetry({ ...signed(rawBody), secret: '' })).toMatchObject({
+      ok: false, status: 400
+    });
+  });
 });
 
 describe('telemetry read authorization', () => {
