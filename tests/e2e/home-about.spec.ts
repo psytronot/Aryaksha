@@ -8,6 +8,6 @@ test('landing page exposes About the Lab and its educational disclaimer', async 
   await expect(about).toBeVisible();
   await expect(about.getByRole('heading', { name: 'A Space Lab for the Next Generation' })).toBeVisible();
   await expect(about).toContainText('Some tools use public orbital data; simulations are educational models, not flight-certified systems.');
-  await expect(about.getByLabel('Anonymous authorship')).toContainText('Project author: Anonymous');
+  await expect(about.locator('.about-stewardship')).toContainText('Project author: Anonymous');
   await expect(about.getByLabel('Anonymous authorship')).toContainText('Personal identity intentionally withheld.');
 });
