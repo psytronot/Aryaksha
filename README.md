@@ -48,7 +48,7 @@ Analysis endpoint: `POST /api/v1/orbit/analysis` with JSON:
 { "altitudeKm": 550, "inclinationDeg": 97.6, "eccentricity": 0.001 }
 ```
 
-Once deployed, configure `OREKIT_SERVICE_URL` on the Aryaksha API host to the service base URL. Never commit secrets or service credentials to this repository.
+Once deployed, configure `OREKIT_SERVICE_URL` on the Aryaksha API host to the service base URL. Configure the same high-entropy `ARYAKSHA_OREKIT_SERVICE_TOKEN` value on both the Aryaksha web/API service and the Orekit service; the backend sends it only in server-to-server requests, and the Orekit analysis endpoint rejects requests without it. Never expose this token through a `VITE_*` variable or commit a real secret to this repository.
 
 **Current fidelity:** Orekit numerical propagation using a Dormand–Prince 8(5,3) integrator and Newtonian central gravity only, with a seven-day maximum propagation horizon. J2, drag, solar radiation pressure and third-body forces are not configured. This is numerical two-body propagation, not a high-fidelity force model. Dependency licence review remains necessary before redistributing a production bundle.
 
