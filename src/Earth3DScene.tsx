@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Maximize2, Minimize2, Pause, Play } from 'lucide-react';
 import { dayNightSnapshot, greenwichMeanSiderealAngle, solarEciDirection } from './daynight';
@@ -1006,7 +1006,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   // Apply camera fitting in the same event turn as the mode change. The render loop
   // reads cameraModeRef independently of React's passive effects, so waiting for
   // useEffect can expose one frame at the previous mode's distance.
-  const selectCameraMode = (mode: CameraMode) => {
+  const selectCameraMode = useCallback((mode: CameraMode) => {
     const width = Math.max(1, containerRef.current?.clientWidth || 1);
     const height = Math.max(1, containerRef.current?.clientHeight || 1);
     const previousMode = previousCameraModeRef.current;
@@ -1036,7 +1036,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
     previousCameraModeRef.current = mode;
     cameraModeRef.current = mode;
     setCameraMode(mode);
-  };
+  }, []);
 
   const simulationUtc = new Date(current?.time || '2026-01-01T00:00:00.000Z');
   const dayNight = dayNightSnapshot(Number(current?.lla?.lat), Number(current?.lla?.lon), simulationUtc);
