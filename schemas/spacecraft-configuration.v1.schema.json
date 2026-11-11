@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aryaksha Spacecraft Configuration v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "configurationId",
+    "name",
+    "units",
+    "referenceFrame",
+    "geometry",
+    "massProperties",
+    "components"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "configurationId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "epoch": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "length",
+        "mass",
+        "angle"
+      ],
+      "properties": {
+        "length": {
+          "const": "m"
+        },
+        "mass": {
+          "const": "kg"
+        },
+        "angle": {
+          "const": "deg"
+        }
+      }
+    },
+    "referenceFrame": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Declared spacecraft body frame and axis convention, e.g. +X forward, +Y starboard, +Z nadir."
+    },
+    "geometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bus"
+      ],
+      "properties": {
+        "bus": {
+          "$ref": "#/$defs/dimensions"
+        },
+        "boundingBox": {
+          "$ref": "#/$defs/dimensions"
+        },
+        "modelUri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "modelFormat": {
+          "enum": [
+            "glb",
+            "gltf",
+            "obj",
+            "stl",
+            "step",
+            "unknown"
+          ]
+        },
+        "geometrySource": {
+          "type": "string"
+        }
+      }
+    },
+    "massProperties": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dryMassKg"
+      ],
+      "properties": {
+        "dryMassKg": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "wetMassKg": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "centreOfMassM": {
+          "$ref": "#/$defs/vector3"
+        },
+        "inertiaKgM2": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "componentId",
+          "type",
+          "name"
+        ],
+        "properties": {
+          "componentId": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "bus",
+              "solar-array",
+              "antenna",
+              "payload",
+              "propulsion",
+              "tank",
+              "radiator",
+              "sensor",
+              "other"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "massKg": {
+            "type": "number",
+            "minimum": 0
+          },
+          "powerW": {
+            "type": "number",
+            "minimum": 0
+          },
+          "dimensions": {
+            "$ref": "#/$defs/dimensions"
+          },
+          "positionM": {
+            "$ref": "#/$defs/vector3"
+          },
+          "orientationDeg": {
+            "$ref": "#/$defs/vector3"
+          },
+          "modelUri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "source": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "author": {
+          "type": "string"
+        },
+        "sourceDocument": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "vector3": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "number"
+      }
+    },
+    "dimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "width",
+        "height",
+        "depth"
+      ],
+      "properties": {
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "depth": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    }
+  }
+}
