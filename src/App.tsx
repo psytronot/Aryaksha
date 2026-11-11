@@ -752,13 +752,14 @@ function ContextCoach({ view }: { view: View }) {
     if (!target?.rect) return;
     const margin = 14;
     const width = Math.min(390, window.innerWidth - margin * 2);
-    const estimatedHeight = Math.min(420, Math.max(250, window.innerHeight * 0.52));
+    const estimatedHeight = Math.min(520, Math.max(260, window.innerHeight * 0.58));
     const above = target.rect.top > estimatedHeight + 24;
     const rawLeft = target.rect.left + target.rect.width / 2 - width / 2;
     const left = Math.max(margin, Math.min(rawLeft, window.innerWidth - width - margin));
-    const top = above
-      ? Math.max(margin, target.rect.top - 10)
-      : Math.min(window.innerHeight - margin, target.rect.bottom + 10);
+    const rawTop = above
+      ? target.rect.top - estimatedHeight - 10
+      : target.rect.bottom + 10;
+    const top = Math.max(margin, Math.min(rawTop, window.innerHeight - estimatedHeight - margin));
     setPosition({ left, top, above });
   }, [target?.rect]);
 
@@ -769,7 +770,7 @@ function ContextCoach({ view }: { view: View }) {
   return (
     <aside
       className={`context-coach is-open ${position.above ? 'coach-above' : 'coach-below'}`}
-      style={{ left: position.left, top: position.top }}
+      style={{ left: position.left, top: position.top, bottom: 'auto' }}
       aria-label="On-board tutor"
     >
       <div className="coach-connector" aria-hidden="true" />
