@@ -30,11 +30,13 @@ export class EphemerisUnavailableError extends Error {
 /** Parse explicit ISO timestamps without silently assigning a timezone to date-only or local-time strings. */
 function parseEphemerisTimestamp(value: string): number {
   if (typeof value !== 'string' || !value.trim()) return Number.NaN;
-  // Ephemeris epochs must carry an explicit UTC designator or numeric offset.
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value)) {
+  // A timezone-less ISO calendar timestamp is valid when its time scale is explicit
+  // in the ephemeris metadata (e.g. Horizons TDB). Appending Z here only provides
+  // a comparable calendar encoding; it does not convert between UTC, TT or TDB.
+  if (!/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})?$/.test(value)) {
     return Number.NaN;
   }
-  return Date.parse(value);
+  return Date.parse(/[Zz]|[+-]\\d{2}:\\d{2}$/.test(value) ? value : value + 'Z');
 }
 
 /** Validate provenance and coverage before an ephemeris state can enter a scene or analysis. */
