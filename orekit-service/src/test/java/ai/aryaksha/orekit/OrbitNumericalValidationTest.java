@@ -29,7 +29,7 @@ class OrbitNumericalValidationTest {
 
     @Test
     void twoBodyPropagationConservesSpecificEnergyAndAngularMomentumOverOneOrbit() {
-        var controller = new OrbitAnalysisController();
+        var controller = new OrbitAnalysisController("test-secret");
         var initial = controller.analyze(new OrbitAnalysisController.AnalysisRequest(550, 97.6, 0.001, 0));
         double period = initial.orbit().periodSeconds();
         var finalState = controller.analyze(new OrbitAnalysisController.AnalysisRequest(550, 97.6, 0.001, period));
