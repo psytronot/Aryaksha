@@ -50,6 +50,10 @@ app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
   if (!serviceUrl) {
     return res.status(503).json({ error: 'Orekit service is not configured. Mission analysis is unavailable until OREKIT_SERVICE_URL is set.' });
   }
+  const serviceToken = process.env.ARYAKSHA_OREKIT_SERVICE_TOKEN?.trim();
+  if (!serviceToken) {
+    return res.status(503).json({ error: 'Orekit service authentication is not configured. Mission analysis is temporarily unavailable.' });
+  }
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 90000);
@@ -57,7 +61,7 @@ app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
     try {
       upstream = await fetch(`${serviceUrl}/api/v1/orbit/analysis`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        headers: { 'content-type': 'application/json', accept: 'application/json', 'x-aryaksha-service-token': serviceToken },
         body: JSON.stringify({ altitudeKm, inclinationDeg, eccentricity, elapsedSeconds }),
         signal: controller.signal
       });
