@@ -2,11 +2,18 @@ const DEFAULT_WINDOW_MS = 60_000;
 const DEFAULT_MAX_REQUESTS = 60;
 const DEFAULT_MAX_CLIENTS = 10_000;
 
-export function securityHeaders(_req, res, next) {
+export function securityHeaders(req, res, next) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+  res.setHeader('X-DNS-Prefetch-Control', 'off');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  // Render terminates TLS. Emit HSTS only when Express confirms the original
+  // request was HTTPS through the configured trusted proxy.
+  if (req.secure === true) {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000');
+  }
   res.setHeader('Content-Security-Policy-Report-Only', [
     "default-src 'self'",
     "base-uri 'self'",
