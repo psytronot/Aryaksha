@@ -41,6 +41,7 @@ The following account- and host-level controls must be enabled by a repository/h
 ### Application controls and known limitations
 
 - The API sets baseline browser security headers, a report-only Content Security Policy, request-size limits, and per-process rate limits.
+- The Orekit analysis endpoint requires the shared `ARYAKSHA_OREKIT_SERVICE_TOKEN` credential on server-to-server requests; the health endpoint remains public and contains no privileged data.
 - HSTS is emitted only when the request is confirmed as HTTPS by the trusted proxy configuration.
 - The Content Security Policy remains in report-only mode until production violation reports are reviewed against the Three.js, imagery, and browser-worker requirements. Do not switch it to enforcement without a compatibility review.
 - The in-memory rate limiter is per process/instance. It is not a distributed abuse-control boundary; use a shared store or edge-level protection for multi-instance production traffic.
