@@ -39,7 +39,7 @@ export function createTelemetryStore({ maxRecords = 1000, storagePath = null } =
   if (storagePath) {
     mkdirSync(dirname(storagePath), { recursive: true });
     if (existsSync(storagePath)) {
-      const existing = readFileSync(storagePath, 'utf8').split(/\\r?\\n/).filter(Boolean);
+      const existing = readFileSync(storagePath, 'utf8').split(/\r?\n/).filter(Boolean);
       for (const line of existing) {
         try {
           const record = JSON.parse(line);
@@ -60,13 +60,13 @@ export function createTelemetryStore({ maxRecords = 1000, storagePath = null } =
       }
       const frozen = Object.freeze({ ...record, positionM: [...record.positionM], velocityMps: [...record.velocityMps] });
       if (storagePath) {
-        appendFileSync(storagePath, JSON.stringify(frozen) + '\\n', { encoding: 'utf8', mode: 0o600 });
+        appendFileSync(storagePath, JSON.stringify(frozen) + '\n', { encoding: 'utf8', mode: 0o600 });
       }
       latestBySpacecraft.set(record.spacecraftId, frozen);
       history.push(frozen);
       while (history.length > maxRecords) history.shift();
       if (storagePath && history.length === maxRecords) {
-        writeFileSync(storagePath, history.map(item => JSON.stringify(item)).join('\\n') + '\\n', { encoding: 'utf8', mode: 0o600 });
+        writeFileSync(storagePath, history.map(item => JSON.stringify(item)).join('\n') + '\n', { encoding: 'utf8', mode: 0o600 });
       }
       return { ok: true, record: frozen };
     },
