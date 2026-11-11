@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import {
   Activity, ArrowRight, Battery, BookOpen, Calculator, Check, CircleHelp, Cpu, Download,
   Gauge, Globe2, Info, Layers3, Orbit, Play, Radio, RefreshCw, Rocket,
-  Satellite, Search, Settings2, Target, Thermometer, TriangleAlert, Wrench, Zap
+  Satellite, Scale, Search, Settings2, Target, Thermometer, TriangleAlert, Wrench, Zap
 } from 'lucide-react';
 const Earth3DScene = lazy(() => import('./Earth3DScene'));
 import AryakshaMark from './AryakshaMark';
