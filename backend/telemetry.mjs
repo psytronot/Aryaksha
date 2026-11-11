@@ -33,7 +33,7 @@ export function verifyAndParseTelemetry({ rawBody, timestamp, signature, secret,
   return { ok: true, record: { ...record, receivedAt: new Date(nowMs).toISOString(), provenance: 'authenticated-source' } };
 }
 
-export function createTelemetryStore({ maxRecords = 1000, storagePath = process.env.ARYAKSHA_TELEMETRY_STORE_PATH } = {}) {
+export function createTelemetryStore({ maxRecords = 1000, storagePath = null } = {}) {
   const latestBySpacecraft = new Map();
   const history = [];
   if (storagePath) {

@@ -7,7 +7,7 @@ export async function fetchMoonStateAtTdbEpoch(epochTdb, fetchImpl = fetch) {
     throw new Error('epochTdb must be an ISO calendar timestamp without a timezone suffix; it is interpreted as TDB.');
   }
   const date = new Date(epochTdb + 'Z');
-  if (!Number.isFinite(date.getTime())) throw new Error('epochTdb is not a valid calendar date.');
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 19) !== epochTdb.slice(0, 19)) throw new Error('epochTdb is not a valid calendar date.');
   const params = new URLSearchParams({
     format: 'json',
     COMMAND: "'301'",

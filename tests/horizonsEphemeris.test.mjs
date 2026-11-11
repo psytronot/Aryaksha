@@ -25,6 +25,10 @@ describe('JPL Horizons Moon state adapter', () => {
     expect(state.positionUncertaintyM).toBeNull();
   });
 
+  it('rejects timezone-ambiguous and impossible calendar input', async () => {
+    await expect(fetchMoonStateAtTdbEpoch('2026-02-31T21:00:00.000', vi.fn())).rejects.toThrow(/valid calendar date/);
+  });
+
   it('rejects timezone-ambiguous input and malformed Horizons vectors', async () => {
     await expect(fetchMoonStateAtTdbEpoch('2026-11-11T21:00:00Z', vi.fn())).rejects.toThrow(/without a timezone/);
     const fetchMock = vi.fn(async () => ({

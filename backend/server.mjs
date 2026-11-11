@@ -17,7 +17,7 @@ app.use(securityHeaders);
 app.use(express.json({ limit: '64kb', strict: false, verify: (req, _res, buffer) => { req.rawBody = Buffer.from(buffer); } }));
 const apiRateLimit = createRateLimiter({ windowMs: 60_000, maxRequests: 60 });
 const planetaryImageryHandler = createPlanetaryImageryHandler();
-const telemetryStore = createTelemetryStore({ maxRecords: 1000 });
+const telemetryStore = createTelemetryStore({ maxRecords: 1000, storagePath: process.env.ARYAKSHA_TELEMETRY_STORE_PATH });
 app.get('/api/_healthcheck', (_req, res) => res.json({ message: 'Success', service: 'aryaksha-api' }));
 app.get('/api/v1/health', (_req, res) => res.json({ status: 'ok', service: 'aryaksha-api' }));
 app.get('/api/v1/ephemeris/moon', apiRateLimit, async (req, res) => {
