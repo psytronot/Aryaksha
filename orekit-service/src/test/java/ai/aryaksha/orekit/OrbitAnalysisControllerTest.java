@@ -209,6 +209,7 @@ class OrbitAnalysisControllerTest {
     @Test
     void httpAnalysisEndpointReturnsBadRequestForEarthIntersectingOrbit() throws Exception {
         http.perform(post("/api/v1/orbit/analysis")
+                .header("X-Aryaksha-Service-Token", "test-secret")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"altitudeKm\":120,\"inclinationDeg\":45,\"eccentricity\":0.02}"))
             .andExpect(status().isBadRequest())
