@@ -34,6 +34,18 @@ describe('spacecraft composite mass properties', () => {
       inertiaKgM2: [[1, 2, 0], [0, 1, 0], [0, 0, 1]]
     }])).toThrow(/symmetric/);
   });
+
+  it('rejects symmetric tensors that are not physically realizable inertia tensors', () => {
+    expect(() => computeCompositeMassProperties([{
+      id: 'indefinite', massKg: 1, positionM: [0, 0, 0],
+      inertiaKgM2: [[1, 2, 0], [2, 1, 0], [0, 0, 1]]
+    }])).toThrow(/positive semidefinite/);
+    expect(() => computeCompositeMassProperties([{
+      id: 'triangle-violation', massKg: 1, positionM: [0, 0, 0],
+      inertiaKgM2: [[1, 0, 0], [0, 1, 0], [0, 0, 3]]
+    }])).toThrow(/triangle inequality/);
+  });
+
 });
 
 describe('mass-properties numeric range', () => {
