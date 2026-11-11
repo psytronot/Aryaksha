@@ -35,8 +35,12 @@ test('desktop solar-system overview exposes all bodies, Saturn rings and preserv
   const telemetryValue = telemetryRow.locator('b');
   await expect(telemetryLabel).toHaveText('ECI X / Y / Z');
   const telemetryBefore = await telemetryValue.innerText();
-  const solarSystemScene = page.getByRole('button', { name: 'Solar system scene', exact: true });
-  await solarSystemScene.scrollIntoViewIfNeeded();
+  // The scene gallery is intentionally opt-in so it cannot cover the reference globe.
+  // Open its disclosure before querying the gallery's scene buttons.
+  const timeline = page.getByRole('region', { name: 'Mission timeline and scene gallery' });
+  await page.getByRole('button', { name: 'Show mission timeline' }).click();
+  await expect(timeline).toBeVisible();
+  const solarSystemScene = timeline.getByRole('button', { name: 'Solar system scene', exact: true });
   await solarSystemScene.click();
 
   await expect(viewport).toHaveAttribute('data-camera-mode', 'PLANETS');
