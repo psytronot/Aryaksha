@@ -58,7 +58,7 @@ app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
   }
 
   const requiredFields = ['altitudeKm', 'inclinationDeg', 'eccentricity'];
-  const allowedFields = new Set([...requiredFields, 'elapsedSeconds']);
+  const allowedFields = new Set([...requiredFields, 'elapsedSeconds', 'forceModel']);
   const bodyFields = Object.keys(body);
   if (requiredFields.some(field => !Object.prototype.hasOwnProperty.call(body, field)) || bodyFields.some(field => !allowedFields.has(field))) {
     return res.status(400).json({ error: 'Request must contain altitudeKm, inclinationDeg, eccentricity, and optional elapsedSeconds only.' });
@@ -66,9 +66,11 @@ app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
 
   const { altitudeKm, inclinationDeg, eccentricity } = body;
   const elapsedSeconds = body.elapsedSeconds === undefined ? 0 : body.elapsedSeconds;
+  const forceModel = body.forceModel === undefined ? 'TWO_BODY' : body.forceModel;
   if (![altitudeKm, inclinationDeg, eccentricity, elapsedSeconds].every(value => typeof value === 'number' && Number.isFinite(value))) {
     return res.status(400).json({ error: 'Orbit parameters and elapsedSeconds must be finite JSON numbers.' });
   }
+  if (typeof forceModel !== 'string' || !['TWO_BODY', 'J2'].includes(forceModel)) return res.status(400).json({ error: 'forceModel must be TWO_BODY or J2.' });
   if (elapsedSeconds < 0 || elapsedSeconds > 604800) return res.status(400).json({ error: 'Elapsed time must be between 0 and 604,800 seconds (7 days).' });
   if (altitudeKm < 120 || altitudeKm > 100000) return res.status(400).json({ error: 'Altitude must be between 120 and 100,000 km for this preliminary model.' });
   if (inclinationDeg < 0 || inclinationDeg > 180) return res.status(400).json({ error: 'Inclination must be between 0 and 180 degrees.' });
@@ -90,7 +92,7 @@ app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
       upstream = await fetch(`${serviceUrl}/api/v1/orbit/analysis`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', accept: 'application/json' },
-        body: JSON.stringify({ altitudeKm, inclinationDeg, eccentricity, elapsedSeconds }),
+        body: JSON.stringify({ altitudeKm, inclinationDeg, eccentricity, elapsedSeconds, forceModel }),
         signal: controller.signal
       });
     } finally { clearTimeout(timer); }

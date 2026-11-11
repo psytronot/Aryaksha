@@ -6,6 +6,7 @@ type Result = {
   orbit: { altitudeKm: number; semiMajorAxisKm: number; eccentricity: number; inclinationDeg: number; periodSeconds: number; periodMinutes: number; periapsisAltitudeKm: number; apoapsisAltitudeKm: number; circularVelocityKmS: number; specificOrbitalEnergyKm2S2: number };
   state: { elapsedSeconds: number; epoch: string; timeScale: 'TAI'; frame: 'EME2000'; positionKm: number[]; velocityKmS: number[] };
   comparison: { engineAdapter: string; status: string; note: string };
+  forceModels?: string[];
 };
 const panel: React.CSSProperties = { background: 'rgba(12,24,42,.76)', border: '1px solid rgba(100,180,220,.2)', borderRadius: 14, padding: 20 };
 const label: React.CSSProperties = { display: 'block', color: '#91a9c4', fontSize: 11, letterSpacing: '.08em', marginBottom: 7 };
@@ -17,6 +18,7 @@ export default function MissionAnalysisView({ initialAltitudeKm = 550, initialIn
   const [inclinationDeg, setInclinationDeg] = useState(String(initialInclinationDeg));
   const [eccentricity, setEccentricity] = useState(String(Math.min(.8, Math.max(0, initialEccentricity))));
   const [elapsedSeconds, setElapsedSeconds] = useState('0');
+  const [forceModel, setForceModel] = useState<'TWO_BODY' | 'J2'>('TWO_BODY');
   const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -32,7 +34,7 @@ export default function MissionAnalysisView({ initialAltitudeKm = 550, initialIn
       const response = await fetch('/api/mission-analysis/orbit', {
         method: 'POST',
         headers: { 'content-type': 'application/json', accept: 'application/json' },
-        body: JSON.stringify({ altitudeKm: altitude, inclinationDeg: inclination, eccentricity: ecc, elapsedSeconds: elapsed })
+        body: JSON.stringify({ altitudeKm: altitude, inclinationDeg: inclination, eccentricity: ecc, elapsedSeconds: elapsed, forceModel })
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || payload.message || `Mission analysis failed (HTTP ${response.status}).`);
@@ -49,11 +51,12 @@ export default function MissionAnalysisView({ initialAltitudeKm = 550, initialIn
       <div><label style={label}>INCLINATION (DEG)</label><input style={inputStyle} aria-label="Orbit inclination in degrees" type="number" min="0" max="180" value={inclinationDeg} onChange={e => setInclinationDeg(e.target.value)} /></div>
       <div><label style={label}>ECCENTRICITY</label><input style={inputStyle} aria-label="Orbit eccentricity" type="number" min="0" max=".999" step=".001" value={eccentricity} onChange={e => setEccentricity(e.target.value)} /></div>
       <div><label style={label}>PROPAGATION TIME FROM J2000 TAI (SECONDS)</label><input style={inputStyle} aria-label="Propagation time in seconds" type="number" min="0" max="604800" step="60" value={elapsedSeconds} onChange={e => setElapsedSeconds(e.target.value)} /></div>
+      <div><label style={label}>FORCE MODEL</label><select style={inputStyle} aria-label="Orbital force model" value={forceModel} onChange={e => setForceModel(e.target.value as 'TWO_BODY' | 'J2')}><option value="TWO_BODY">Two-body baseline</option><option value="J2">Earth J2 perturbation</option></select></div>
       <div style={{ display: 'flex', alignItems: 'end' }}><button style={buttonStyle} type="button" onClick={runAnalysis} disabled={busy}>{busy ? <RefreshCw size={16} /> : <Activity size={16} />}{busy ? 'Running…' : 'Run analysis'}</button></div>
     </div>
     {errorMessage && <div role="alert" style={{ ...panel, borderColor: '#b45353', color: '#fecaca', display: 'flex', gap: 10 }}><AlertTriangle size={18} /><span>{errorMessage}</span></div>}
     {result && <>
-      <div style={{ ...panel, display: 'flex', gap: 12 }}><CheckCircle2 size={22} color="#34d399" /><div><strong>Analysis completed · {result.engine}</strong><p style={{ color: '#a8bdd4', marginBottom: 0 }}>{result.fidelity}. Only Newtonian central gravity is enabled; this is not a high-fidelity perturbed-orbit solution.</p></div></div>
+      <div style={{ ...panel, display: 'flex', gap: 12 }}><CheckCircle2 size={22} color="#34d399" /><div><strong>Analysis completed · {result.engine}</strong><p style={{ color: '#a8bdd4', marginBottom: 0 }}>{result.fidelity}. Active force models: {(result.forceModels || ['not reported']).join(', ')}. This is not a complete high-fidelity orbit solution.</p></div></div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(165px,1fr))', gap: 12 }}>
         {[
           ['Orbital period', result.orbit.periodMinutes.toFixed(2) + ' min'],
