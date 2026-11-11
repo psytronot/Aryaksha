@@ -29,7 +29,7 @@ test('engineering instructions and glossary support searchable definitions', asy
   await expect(page.getByText('Model fidelity: what the numbers claim')).toBeVisible();
   const search = page.getByRole('textbox', { name: 'Search engineering definitions' });
   await search.fill('RAAN');
-  await expect(page.locator('.glossary-row').filter({ hasText: 'RAAN' })).toHaveCount(1);
+  await expect(page.locator('.glossary-row .glossary-term b').filter({ hasText: /^RAAN$/ })).toHaveCount(1);
   await search.fill('this-term-does-not-exist');
   await expect(page.getByText('Engineering dictionary · 0 terms')).toBeVisible();
   await expect(page.locator('.glossary-row')).toHaveCount(0);
