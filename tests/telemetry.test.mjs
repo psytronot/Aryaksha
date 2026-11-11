@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { createTelemetryStore, verifyAndParseTelemetry, verifyTelemetryReadToken } from '../backend/telemetry.mjs';
+import { createTelemetryStore, verifyAndParseTelemetry, verifyTelemetryReadToken, parseBearerToken } from '../backend/telemetry.mjs';
 
 const secret = 'test-only-secret';
 const payload = {
@@ -47,5 +47,16 @@ describe('telemetry read authorization', () => {
     expect(verifyTelemetryReadToken('wrong', 'read-secret')).toBe(false);
     expect(verifyTelemetryReadToken('', 'read-secret')).toBe(false);
     expect(verifyTelemetryReadToken('read-secret', '')).toBe(false);
+  });
+});
+
+describe('telemetry bearer header parsing', () => {
+  it('extracts only a well-formed Bearer credential', () => {
+    expect(parseBearerToken('Bearer read-secret')).toBe('read-secret');
+    expect(parseBearerToken('bearer read-secret')).toBe('read-secret');
+    expect(parseBearerToken('Basic read-secret')).toBe('');
+    expect(parseBearerToken('Bearer')).toBe('');
+    expect(parseBearerToken('Bearer read secret')).toBe('');
+    expect(parseBearerToken(undefined)).toBe('');
   });
 });

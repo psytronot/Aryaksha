@@ -58,3 +58,10 @@ export function verifyTelemetryReadToken(supplied, expected) {
   const expectedBytes = Buffer.from(expected);
   return suppliedBytes.length === expectedBytes.length && timingSafeEqual(suppliedBytes, expectedBytes);
 }
+
+/** Extract a strict Bearer token without accepting malformed authorization schemes. */
+export function parseBearerToken(header) {
+  if (typeof header !== 'string') return '';
+  const match = header.match(/^Bearer\s+([^\s]+)$/i);
+  return match?.[1] ?? '';
+}

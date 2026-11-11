@@ -3,7 +3,8 @@ import path from 'node:path';
 import * as satellite from 'satellite.js';
 import { createRateLimiter, securityHeaders } from './security.mjs';
 import { createPlanetaryImageryHandler } from './planetaryImagery.mjs';
-import { createTelemetryStore, verifyAndParseTelemetry, verifyTelemetryReadToken } from './telemetry.mjs';
+import { createTelemetryStore, verifyAndParseTelemetry, verifyTelemetryReadToken, parseBearerToken } from './telemetry.mjs';
+import { fetchMoonStateAtTdbEpoch } from './horizonsEphemeris.mjs';
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -19,6 +20,18 @@ const planetaryImageryHandler = createPlanetaryImageryHandler();
 const telemetryStore = createTelemetryStore({ maxRecords: 1000 });
 app.get('/api/_healthcheck', (_req, res) => res.json({ message: 'Success', service: 'aryaksha-api' }));
 app.get('/api/v1/health', (_req, res) => res.json({ status: 'ok', service: 'aryaksha-api' }));
+app.get('/api/v1/ephemeris/moon', apiRateLimit, async (req, res) => {
+  const epochTdb = String(req.query.epochTdb ?? '');
+  if (!/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,9})?$/.test(epochTdb)) {
+    return res.status(400).json({ error: 'Provide epochTdb as YYYY-MM-DDTHH:mm:ss.sss without a timezone suffix.' });
+  }
+  try {
+    const state = await fetchMoonStateAtTdbEpoch(epochTdb);
+    return res.json(state);
+  } catch (error) {
+    return res.status(502).json({ error: error instanceof Error ? error.message : 'JPL Horizons ephemeris lookup failed.' });
+  }
+});
 app.post('/api/v1/telemetry/ingest', apiRateLimit, (req, res) => {
   const secret = process.env.ARYAKSHA_TELEMETRY_HMAC_SECRET;
   if (!secret) return res.status(503).json({ error: 'Telemetry ingestion is not configured.' });

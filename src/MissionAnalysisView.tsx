@@ -22,6 +22,25 @@ export default function MissionAnalysisView({ initialAltitudeKm = 550, initialIn
   const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [moonEpochTdb, setMoonEpochTdb] = useState('2026-11-11T21:00:00.000');
+  const [moonState, setMoonState] = useState<{
+    epoch: string; frame: string; timeScale: string; positionM: number[]; velocityMps: number[];
+    source: string; kernelId: string | null; positionUncertaintyM: number | null;
+  } | null>(null);
+  const [moonBusy, setMoonBusy] = useState(false);
+  const [moonError, setMoonError] = useState('');
+
+  const fetchMoonEphemeris = async () => {
+    setMoonBusy(true); setMoonError(''); setMoonState(null);
+    try {
+      const response = await fetch('/api/v1/ephemeris/moon?epochTdb=' + encodeURIComponent(moonEpochTdb));
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'JPL Horizons lookup failed.');
+      setMoonState(payload);
+    } catch (cause) {
+      setMoonError(cause instanceof Error ? cause.message : 'JPL Horizons is unavailable.');
+    } finally { setMoonBusy(false); }
+  };
 
   const runAnalysis = async () => {
     setErrorMessage(''); setResult(null);
@@ -70,6 +89,24 @@ export default function MissionAnalysisView({ initialAltitudeKm = 550, initialIn
       <div style={panel}><h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: 9 }}><Cpu size={17} /> Propagated state · {result.state.elapsedSeconds.toFixed(1)} s</h3><p style={{ color: '#a8bdd4' }}>Epoch {result.state.epoch} {result.state.timeScale} · Frame {result.state.frame}</p><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12 }}><div><b>Position (km)</b><p style={{ color: '#a8bdd4', overflowWrap: 'anywhere' }}>{result.state.positionKm.map(v => v.toFixed(3)).join(', ')}</p></div><div><b>Velocity (km/s)</b><p style={{ color: '#a8bdd4', overflowWrap: 'anywhere' }}>{result.state.velocityKmS.map(v => v.toFixed(6)).join(', ')}</p></div></div></div>
       <div style={panel}><h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: 9 }}><Cpu size={17} /> Engine integration status</h3><b>Current computation</b><p style={{ color: '#a8bdd4', margin: '4px 0 12px' }}>{result.comparison.note}</p><b>Orekit adapter</b><p style={{ color: '#a8bdd4', margin: '4px 0 12px' }}>{result.engine.toLowerCase().includes('orekit') && result.comparison.engineAdapter === 'orekit-http' ? 'Connected: this result came from the Orekit numerical-propagation service.' : 'The Orekit engine was not confirmed; do not use this result as an Orekit result.'}</p><b>GMAT / STK / FreeFlyer</b><p style={{ color: '#a8bdd4', margin: '4px 0 0' }}>GMAT, STK and FreeFlyer remain future optional adapters; their runtimes, APIs and applicable licenses must be available on their compute hosts first.</p></div>
     </>}
+
+    <div style={panel}>
+      <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: 9 }}><Orbit size={17} /> JPL Horizons lunar ephemeris</h3>
+      <p style={{ color: '#a8bdd4' }}>Query the Moon's geocentric geometric state vector from JPL Horizons. Enter a calendar epoch interpreted as TDB, without a UTC offset or Z suffix.</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px,1fr) auto', gap: 10, alignItems: 'end' }}>
+        <div><label style={label}>EPOCH (TDB)</label><input style={inputStyle} aria-label="Moon ephemeris epoch in TDB" value={moonEpochTdb} onChange={e => setMoonEpochTdb(e.target.value)} placeholder="YYYY-MM-DDTHH:mm:ss.sss" /></div>
+        <button style={buttonStyle} type="button" onClick={fetchMoonEphemeris} disabled={moonBusy}>{moonBusy ? 'Querying JPL…' : 'Fetch lunar state'}</button>
+      </div>
+      {moonError && <p role="alert" style={{ color: '#fecaca' }}>{moonError}</p>}
+      {moonState && <div style={{ marginTop: 14, color: '#c6d8e8' }}>
+        <b>Source:</b> {moonState.source} · <b>Kernel:</b> {moonState.kernelId || 'Not reported by API'} · <b>Frame:</b> {moonState.frame} · <b>Time scale:</b> {moonState.timeScale}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 12, marginTop: 10 }}>
+          <div><b>Position (m)</b><p style={{ overflowWrap: 'anywhere' }}>{moonState.positionM.map(v => v.toFixed(3)).join(', ')}</p></div>
+          <div><b>Velocity (m/s)</b><p style={{ overflowWrap: 'anywhere' }}>{moonState.velocityMps.map(v => v.toFixed(6)).join(', ')}</p></div>
+        </div>
+        <p style={{ color: '#91a9c4', fontSize: 11 }}>Formal position uncertainty: {moonState.positionUncertaintyM === null ? 'not supplied by this query' : moonState.positionUncertaintyM + ' m'}. Geometric state, no light-time correction. This is a point lookup, not a continuous ephemeris kernel loaded into the 3D scene.</p>
+      </div>}
+    </div>
     {!result && !errorMessage && <div style={{ ...panel, display: 'flex', gap: 12 }}><Orbit size={20} color="#67e8f9" /><div><b>Phase 01 scope</b><p style={{ color: '#a8bdd4', marginBottom: 0 }}>Validated input → Orekit numerical propagation → timestamped EME2000 state vector and orbital metrics. The current force model is Newtonian central gravity only.</p></div></div>}
     <div style={{ ...panel, display: 'flex', gap: 10 }}><AlertTriangle size={17} color="#fbbf24" /><div><b>Engineering fidelity notice</b><p style={{ color: '#a8bdd4', margin: '5px 0 0' }}>Educational preliminary analysis only. The current numerical force model includes Newtonian central gravity only. It excludes J2, atmospheric drag, solar radiation pressure, third-body effects, manoeuvre execution and covariance propagation. Do not use it for operational flight decisions.</p></div></div>
   </div>;
