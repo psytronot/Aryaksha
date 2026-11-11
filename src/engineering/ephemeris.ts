@@ -45,7 +45,11 @@ export function validateEphemerisState(
   if (![stateEpoch, requestedEpoch, start, end].every(Number.isFinite) || requestedEpoch < start || requestedEpoch > end) {
     issues.push('Requested epoch is outside the declared ephemeris kernel coverage.');
   }
-  if (state.kernelId !== null && !state.kernelId.trim()) issues.push('Ephemeris kernel identifier cannot be blank.');
+  if (state.kernelId === null) {
+    if (state.source !== 'JPL-HORIZONS') issues.push('A kernel identifier is required for this ephemeris provider.');
+  } else if (typeof state.kernelId !== 'string' || !state.kernelId.trim()) {
+    issues.push('Ephemeris kernel identifier cannot be blank.');
+  }
   if (!['JPL-DE', 'OREKIT-JPL', 'JPL-HORIZONS'].includes(state.source)) issues.push('Ephemeris source is not an approved kernel source.');
   if (![...state.positionM, ...state.velocityMps].every(Number.isFinite)) {
     issues.push('Ephemeris state must be finite.');

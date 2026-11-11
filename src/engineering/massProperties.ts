@@ -64,7 +64,9 @@ export function computeCompositeMassProperties(components: readonly MassComponen
     for (let axis = 0; axis < 3; axis += 1) weighted[axis] += component.massKg * component.positionM[axis];
   }
 
+  if (!Number.isFinite(totalMassKg)) throw new Error('Total component mass overflowed the supported numeric range.');
   const centre = weighted.map(value => value / totalMassKg) as [number, number, number];
+  if (!centre.every(Number.isFinite)) throw new Error('Composite centre of mass is outside the supported numeric range.');
   const inertia = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
 
   for (const component of components) {
@@ -78,6 +80,8 @@ export function computeCompositeMassProperties(components: readonly MassComponen
       }
     }
   }
+
+  if (inertia.some(row => row.some(value => !Number.isFinite(value)))) throw new Error('Composite inertia tensor overflowed the supported numeric range.');
 
   return {
     totalMassKg,

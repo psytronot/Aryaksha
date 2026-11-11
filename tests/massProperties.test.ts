@@ -35,3 +35,12 @@ describe('spacecraft composite mass properties', () => {
     }])).toThrow(/symmetric/);
   });
 });
+
+describe('mass-properties numeric range', () => {
+  it('rejects overflow when combining extreme component masses', () => {
+    expect(() => computeCompositeMassProperties([
+      { id: 'a', massKg: Number.MAX_VALUE, positionM: [0, 0, 0] },
+      { id: 'b', massKg: Number.MAX_VALUE, positionM: [0, 0, 0] }
+    ])).toThrow(/overflowed/);
+  });
+});

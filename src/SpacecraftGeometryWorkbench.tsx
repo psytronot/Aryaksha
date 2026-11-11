@@ -43,6 +43,8 @@ async function parseModel(file: File): Promise<LoadedModel> {
   object.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(object);
   if (box.isEmpty()) throw new Error('The imported file contains no renderable mesh geometry.');
+  const size = box.getSize(new THREE.Vector3());
+  if (![size.x, size.y, size.z].every(Number.isFinite) || Math.max(size.x, size.y, size.z) <= 0) throw new Error('Imported mesh has invalid or zero-size bounds.');
   const min = box.min.toArray() as [number, number, number];
   const max = box.max.toArray() as [number, number, number];
   return { object, name: file.name, format, bounds: { min, max } };
@@ -149,10 +151,13 @@ export default function SpacecraftGeometryWorkbench({ busDimensionsM, dryMassKg,
     const centre = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
     const extent = Math.max(size.x, size.y, size.z);
-    model.object.position.sub(centre);
-    model.object.scale.multiplyScalar(4 / extent);
-    scene.add(model.object);
-    modelRef.current = model.object;
+    const previewScale = 4 / extent;
+    const previewRoot = new THREE.Group();
+    previewRoot.add(model.object);
+    previewRoot.scale.setScalar(previewScale);
+    previewRoot.position.copy(centre).multiplyScalar(-previewScale);
+    scene.add(previewRoot);
+    modelRef.current = previewRoot;
     camera.position.set(5, 3.6, 6);
     controls.target.set(0, 0, 0);
     controls.update();
