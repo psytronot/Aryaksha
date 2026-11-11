@@ -214,6 +214,7 @@ function exportPassesCsv(passes: Pass[], satelliteName: string) {
 
 export default function SatelliteTrackingView() {
   const [catalog, setCatalog] = useState<Tle[]>([]);
+  const [catalogFetchedAt, setCatalogFetchedAt] = useState<Date | null>(null);
   const [selectedName, setSelectedName] = useState('');
   const [catalogGroup, setCatalogGroup] = useState<CatalogGroup>('stations');
   const [catalogStatus, setCatalogStatus] = useState('Loading current orbital elements…');
@@ -253,7 +254,11 @@ export default function SatelliteTrackingView() {
     catch { return null; }
   }, [tracking, now, station, frequency, stationValid]);
 
-  const tleAgeHours = tracking ? Math.max(0, (now.getTime() - tracking.epoch.getTime()) / 3600000) : null;
+  const tleAgeHours = tracking ? (now.getTime() - tracking.epoch.getTime()) / 3600000 : null;
+  const tleFutureEpoch = tleAgeHours !== null && tleAgeHours < -0.05;
+  const tleStale = tleAgeHours !== null && tleAgeHours > 168;
+  const tleOld = tleAgeHours !== null && tleAgeHours > 72;
+  const noradId = selected?.line1.slice(2, 7).trim() || 'Unknown';
   const filteredCatalog = catalog.filter(item => item.name.toLowerCase().includes(search.trim().toLowerCase()));
   const catalogOptions = selected && !filteredCatalog.some(item => item.name === selected.name)
     ? [selected, ...filteredCatalog]
@@ -292,11 +297,12 @@ export default function SatelliteTrackingView() {
       const rows = parseCatalog(await response.text());
       if (!rows.length) throw new Error('The source returned no valid two-line element records.');
       setCatalog(rows);
+      setCatalogFetchedAt(new Date());
       const preferred = rows.find(item => /ISS\s*\(ZARYA\)|\bISS\b|ZARYA/i.test(item.name)) || rows[0];
       setSelectedName(preferred.name);
       setPasses([]);
       setSelectedPassIndex(0);
-      setCatalogStatus('Live data loaded · ' + rows.length.toLocaleString() + ' objects · ' + GROUPS.find(item => item.value === group)?.label);
+      setCatalogStatus('Catalog elements fetched · ' + rows.length.toLocaleString() + ' objects · ' + GROUPS.find(item => item.value === group)?.label);
     } catch (reason) {
       setCatalogStatus('Live data unavailable. Manual TLE import is still available.');
       setError(reason instanceof Error ? reason.message : 'Unable to fetch current orbital elements.');
@@ -321,6 +327,7 @@ export default function SatelliteTrackingView() {
       setSelectedName(entry.name);
       setPasses([]);
       setSelectedPassIndex(0);
+      setCatalogFetchedAt(null);
       setCatalogStatus('Manual orbital elements loaded · SGP4 active');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'The TLE could not be parsed.');
@@ -367,7 +374,7 @@ export default function SatelliteTrackingView() {
       <div className="sat-track-heading">
         <div>
           <small>ARYAKSHA · SATELLITE OPS</small>
-          <h1>Satellite tracking & pass planning</h1>
+          <h1>Catalog-derived orbit estimates & pass planning</h1>
           <p>Track catalog objects, inspect the sky from your station, estimate radio Doppler shift and export visibility windows.</p>
         </div>
         <a href="https://celestrak.org/" target="_blank" rel="noreferrer">Orbital data source <ExternalLink size={13} /></a>
@@ -376,8 +383,8 @@ export default function SatelliteTrackingView() {
       <div className="sat-track-banner">
         <Radio size={17} />
         <div>
-          <b>Aryaksha Tracking Engine · SGP4 / TLE</b>
-          <span>Original browser-native implementation using the existing orbital engine and public orbital elements. Radio hardware control and SDR decoding are not connected in this release.</span>
+          <b>Catalog-derived orbit estimate · SGP4 / TLE · NOT TELEMETRY</b>
+          <span>Positions are propagated estimates from public two-line elements, not live onboard measurements or a spacecraft command/telemetry link. Radio hardware control and SDR decoding are not connected.</span>
         </div>
       </div>
 
@@ -420,14 +427,17 @@ export default function SatelliteTrackingView() {
           {tracking && (
             <div className="sat-track-stats">
               <div><small>OBJECT</small><b>{tracking.name}</b></div>
-              <div><small>TLE EPOCH</small><b>{formatIST(tracking.epoch)}</b></div>
-              <div><small>ELEMENT AGE</small><b className={tleAgeHours! > 72 ? 'sat-track-warning' : ''}>{tleAgeHours! < 1 ? Math.round(tleAgeHours! * 60) + ' min' : tleAgeHours!.toFixed(1) + ' h'}</b></div>
-              <div><small>PROPAGATOR</small><b>SGP4 / TEME</b></div>
+              <div><small>NORAD CATALOG ID</small><b>{noradId}</b></div>
+              <div><small>TLE EPOCH · UTC</small><b>{tracking.epoch.toISOString()}</b></div>
+              <div><small>ELEMENT AGE AT CURRENT TIME</small><b className={tleOld || tleFutureEpoch ? 'sat-track-warning' : ''}>{tleFutureEpoch ? 'Future epoch — verify source' : tleAgeHours! < 1 ? Math.round(tleAgeHours! * 60) + ' min' : tleAgeHours!.toFixed(1) + ' h'}</b></div>
+              <div><small>PROPAGATOR / FRAME</small><b>SGP4 / TEME</b></div>
+              <div><small>ELEMENT SOURCE</small><b>{tracking.source.startsWith('Manual') ? 'Manual TLE import' : 'CelesTrak GP catalogue'}</b></div>
+              <div><small>CATALOG FETCH TIME</small><b>{catalogFetchedAt ? catalogFetchedAt.toISOString() : 'Not recorded for manual TLE'}</b></div>
             </div>
           )}
-          {tleAgeHours !== null && tleAgeHours > 72 && (
-            <div className="sat-track-warning-panel">Orbital elements are over 72 hours old. Refresh before relying on pass timing.</div>
-          )}
+          {tleFutureEpoch && <div className="sat-track-warning-panel">TLE epoch is in the future relative to the current clock. Verify the element source and system time before using predictions.</div>}
+          {tleOld && <div className="sat-track-warning-panel">TLE epoch is over 72 hours old. Prediction quality may degrade; refresh before planning operations.</div>}
+          {tleStale && <div className="sat-track-warning-panel">STALE ELEMENT WARNING: TLE epoch is over 7 days old. Do not rely on these pass predictions for operational decisions.</div>}
           <label className="sat-track-field">
             <span>IMPORT TLE · NAME + TWO LINES</span>
             <textarea rows={4} value={manualTle} onChange={event => setManualTle(event.target.value)} placeholder={'ISS (ZARYA)\n1 25544 …\n2 25544 …'} />
