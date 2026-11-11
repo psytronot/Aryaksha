@@ -165,7 +165,7 @@ Commit the Orekit numerical-validation deliverable independently of UI work.
 ## Task 4: Verify Coach/Tutor, calculators, accessibility and mobile behavior
 
 **Files:**
-- Inspect existing Coach/Tutor implementation paths before edits; exact component paths are to be discovered from repository imports.
+- Proposed inspection target: `src/App.tsx` and its imported learning/coach components; resolve the exact component path from the current branch before editing.
 - Inspect/modify: `tests/e2e/acceptance-workflows.spec.ts`
 - Inspect/modify: `tests/e2e/earth3d-acceptance.spec.ts`
 - Create: `tests/e2e/coach-tutor-acceptance.spec.ts`
