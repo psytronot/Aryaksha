@@ -264,7 +264,7 @@ function App() {
           <Suspense fallback={<div role="status" className="page"><p>Loading workspace…</p></div>}>
           {view === 'mission' && <MissionView mission={mission} setMission={setMission} go={setView} />}
           {view === 'payload' && <PayloadView payload={payload} setPayload={setPayload} go={setView} />}
-          {view === 'spacecraft' && <SpacecraftView spacecraft={spacecraft} setSpacecraft={setSpacecraft} payload={payload} mission={mission} verification={verification} onMassPropertiesChange={syncSpacecraftMassProperties} />}
+          {view === 'spacecraft' && <SpacecraftView spacecraft={spacecraft} setSpacecraft={setSpacecraft} mission={mission} verification={verification} onMassPropertiesChange={syncSpacecraftMassProperties} />}
           {view === 'orbit' && <OrbitView orbit={orbit} updateOrbit={updateOrbit} maneuverAltitude={maneuverAltitude} setManeuverAltitude={setManeuverAltitude} maneuverInclination={maneuverInclination} setManeuverInclination={setManeuverInclination} maneuver={maneuver} applyPreset={applyPreset} selectedPreset={selectedPreset} />}
           {view === 'simulation' && <SimulationView model={model} current={currentState} seconds={seconds} moonEphemeris={moonEphemeris} duration={duration} running={running} setRunning={setRunning} playback={playback} setPlayback={setPlayback} setSeconds={setSeconds} mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} footprintAngle={geometry.footprintDeg} applyPreset={applyPreset} selectedPreset={selectedPreset} updateOrbit={updateOrbit} go={setView} />}
           {view === 'tracking' && <SatelliteTrackingView />}
@@ -341,7 +341,7 @@ function PayloadView({ payload, setPayload, go }: { payload: Payload; setPayload
   </div>;
 }
 
-function SpacecraftView({ spacecraft, setSpacecraft, payload, mission, verification, onMassPropertiesChange }: { spacecraft: Spacecraft; setSpacecraft: React.Dispatch<React.SetStateAction<Spacecraft>>; payload: Payload; mission: Mission; verification: ReturnType<typeof systemVerification>; onMassPropertiesChange: (properties: { totalMassKg: number; inertiaKgM2: readonly (readonly number[])[] }) => void }) {
+function SpacecraftView({ spacecraft, setSpacecraft, mission, verification, onMassPropertiesChange }: { spacecraft: Spacecraft; setSpacecraft: React.Dispatch<React.SetStateAction<Spacecraft>>; mission: Mission; verification: ReturnType<typeof systemVerification>; onMassPropertiesChange: (properties: { totalMassKg: number; inertiaKgM2: readonly (readonly number[])[] }) => void }) {
   const update = (patch: Partial<Spacecraft>) => setSpacecraft(x => ({ ...x, ...patch }));
   return <div className="page">
     <PageHeader eyebrow="03 · SPACECRAFT" title="Build the vehicle around the mission." text="These are preliminary subsystem parameters. Aryaksha uses them to expose coupled mass, power, propulsion, ADCS, thermal and communications consequences." />
