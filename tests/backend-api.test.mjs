@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { createHmac } from 'node:crypto';
 import { createServer } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -52,7 +53,7 @@ beforeAll(async () => {
   baseUrl = `http://127.0.0.1:${port}`;
   apiProcess = spawn(process.execPath, ['backend/server.mjs'], {
     cwd: process.cwd(),
-    env: { ...process.env, PORT: String(port), OREKIT_SERVICE_URL: '' },
+    env: { ...process.env, PORT: String(port), OREKIT_SERVICE_URL: '', ARYAKSHA_TELEMETRY_HMAC_SECRET: 'integration-test-ingest-secret', ARYAKSHA_TELEMETRY_READ_TOKEN: 'integration-test-read-secret' },
     stdio: 'ignore'
   });
   await waitForHealth(baseUrl, apiProcess);
@@ -194,4 +195,57 @@ describe('standalone orbit-analysis HTTP contract', () => {
     expect(payload.error).toBe('Both TLE lines are required.');
   });
 
+});
+
+describe('authenticated telemetry HTTP contract', () => {
+  const telemetry = {
+    spacecraftId: 'ARY-TEST-HTTP-01',
+    sequence: 1,
+    observedAt: '2026-11-11T00:00:00.000Z',
+    frame: 'GCRF',
+    units: { position: 'm', velocity: 'm/s' },
+    positionM: [7000000, 0, 0],
+    velocityMps: [0, 7500, 0]
+  };
+
+  async function ingest(body = telemetry, signatureOverride) {
+    const rawBody = JSON.stringify(body);
+    const timestamp = String(Date.now());
+    const signature = signatureOverride ?? createHmac('sha256', 'integration-test-ingest-secret')
+      .update(timestamp).update('.').update(rawBody).digest('hex');
+    return fetch(`${baseUrl}/api/v1/telemetry/ingest`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-aryaksha-timestamp': timestamp,
+        'x-aryaksha-signature': `sha256=${signature}`
+      },
+      body: rawBody
+    });
+  }
+
+  it('accepts signed telemetry and exposes it only with the read bearer token', async () => {
+    const accepted = await ingest();
+    const acceptedBody = await accepted.json();
+    expect(accepted.status).toBe(202);
+    expect(acceptedBody.accepted).toBe(true);
+    expect(acceptedBody.persisted).toBe(false);
+    expect(acceptedBody.storage).toBe('process-memory');
+
+    const denied = await fetch(`${baseUrl}/api/v1/telemetry/ARY-TEST-HTTP-01/latest`);
+    expect(denied.status).toBe(401);
+
+    const allowed = await fetch(`${baseUrl}/api/v1/telemetry/ARY-TEST-HTTP-01/latest`, {
+      headers: { authorization: 'Bearer integration-test-read-secret' }
+    });
+    const latest = await allowed.json();
+    expect(allowed.status).toBe(200);
+    expect(latest.record.spacecraftId).toBe('ARY-TEST-HTTP-01');
+    expect(latest.record.sequence).toBe(1);
+  });
+
+  it('rejects an invalid HMAC signature', async () => {
+    const response = await ingest({ ...telemetry, spacecraftId: 'ARY-TEST-HTTP-BAD' }, '0'.repeat(64));
+    expect(response.status).toBe(401);
+  });
 });
