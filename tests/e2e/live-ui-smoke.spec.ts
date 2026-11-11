@@ -10,7 +10,7 @@ test('live deployed UI serves the app shell and report-only CSP', async ({ page 
 
   const headers = await response?.allHeaders();
   expect(headers?.['content-security-policy-report-only']).toContain("default-src 'self'");
-  expect(headers?.['content-security-policy-report-only']).toContain("connect-src 'self' https://celestrak.org");
+  expect(headers?.['content-security-policy-report-only']).toContain("connect-src 'self' https://celestrak.org https://assets.science.nasa.gov");
   expect(pageErrors).toEqual([]);
 });
 

@@ -5,6 +5,9 @@ import App from './App';
 import './index.css';
 import './reduced-motion.css';
 
+// AppDeploy's injected install host can span the viewport; the app owns pointer input.
+document.documentElement.classList.add('aryaksha-app-active');
+
 // Remove campaign/share query parameters so the app always opens on a clean URL.
 if (window.location.search) {
   window.history.replaceState(window.history.state, '', window.location.pathname + window.location.hash);

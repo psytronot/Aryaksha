@@ -25,3 +25,709 @@
 .earth3d-planet-select select{max-width:180px;padding:6px 8px;background:#070b10;border:1px solid rgba(180,199,215,.25);color:#fff}
 @media(max-width:800px){.earth3d-workspace{min-height:760px}.earth3d-left-hud{top:142px;left:8px}.earth3d-right-hud{top:auto;bottom:74px;right:8px}.earth3d-mission-rail{grid-template-columns:1fr}.earth3d-mission-stages{gap:5px}}
 @media(max-width:500px){.earth3d-workspace{min-height:810px}.earth3d-left-hud{top:144px}.earth3d-left-hud .earth3d-hud-card{max-width:150px}.earth3d-right-hud{left:auto;right:8px;bottom:80px;max-width:calc(100% - 174px);grid-template-columns:1fr}.earth3d-hud-card{font-size:7px}.earth3d-mission-rail{padding:10px}.earth3d-mission-stages button{font-size:7px}.earth3d-planet-select{flex-wrap:wrap}}
+
+
+/* Keep all camera modes and RESET reachable on narrow touch screens. */
+@media(max-width:800px){
+  .earth3d-topbar{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;align-items:start}
+  .earth3d-object{width:max-content;max-width:100%;flex-wrap:wrap}
+  .earth-camera-controls{display:flex;flex-wrap:wrap;max-width:100%;gap:4px}
+  .earth-camera-button{min-height:32px}
+}
+@media(max-width:500px){
+  .earth3d-topbar{left:8px;right:8px}
+  .earth-camera-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;max-width:100%}
+  .earth-camera-button{width:100%;min-width:0;padding:0 4px;white-space:nowrap}
+  .earth3d-left-hud{top:178px}
+}
+
+/* Preserve an unobstructed Earth–Moon focal area on narrow touch screens. */
+@media(max-width:500px){
+  .earth3d-left-hud{
+    top:170px;
+    left:8px;
+    right:8px;
+    max-width:none;
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:4px;
+    max-height:210px;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+  }
+  .earth3d-left-hud .earth3d-hud-card{
+    max-width:none;
+    min-width:0;
+    padding:6px;
+    font-size:7px;
+  }
+  .earth3d-left-hud .earth3d-hud-card:nth-child(n+3){grid-column:1/-1}
+  .earth3d-right-hud{
+    top:auto;
+    left:8px;
+    right:8px;
+    bottom:46px;
+    max-width:none;
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:4px;
+    max-height:150px;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+  }
+  .earth3d-right-hud .earth3d-hud-card{
+    max-width:none;
+    min-width:0;
+    padding:6px;
+    font-size:7px;
+  }
+  .earth3d-right-hud .earth3d-hud-card:nth-child(2){grid-column:1/-1}
+  .earth3d-bottom-bar{
+    bottom:4px;
+    left:8px;
+    right:8px;
+    padding:4px 6px;
+    gap:6px;
+    font-size:6px;
+  }
+}
+
+
+.earth3d-imagery-status {
+  display: block;
+  margin-top: 0.35rem;
+}
+
+
+/* Reference-matched mission-control layout: keep the globe clear and controls in side rails. */
+.simulation-page .simulation-grid { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.simulation-page .scene-wrap { min-width: 0; min-height: 0; }
+.earth3d-workspace { display: grid; grid-template-columns: minmax(176px, 210px) minmax(0, 1fr) minmax(220px, 270px); grid-template-rows: auto minmax(560px, 1fr) auto; gap: 10px; min-height: 760px; padding: 12px; overflow: hidden; align-items: stretch; }
+.earth3d-topbar { position: relative; inset: auto; grid-column: 1 / -1; grid-row: 1; display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+.earth3d-canvas { position: relative; z-index: 0; inset: auto; grid-column: 2; grid-row: 2; min-width: 0; min-height: 560px; border: 1px solid rgba(173,194,211,.18); border-radius: 10px; overflow: hidden; }
+.earth3d-left-hud { position: relative; z-index: 4; pointer-events: auto; inset: auto; grid-column: 1; grid-row: 2; align-content: start; max-width: none; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
+.earth3d-right-hud { position: relative; z-index: 4; pointer-events: auto; inset: auto; grid-column: 3; grid-row: 2; max-width: none; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
+.earth3d-left-hud button, .earth3d-right-hud button { position: relative; z-index: 1; pointer-events: auto; }
+.earth3d-hud-card { width: 100%; max-width: none; border-radius: 9px; }
+.earth3d-bottom-bar { position: relative; inset: auto; grid-column: 1 / -1; grid-row: 3; margin: 0; }
+.earth3d-telemetry-card { gap: 8px; }
+.earth3d-telemetry-row { display: flex; justify-content: space-between; align-items: baseline; gap: 9px; border-bottom: 1px solid var(--line); padding-bottom: 5px; font-size: 8px; }
+.earth3d-telemetry-row span { color: var(--muted); }
+.earth3d-telemetry-row b { font-size: 9px; text-align: right; overflow-wrap: anywhere; }
+.earth3d-model-box { display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 8px; }
+.earth3d-model-box small { color: #d6aa70; font: 7px ui-monospace, monospace; letter-spacing: .16em; }
+.earth3d-model-box b { color: #f1f4f6; font-size: 10px; font-weight: 600; }
+.earth3d-model-box span { color: var(--muted); font: 7px/1.5 ui-monospace, monospace; }
+.earth-camera-controls { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; pointer-events: auto; }
+.earth-fullscreen-button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.earth-fullscreen-button span { font: 7px ui-monospace, monospace; }
+.earth3d-workspace:fullscreen { width: 100vw; height: 100vh; min-height: 100vh; border-radius: 0; padding: 12px; grid-template-rows: auto minmax(0, 1fr) auto; background: #03060b; }
+.earth3d-workspace:fullscreen .earth3d-canvas { min-height: 0; height: 100%; }
+@media (max-width: 1350px) and (min-width: 801px) {
+  .earth3d-workspace { grid-template-columns: minmax(150px, 185px) minmax(320px, 1fr); grid-template-rows: auto minmax(480px, 1fr) auto auto auto; }
+  .earth3d-right-hud { grid-column: 2; grid-row: 3; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 220px; }
+  .earth3d-right-hud .earth3d-hud-card:first-child { grid-column: 1 / -1; }
+  .earth3d-bottom-bar { grid-row: 4; }
+}
+@media (max-width: 800px) {
+  .earth3d-workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(320px, 46svh) auto auto auto; min-height: 0; padding: 8px; gap: 8px; overflow: visible; }
+  .earth3d-topbar { grid-column: 1; grid-row: 1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; }
+  .earth3d-object { width: 100%; max-width: 100%; }
+  .earth-camera-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; max-width: none; gap: 5px; }
+  .earth-camera-button { width: 100%; min-width: 0; height: 36px; }
+  .earth-fullscreen-button { justify-content: center; }
+  .earth3d-canvas { grid-column: 1; grid-row: 2; min-height: 320px; height: 46svh; max-height: 460px; }
+  .earth3d-left-hud { grid-column: 1; grid-row: 3; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; max-height: none; overflow: visible; }
+  .earth3d-left-hud .earth3d-hud-card:nth-child(n + 3) { grid-column: 1 / -1; }
+  .earth3d-right-hud { grid-column: 1; grid-row: 4; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; max-height: none; overflow: visible; }
+  .earth3d-right-hud .earth3d-hud-card:first-child { grid-column: 1 / -1; }
+  .earth3d-bottom-bar { grid-column: 1; grid-row: 5; gap: 8px; flex-wrap: wrap; }
+  .earth3d-help { display: none; }
+}
+@media (max-width: 500px) {
+  .earth3d-workspace { grid-template-rows: auto minmax(300px, 44svh) auto auto auto; padding: 6px; }
+  .earth3d-canvas { min-height: 300px; height: 44svh; max-height: 400px; }
+  .earth3d-left-hud, .earth3d-right-hud { max-height: none; overflow: visible; }
+  .earth3d-hud-card { padding: 8px; font-size: 7px; }
+  .earth3d-bottom-bar { padding: 7px; font-size: 6px; }
+  .earth-camera-button { font-size: 8px; }
+  .main:has(.simulation-page) { padding-left: 8px; padding-right: 8px; }
+  .simulation-page { padding-left: 0; padding-right: 0; }
+  .simulation-page > .page-header { margin-left: 12px; margin-right: 12px; }
+}
+
+.earth3d-source-badge { font-weight: 700; letter-spacing: .08em; }
+.earth3d-source-badge.simulated { color: #9bd3f3; border-color: rgba(89, 169, 220, .45); background: rgba(41, 101, 145, .16); }
+.earth3d-source-badge.tracked { color: #85e1ad; border-color: rgba(86, 190, 132, .45); background: rgba(40, 117, 79, .16); }
+
+/* AppDeploy's platform-injected install host can span the viewport and steal
+   pointer events even when its visible sheet sits below the Earth 3D controls. */
+html.earth3d-active pwa-install {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Mission timeline and scene gallery — kept inside the Earth 3D mission-control frame. */
+.earth3d-workspace { grid-template-rows: auto minmax(560px, 1fr) auto auto; }
+.earth3d-timeline { position: relative; z-index: 8; pointer-events: auto; grid-column: 1 / -1; grid-row: 4; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 8px 12px; align-items: center; min-width: 0; padding: 10px 12px; border: 1px solid rgba(173,194,211,.18); border-radius: 9px; background: rgba(4,7,12,.88); }
+.earth3d-timeline-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-width: 0; }
+.earth3d-timeline-heading span { color: #d6aa70; font: 8px ui-monospace,monospace; letter-spacing: .14em; }
+.earth3d-timeline-heading b { color: #e9f2f8; font: 10px ui-monospace,monospace; white-space: nowrap; }
+.earth3d-scene-gallery { display: flex; gap: 6px; min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; }
+.earth3d-gallery-item { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; min-height: 34px; padding: 4px 7px; border: 1px solid rgba(173,194,211,.18); border-radius: 6px; background: rgba(8,13,20,.82); color: #aebdca; cursor: pointer; font: 7px ui-monospace,monospace; letter-spacing: .08em; }
+.earth3d-gallery-item.active { border-color: rgba(216,169,103,.7); color: #f2d3a4; background: rgba(216,169,103,.1); }
+.earth3d-gallery-thumb { display: block; width: 27px; height: 20px; flex: 0 0 auto; border: 1px solid rgba(180,199,215,.22); border-radius: 50%; }
+.earth3d-gallery-thumb[data-scene="earth"] { background: radial-gradient(circle at 38% 36%, #70b9d2 0 10%, #1e7092 28%, #0b3150 62%, #03070c 78%); }
+.earth3d-gallery-thumb[data-scene="moon"] { background: radial-gradient(circle at 42% 38%, #c6c5bd 0 18%, #777871 52%, #24282c 76%); }
+.earth3d-gallery-thumb[data-scene="system"] { background: radial-gradient(circle at 34% 50%, #2d7da6 0 19%, transparent 21%), radial-gradient(circle at 72% 55%, #b3b2a8 0 8%, transparent 10%), #040a12; }
+.earth3d-time-range { grid-column: 1 / -1; width: 100%; min-width: 0; margin: 0; accent-color: #d6aa70; cursor: pointer; }
+.earth3d-timeline-actions { grid-column: 1 / -1; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.earth3d-timeline-actions button, .earth3d-playback-speed select { min-height: 30px; padding: 5px 9px; border: 1px solid rgba(173,194,211,.2); border-radius: 5px; background: rgba(8,13,20,.9); color: #dce8f1; font: 8px ui-monospace,monospace; cursor: pointer; }
+.earth3d-timeline-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.earth3d-timeline-actions button:disabled { opacity: .55; cursor: default; }
+.earth3d-playback-speed { display: inline-flex; align-items: center; gap: 6px; color: #d6aa70; font: 8px ui-monospace,monospace; }
+.earth3d-timeline-actions > span { color: #7f91a2; font: 7px ui-monospace,monospace; }
+.earth3d-workspace:fullscreen { grid-template-rows: auto minmax(0, 1fr) auto auto; }
+@media (max-width: 1350px) and (min-width: 801px) {
+  .earth3d-workspace { grid-template-rows: auto minmax(480px, 1fr) auto auto auto; }
+  .earth3d-bottom-bar { grid-row: 4; }
+  .earth3d-timeline { grid-row: 5; }
+}
+@media (max-width: 800px) {
+  .earth3d-workspace { grid-template-rows: auto minmax(320px, 46svh) auto auto auto auto; }
+  .earth3d-bottom-bar { grid-row: 5; }
+  .earth3d-timeline { grid-column: 1; grid-row: 6; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 9px; }
+  .earth3d-timeline-heading, .earth3d-scene-gallery, .earth3d-time-range, .earth3d-timeline-actions { grid-column: 1; }
+  .earth3d-timeline-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+  .earth3d-timeline-actions button { width: 100%; min-width: 0; padding: 5px 3px; }
+  .earth3d-playback-speed { grid-column: 1 / -1; justify-content: space-between; }
+  .earth3d-playback-speed select { min-width: 110px; }
+}
+@media (max-width: 500px) {
+  .earth3d-timeline-heading span { font-size: 7px; }
+  .earth3d-gallery-item { min-height: 32px; padding: 3px 6px; }
+}
+
+
+/* Mobile focus mode: keep the Earth–Moon canvas primary and expose dense HUD
+   panels on demand. Desktop side rails remain continuously visible. */
+.earth-mobile-data-toggle { display: none; }
+.earth3d-scale-note { display: none; }
+@media (max-width: 800px) {
+  .earth-mobile-data-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .earth3d-left-hud[data-mobile-open="false"],
+  .earth3d-right-hud[data-mobile-open="false"] {
+    display: none;
+  }
+  .earth3d-left-hud[data-mobile-open="true"] {
+    display: grid;
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .earth3d-right-hud[data-mobile-open="true"] {
+    display: grid;
+    grid-column: 1;
+    grid-row: 4;
+  }
+  .earth3d-scale-note {
+    display: block;
+    flex: 1 0 100%;
+    color: #d6aa70;
+    font: 7px/1.5 ui-monospace, monospace;
+    letter-spacing: .08em;
+    overflow-wrap: anywhere;
+  }
+}
+
+
+/* Reference dashboard increment: mission setup, simulation controls and lower data cards. */
+.earth3d-card-heading { display:flex; justify-content:space-between; align-items:center; gap:6px; }
+.earth3d-card-heading > span { color:var(--muted); font:7px ui-monospace,monospace; text-align:right; }
+.earth3d-mission-setup-name { display:block; color:#f1f4f6; font-size:12px!important; }
+.earth3d-mission-setup-target { color:var(--muted); font:7px/1.45 ui-monospace,monospace; overflow-wrap:anywhere; }
+.earth3d-mission-setup-tabs { display:grid; grid-template-columns:1fr 1fr; gap:4px; border-bottom:1px solid var(--line); padding-bottom:5px; }
+.earth3d-mission-setup-tabs button { min-width:0; padding:6px 3px; border:1px solid transparent; background:transparent; color:var(--muted); font:7px ui-monospace,monospace; letter-spacing:.04em; }
+.earth3d-mission-setup-tabs button.active { border-color:rgba(216,169,103,.55); color:#f2d3a4; background:rgba(216,169,103,.08); }
+.earth3d-mission-preset-list { display:grid; gap:4px; }
+.earth3d-mission-preset-list button { display:flex; justify-content:space-between; align-items:center; gap:5px; min-width:0; padding:6px 7px; border:1px solid rgba(180,199,215,.14); background:rgba(255,255,255,.015); color:#e8eef3; text-align:left; }
+.earth3d-mission-preset-list button.active { border-color:rgba(81,221,255,.55); background:rgba(81,221,255,.07); }
+.earth3d-mission-preset-list button span { font:700 7px ui-monospace,monospace; letter-spacing:.06em; }
+.earth3d-mission-preset-list button small { color:var(--muted); font:6px ui-monospace,monospace; text-align:right; letter-spacing:0; }
+.earth3d-custom-orbit { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.earth3d-custom-orbit label { display:grid; gap:3px; color:var(--muted); font:6px ui-monospace,monospace; letter-spacing:.06em; }
+.earth3d-custom-orbit label:first-child { grid-column:1/-1; }
+.earth3d-custom-orbit input { width:100%; min-width:0; height:29px; padding:0 6px; border:1px solid rgba(180,199,215,.2); border-radius:4px; background:#070b10; color:#fff; font:8px ui-monospace,monospace; }
+.earth3d-custom-orbit > small { grid-column:1/-1; color:var(--muted); font:6px/1.45 ui-monospace,monospace; letter-spacing:0; }
+.earth3d-mission-setup-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; }
+.earth3d-mission-setup-actions button { min-width:0; min-height:27px; padding:4px; border:1px solid rgba(180,199,215,.18); background:rgba(255,255,255,.025); color:#dce8f1; font:7px ui-monospace,monospace; }
+.earth3d-mission-setup-actions .primary-action { grid-column:1/-1; border-color:rgba(81,221,255,.4); background:rgba(0,102,204,.45); color:#fff; }
+.earth3d-mission-setup-actions button:disabled { opacity:.65; cursor:default; }
+.earth3d-mission-setup-meta { display:grid; gap:2px; border-top:1px solid var(--line); padding-top:6px; color:var(--muted); font:6px ui-monospace,monospace; }
+.earth3d-control-actions { display:grid; gap:7px; }
+.earth3d-play-control { display:flex; align-items:center; justify-content:center; gap:6px; min-height:34px; border:1px solid rgba(81,221,255,.4); background:rgba(0,102,204,.55); color:#fff; font:8px ui-monospace,monospace; }
+.earth3d-speed-presets { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; }
+.earth3d-speed-presets button { min-height:28px; border:1px solid rgba(180,199,215,.18); background:rgba(255,255,255,.025); color:var(--muted); font:8px ui-monospace,monospace; }
+.earth3d-speed-presets button.active { border-color:rgba(81,221,255,.55); background:rgba(81,221,255,.09); color:#fff; }
+.earth3d-simulation-clock { display:grid; gap:4px; border-top:1px solid var(--line); padding-top:7px; }
+.earth3d-simulation-clock b { color:#fff; font:8px ui-monospace,monospace; overflow-wrap:anywhere; }
+.earth3d-simulation-clock span { color:var(--muted); font:7px ui-monospace,monospace; }
+.earth3d-bottom-panels { display:grid; grid-template-columns:minmax(0,1.12fr) minmax(0,1fr) minmax(0,.95fr); gap:12px; margin-top:12px; align-items:stretch; }
+.earth3d-bottom-panel,.earth3d-bottom-panels > section { min-width:0; }
+.earth3d-bottom-panels .card { height:100%; min-width:0; padding:16px; }
+.earth3d-ground-track-panel .card { display:flex; flex-direction:column; }
+.earth3d-ground-track-panel .ground-track-wrap { flex:1; min-height:0; }
+.earth3d-ground-track-panel .ground-track-svg { aspect-ratio:2.05/1; }
+.earth3d-bottom-metrics { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+.earth3d-bottom-metrics > div { min-width:0; padding:10px; border:1px solid rgba(180,199,215,.12); border-radius:7px; background:rgba(255,255,255,.018); }
+.earth3d-bottom-metrics small,.earth3d-mission-info-grid small { display:block; color:var(--cyan); font:7px ui-monospace,monospace; letter-spacing:.08em; }
+.earth3d-bottom-metrics b { display:block; margin-top:5px; color:#fff; font:10px ui-monospace,monospace; overflow-wrap:anywhere; }
+.earth3d-card-note { margin:10px 0 0; color:var(--muted); font:8px/1.5 ui-monospace,monospace; }
+.earth3d-mission-info { display:grid; gap:10px; }
+.earth3d-mission-identity { display:grid; gap:4px; border-bottom:1px solid var(--line); padding-bottom:9px; }
+.earth3d-mission-identity b { color:#fff; font-size:13px; }
+.earth3d-mission-identity span { color:var(--muted); font-size:9px; }
+.earth3d-mission-info-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 8px; }
+.earth3d-mission-info-grid > div { display:grid; gap:4px; min-width:0; }
+.earth3d-mission-info-grid b { color:#fff; font:8px ui-monospace,monospace; overflow-wrap:anywhere; }
+.earth3d-mission-info-grid span { color:var(--muted); font:7px/1.45 ui-monospace,monospace; overflow-wrap:anywhere; }
+.earth3d-mission-info-footer { display:flex; flex-wrap:wrap; gap:5px 8px; border-top:1px solid var(--line); padding-top:8px; color:var(--muted); font:7px ui-monospace,monospace; }
+.earth3d-mission-info-footer b { color:#fff; }
+@media(max-width:1100px) and (min-width:801px) {
+  .earth3d-bottom-panels { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .earth3d-ground-track-panel { grid-column:1/-1; }
+}
+@media(max-width:800px) {
+  .earth3d-left-hud .earth3d-mission-setup-card { grid-column:1/-1; }
+  .earth3d-bottom-panels { grid-template-columns:minmax(0,1fr); }
+  .earth3d-bottom-panels .card { padding:14px; }
+  .earth3d-ground-track-panel .ground-track-svg { aspect-ratio:1.75/1; }
+}
+@media(max-width:500px) {
+  .earth3d-mission-preset-list button { min-height:34px; }
+  .earth3d-custom-orbit input { min-height:36px; font-size:16px; }
+  .earth3d-mission-setup-actions button { min-height:34px; }
+  .earth3d-simulation-clock b { font-size:7px; }
+  .earth3d-bottom-metrics > div { padding:8px; }
+}
+
+.earth3d-speed-presets { grid-template-columns:repeat(5,minmax(0,1fr)); }
+
+@media(min-width:1351px) {
+  .earth3d-workspace { grid-template-columns:minmax(230px,260px) minmax(0,1fr) minmax(245px,275px); }
+}
+
+
+/* Desktop mission-control shell: match the supplied three-rail reference without
+   changing the underlying simulation or the mobile drawer navigation. */
+.app-shell.simulation-active .mission-strip { display: none; }
+.app-shell.simulation-active .main { max-width: none; padding: 0 14px 24px; }
+.app-shell.simulation-active .simulation-page { width: 100%; max-width: none; margin: 0; padding: 0; }
+.app-shell.simulation-active .simulation-page > .page-header { display: none; }
+.app-shell.simulation-active .engine-status { display: none; }
+.simulation-primary-nav { display: none; }
+
+@media (min-width: 1351px) {
+  .app-shell.simulation-active .shell { grid-template-columns: minmax(0, 1fr); }
+  .app-shell.simulation-active .sidebar { display: none; }
+  .app-shell.simulation-active .topbar { height: 72px; padding: 0 18px; gap: 12px; }
+  .simulation-primary-nav {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 0;
+    margin: 0 auto;
+  }
+  .simulation-primary-nav button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 38px;
+    padding: 0 10px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    font: 10px ui-monospace, monospace;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .simulation-primary-nav button:hover {
+    border-color: rgba(81,221,255,.2);
+    background: rgba(81,221,255,.07);
+    color: #fff;
+  }
+  .simulation-primary-nav button[aria-current="page"] {
+    border-color: rgba(81,221,255,.32);
+    background: rgba(81,221,255,.10);
+    color: #fff;
+    box-shadow: inset 0 -2px var(--cyan);
+  }
+  .simulation-primary-nav svg { color: var(--cyan); }
+  .app-shell.simulation-active .earth3d-workspace {
+    grid-template-columns: minmax(280px, 300px) minmax(0, 1fr) minmax(280px, 300px);
+    grid-template-rows: auto minmax(560px, 1fr) auto;
+    min-height: 700px;
+  }
+  .app-shell.simulation-active .earth3d-canvas { min-height: 500px; }
+  .app-shell.simulation-active .earth3d-left-hud,
+  .app-shell.simulation-active .earth3d-right-hud {
+    max-height: 100%;
+    overflow-y: auto;
+  }
+  .app-shell.simulation-active .earth3d-bottom-panels { margin-top: 8px; gap: 10px; }
+  .app-shell.simulation-active .earth3d-bottom-panels .card { padding: 12px; }
+  .app-shell.simulation-active .earth3d-bottom-metrics > div { padding: 8px; }
+  .app-shell.simulation-active .earth3d-mission-info { gap: 8px; }
+}
+
+@media (max-width: 1350px) {
+  .simulation-primary-nav { display: none; }
+}
+
+@media (max-width: 800px) {
+  .app-shell.simulation-active .shell { display: block; }
+  .app-shell.simulation-active .sidebar { display: none; }
+  .app-shell.simulation-active .topbar { height: 64px; padding: 0 12px; }
+  .app-shell.simulation-active .main { padding: 0 12px 40px; }
+}
+
+.app-shell.simulation-active .simulation-grid,
+.app-shell.simulation-active .scene-wrap { width: 100%; max-width: none; }
+
+
+/* Geometry correction: bound the desktop mission workspace to the reference viewport. */
+@media (min-width: 1351px) {
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page {
+    max-width: none;
+    padding: 0;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .page-header {
+    margin: 0 0 6px;
+    padding: 0 12px;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .page-header > div {
+    display: grid;
+    grid-template-columns: minmax(90px, auto) minmax(0, 1.4fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 2px 12px;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .page-header > div > small:first-child,
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .page-header p {
+    display: none;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .page-header h1 {
+    display: block;
+    grid-column: 1;
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.2;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .page-header .earth3d-imagery-status {
+    display: block;
+    grid-column: 2;
+    margin: 0;
+    font: 7px/1.25 ui-monospace, monospace;
+    white-space: normal;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .page-header > div > small:last-child {
+    grid-column: 3;
+    margin: 0;
+    font: 6px/1.25 ui-monospace, monospace;
+    text-align: right;
+  }
+  .app-shell.simulation-active .earth3d-workspace {
+    height: min(650px, calc(100vh - 160px));
+    min-height: 620px;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+  }
+  .app-shell.simulation-active .earth3d-canvas {
+    min-height: 0;
+    height: 100%;
+  }
+  .app-shell.simulation-active .earth3d-left-hud,
+  .app-shell.simulation-active .earth3d-right-hud {
+    min-height: 0;
+    max-height: 100%;
+    overflow-y: auto;
+  }
+}
+
+/* Recover the two CSS pixels lost to nested mobile workspace gutters. */
+@media (max-width: 500px) {
+  .app-shell.simulation-active .earth3d-workspace {
+    padding: 5px;
+  }
+}
+
+
+/* Keep the Earth dominant while placing timeline/legend overlays only in the centre rail. */
+@media (min-width: 1351px) {
+  .app-shell.simulation-active .earth3d-workspace {
+    height: min(680px, calc(100vh - 220px));
+    min-height: 520px;
+    max-height: 680px;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .app-shell.simulation-active .earth3d-topbar {
+    position: absolute;
+    inset: 12px 12px auto;
+    z-index: 12;
+    grid-column: auto;
+    grid-row: auto;
+    pointer-events: none;
+  }
+  .app-shell.simulation-active .earth3d-topbar > * { pointer-events: auto; }
+  .app-shell.simulation-active .earth3d-canvas {
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 0;
+    height: 100%;
+  }
+  .app-shell.simulation-active .earth3d-left-hud,
+  .app-shell.simulation-active .earth3d-right-hud {
+    grid-row: 1;
+    min-height: 0;
+    max-height: 100%;
+    overflow-y: auto;
+    padding-top: 56px;
+    overscroll-behavior: contain;
+  }
+  .app-shell.simulation-active .earth3d-left-hud { grid-column: 1; }
+  .app-shell.simulation-active .earth3d-right-hud { grid-column: 3; }
+  .app-shell.simulation-active .earth3d-bottom-bar {
+    position: absolute;
+    left: calc(300px + 22px);
+    right: calc(300px + 22px);
+    bottom: 146px;
+    z-index: 9;
+    grid-column: auto;
+    grid-row: auto;
+    margin: 0;
+  }
+  .app-shell.simulation-active .earth3d-timeline {
+    position: absolute;
+    left: calc(300px + 22px);
+    right: calc(300px + 22px);
+    bottom: 12px;
+    z-index: 9;
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+
+
+/* Compact the mobile header and controls so the Earth globe is visible in the
+   first viewport; keep complete provenance and scale disclosures in the DOM. */
+@media (max-width: 800px) {
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header {
+    margin: 0 0 6px;
+    padding: 0 8px;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header > div {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 3px 8px;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header > div > small:first-child,
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header p {
+    display: none;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header h1 {
+    grid-column: 1;
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.1;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header .earth3d-imagery-status {
+    grid-column: 2;
+    min-width: 0;
+    margin: 0;
+    font: 6px/1.2 ui-monospace, monospace;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header > div > small:last-child {
+    grid-column: 1 / -1;
+    margin: 0;
+    font: 6px/1.2 ui-monospace, monospace;
+    text-align: left;
+  }
+}
+@media (max-width: 500px) {
+  .app-shell.simulation-active .earth-camera-controls {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .app-shell.simulation-active .earth-camera-button {
+    height: 28px;
+    min-height: 28px;
+    padding: 0 2px;
+    font-size: 7px;
+  }
+  .app-shell.simulation-active .earth-fullscreen-button span {
+    font-size: 6px;
+  }
+  .app-shell.simulation-active .earth3d-workspace {
+    grid-template-rows: auto minmax(320px, 48svh) auto auto auto;
+  }
+  .app-shell.simulation-active .earth3d-canvas {
+    height: 48svh;
+    max-height: 430px;
+  }
+}
+
+
+/* Schematic planetary overview: deliberately distinct from tracked spacecraft and physical Earth–Moon scale. */
+.earth3d-gallery-thumb[data-scene="planets"] {
+  background: radial-gradient(circle at 50% 50%, #ffd27a 0 14%, transparent 15%),
+    radial-gradient(circle at 24% 34%, #9b9a97 0 5%, transparent 6%),
+    radial-gradient(circle at 70% 34%, #4b9fe8 0 6%, transparent 7%),
+    radial-gradient(circle at 78% 68%, #d8c69b 0 8%, transparent 9%),
+    #03070c;
+}
+.earth3d-planetary-disclosure {
+  display: block;
+  margin-top: 5px;
+  color: #8fa3b7;
+  font: 7px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .055em;
+}
+.earth3d-planetary-controls .earth3d-planet-select { margin-top: 7px; }
+@media (max-width: 800px) {
+  .earth3d-planetary-disclosure { font-size: 6.5px; }
+}
+
+
+/* Keep the reference Earth viewport unobstructed by the optional mission timeline. */
+.earth3d-timeline[hidden] { display: none !important; }
+.earth3d-timeline-toggle {
+  flex: 0 0 auto;
+  min-height: 24px;
+  padding: 3px 8px;
+  border: 1px solid rgba(89, 211, 245, .32);
+  border-radius: 5px;
+  background: rgba(5, 18, 28, .9);
+  color: #a8e8fa;
+  font: 7px ui-monospace, monospace;
+  letter-spacing: .08em;
+  cursor: pointer;
+}
+.earth3d-timeline-toggle:hover,
+.earth3d-timeline-toggle:focus-visible {
+  border-color: rgba(89, 211, 245, .75);
+  outline: 2px solid rgba(89, 211, 245, .25);
+  outline-offset: 2px;
+}
+@media (min-width: 1351px) {
+  .app-shell.simulation-active .earth3d-workspace:not([data-timeline-open="true"]) .earth3d-bottom-bar {
+    bottom: 12px;
+  }
+  .app-shell.simulation-active .earth3d-workspace[data-timeline-open="true"] {
+    height: auto;
+    min-height: 760px;
+    max-height: none;
+    grid-template-rows: auto minmax(560px, 1fr) auto auto;
+  }
+  .app-shell.simulation-active .earth3d-workspace[data-timeline-open="true"] .earth3d-topbar {
+    position: relative;
+    inset: auto;
+    grid-column: 1 / -1;
+    grid-row: 1;
+    pointer-events: auto;
+  }
+  .app-shell.simulation-active .earth3d-workspace[data-timeline-open="true"] .earth3d-canvas {
+    grid-column: 2;
+    grid-row: 2;
+    min-height: 560px;
+    height: 100%;
+  }
+  .app-shell.simulation-active .earth3d-workspace[data-timeline-open="true"] .earth3d-left-hud {
+    grid-column: 1;
+    grid-row: 2;
+    padding-top: 0;
+  }
+  .app-shell.simulation-active .earth3d-workspace[data-timeline-open="true"] .earth3d-right-hud {
+    grid-column: 3;
+    grid-row: 2;
+    padding-top: 0;
+  }
+  .app-shell.simulation-active .earth3d-workspace[data-timeline-open="true"] .earth3d-bottom-bar {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    grid-column: 2;
+    grid-row: 3;
+    margin: 0;
+  }
+  .app-shell.simulation-active .earth3d-workspace[data-timeline-open="true"] .earth3d-timeline {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    z-index: 9;
+    grid-column: 1 / -1;
+    grid-row: 4;
+    margin: 0;
+  }
+}
+
+
+/* Keep the required imagery provenance and visual-scale disclosures readable. */
+.earth3d-page-header .earth3d-imagery-status {
+  max-width: 100%;
+  color: #a8d9ea;
+  font: 9px/1.4 ui-monospace, monospace;
+  letter-spacing: .025em;
+  overflow-wrap: anywhere;
+}
+.earth3d-page-header > div > small:last-child {
+  display: block;
+  max-width: 100%;
+  margin-top: 4px;
+  color: #bdcbd8;
+  font: 9px/1.4 ui-monospace, monospace;
+  letter-spacing: .015em;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 800px) {
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header .earth3d-imagery-status {
+    color: #a8d9ea;
+    font: 8px/1.35 ui-monospace, monospace;
+    overflow-wrap: anywhere;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header > div > small:last-child {
+    color: #bdcbd8;
+    font: 8px/1.35 ui-monospace, monospace;
+    overflow-wrap: anywhere;
+  }
+}
+
+
+/* Override the older high-specificity compact header rules on desktop as well. */
+.app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header .earth3d-imagery-status {
+  color: #a8d9ea;
+  font: 9px/1.4 ui-monospace, monospace;
+  letter-spacing: .025em;
+  overflow-wrap: anywhere;
+}
+.app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header > div > small:last-child {
+  color: #bdcbd8;
+  font: 9px/1.4 ui-monospace, monospace;
+  letter-spacing: .015em;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 800px) {
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header .earth3d-imagery-status {
+    font: 8px/1.35 ui-monospace, monospace;
+  }
+  .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header > div > small:last-child {
+    font: 8px/1.35 ui-monospace, monospace;
+  }
+}

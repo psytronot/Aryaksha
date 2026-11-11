@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity, ArrowRight, Battery, BookOpen, Calculator, Check, CircleHelp, Cpu, Download,
-  Gauge, Globe2, Info, Layers3, Orbit, Pause, Play, Radio, RefreshCw, Rocket,
+  Gauge, Globe2, Info, Layers3, Orbit, Play, Radio, RefreshCw, Rocket,
   Satellite, Search, Settings2, Target, Thermometer, TriangleAlert, Wrench, Zap
 } from 'lucide-react';
 const Earth3DScene = lazy(() => import('./Earth3DScene'));
@@ -89,6 +89,12 @@ function App() {
     localStorage.setItem('orbital-lab-coach-enabled', String(coachEnabled));
   }, [coachEnabled]);
 
+  // A simulation workspace is a focused mission-control destination, not a
+  // continuation of the long-form landing page's previous scroll position.
+  useEffect(() => {
+    if (view === 'simulation') window.scrollTo(0, 0);
+  }, [view]);
+
   useEffect(() => {
     if (!running) return;
     const id = window.setInterval(() => {
@@ -109,7 +115,7 @@ function App() {
     window.setTimeout(() => setNotice(''), 2800);
   };
 
-  const updateOrbit = (patch: Partial<OrbitDesign>) => setOrbit(current => ({ ...current, ...patch, a: EARTH_RADIUS + (patch.altitudeKm ?? current.altitudeKm) }));
+  const updateOrbit = (patch: Partial<OrbitDesign>) => { setSelectedPreset('Custom Orbit'); setOrbit(current => ({ ...current, ...patch, a: EARTH_RADIUS + (patch.altitudeKm ?? current.altitudeKm) })); };
 
   const applyPreset = (name: string, altitude: number, inclination: number) => {
     setSelectedPreset(name);
@@ -169,16 +175,27 @@ function App() {
   };
 
   return (
-    <div className="app-shell">
+    <div className={view === 'simulation' ? 'app-shell simulation-active' : 'app-shell'}>
       <header className="topbar">
         <button className="brand" onClick={() => { setView('mission'); setMobileNavOpen(false); }}>
           <span className="brand-mark"><AryakshaMark size={34} /></span>
           <span><strong>ARYAKSHA</strong><small>SPACE EXPLORATION LAB</small></span>
         </button>
+        {view === 'simulation' && (
+          <nav className="simulation-primary-nav" aria-label="Simulation workspace navigation" data-testid="simulation-primary-nav">
+            <button type="button" onClick={() => setView('mission')}><Target size={15} /><span>Mission</span></button>
+            <button type="button" onClick={() => setView('spacecraft')}><Satellite size={15} /><span>Spacecraft</span></button>
+            <button type="button" onClick={() => setView('orbit')}><Orbit size={15} /><span>Orbits</span></button>
+            <button type="button" aria-current="page" onClick={() => setView('simulation')}><Globe2 size={15} /><span>Earth 3D</span></button>
+            <button type="button" onClick={() => document.getElementById('earth3d-ground-track-panel')?.scrollIntoView({ block: 'start', behavior: 'smooth' })}><Globe2 size={15} /><span>Ground Track</span></button>
+            <button type="button" onClick={() => setView('instructions')}><BookOpen size={15} /><span>Docs</span></button>
+          </nav>
+        )}
         <div className="engine-status"><span /> PHYSICS ENGINE <b>READY</b></div>
         <div className="topbar-actions"><button className="mobile-menu-button" type="button" aria-label={mobileNavOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={mobileNavOpen} aria-controls="mobile-navigation" onClick={() => setMobileNavOpen(v => !v)}><Layers3 size={17} /></button><button className={coachEnabled ? "coach-setting active" : "coach-setting"} type="button" aria-pressed={coachEnabled} onClick={() => setCoachEnabled(v => !v)}><CircleHelp size={15} /><span>COACH {coachEnabled ? "ON" : "OFF"}</span></button><button className="top-help" onClick={() => { setView('instructions'); setMobileNavOpen(false); }}><BookOpen size={16} /> <span>HELP · DEFINITIONS</span></button></div>
       </header>
 
+      {view === 'mission' && <>
       <section className="welcome-hero">
         <div className="welcome-orbit-art" aria-hidden="true"><img className="hero-space-illustration" src="/aryaksha-hero.svg" alt="Original illustration of a spacecraft orbiting Earth" /></div>
         <div className="welcome-copy"><div className="welcome-brand-lockup"><span className="welcome-brand-mark"><AryakshaMark size={60} /></span><div><div className="welcome-wordmark">ARYAKSHA</div><div className="welcome-wordmark-sub">SPACE EXPLORATION LAB</div></div></div>
@@ -193,6 +210,7 @@ function App() {
         </div>
       </section>
       <section className="about-kakshiya" id="about-aryaksha"><div className="about-orbit-visual" aria-hidden="true"><div className="about-earth"><Globe2 size={82}/></div><div className="about-orbit-line"/><span className="about-mini-sat"><Satellite size={22}/></span><span className="about-visual-label">LEARN · EXPERIMENT · CREATE</span></div><div className="about-copy"><p className="welcome-kicker">ABOUT ARYAKSHA</p><h2>A Space Lab for the Next Generation</h2><p>Aryaksha brings space exploration and engineering tools into one accessible place. Explore satellite movement, investigate orbital mechanics, experiment with preliminary spacecraft mission design and understand the engineering trade-offs behind a mission.</p><p>Whether you are taking your first steps into space science or building practical aerospace skills, Aryaksha is designed to help you learn by doing.</p><div className="about-values"><span><Rocket size={19}/> Student focused</span><span><Globe2 size={19}/> Explore space data</span><span><Wrench size={19}/> Hands-on tools</span></div><small className="about-disclaimer">Some tools use public orbital data; simulations are educational models, not flight-certified systems.</small></div></section>
+      </>}
       <div className="shell">
         {mobileNavOpen && <div className="mobile-nav-backdrop" onClick={() => setMobileNavOpen(false)} />}
         <aside className={mobileNavOpen ? 'sidebar mobile-open' : 'sidebar'}>
@@ -230,7 +248,7 @@ function App() {
           {view === 'payload' && <PayloadView payload={payload} setPayload={setPayload} go={setView} />}
           {view === 'spacecraft' && <SpacecraftView spacecraft={spacecraft} setSpacecraft={setSpacecraft} payload={payload} mission={mission} verification={verification} />}
           {view === 'orbit' && <OrbitView orbit={orbit} updateOrbit={updateOrbit} maneuverAltitude={maneuverAltitude} setManeuverAltitude={setManeuverAltitude} maneuverInclination={maneuverInclination} setManeuverInclination={setManeuverInclination} maneuver={maneuver} applyPreset={applyPreset} selectedPreset={selectedPreset} />}
-          {view === 'simulation' && <SimulationView model={model} current={currentState} seconds={seconds} duration={duration} running={running} setRunning={setRunning} playback={playback} setPlayback={setPlayback} setSeconds={setSeconds} mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} footprintAngle={geometry.footprintDeg} />}
+          {view === 'simulation' && <SimulationView model={model} current={currentState} seconds={seconds} duration={duration} running={running} setRunning={setRunning} playback={playback} setPlayback={setPlayback} setSeconds={setSeconds} mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} footprintAngle={geometry.footprintDeg} applyPreset={applyPreset} selectedPreset={selectedPreset} updateOrbit={updateOrbit} go={setView} />}
           {view === 'tracking' && <SatelliteTrackingView />}
           {view === 'missionAnalysis' && <MissionAnalysisView initialAltitudeKm={orbit.altitudeKm} initialInclinationDeg={orbit.i} initialEccentricity={orbit.e} />}
           {view === 'analysis' && <AnalysisView mission={mission} orbit={orbit} geometry={geometry} power={power} thermal={thermal} comms={comms} adcs={adcs} propulsion={propulsion} />}
@@ -405,39 +423,39 @@ function OrbitView({ orbit, updateOrbit, maneuverAltitude, setManeuverAltitude, 
   </div>;
 }
 
-function SimulationView({ model, current, seconds, duration, running, setRunning, playback, setPlayback, setSeconds, mission, payload, spacecraft, orbit, footprintAngle }: { model: any[]; current: any; seconds: number; duration: number; running: boolean; setRunning: (v:boolean)=>void; playback:number; setPlayback:(v:number)=>void; setSeconds:(v:number)=>void; mission: Mission; payload: Payload; spacecraft: Spacecraft; orbit: OrbitDesign; footprintAngle:number }) {
-  const speed = Math.hypot(...current.v);
+function SimulationView({ model, current, seconds, duration, running, setRunning, playback, setPlayback, setSeconds, mission, payload, spacecraft, orbit, footprintAngle, applyPreset, selectedPreset, updateOrbit, go }: { model: any[]; current: any; seconds: number; duration: number; running: boolean; setRunning: (v:boolean)=>void; playback:number; setPlayback:(v:number)=>void; setSeconds:(v:number)=>void; mission: Mission; payload: Payload; spacecraft: Spacecraft; orbit: OrbitDesign; footprintAngle:number; applyPreset:(name:string, altitude:number, inclination:number)=>void; selectedPreset:string; updateOrbit:(p:Partial<OrbitDesign>)=>void; go:(v:View)=>void }) {
+  const orbitMetrics = orbitalSummary(orbit);
   return <div className="page simulation-page">
     <PageHeader eyebrow="05 · SIMULATION" title="Run the spacecraft, not a picture of it." text="The animation, telemetry and engineering results read from the same propagated state. The current model is deterministic two-body Keplerian propagation; J2, drag, SRP, third-body gravity and operational effects remain outside the model." />
     <div className="simulation-grid">
-      <div className="scene-wrap"><Earth3DScene model={model} current={current} seconds={seconds} name={mission.name} propagator="KEPLER" footprintAngleDeg={footprintAngle} busWidthM={spacecraft.busWidthM} busHeightM={spacecraft.busHeightM} busDepthM={spacecraft.busDepthM} altitudeKm={orbit.altitudeKm} eccentricity={orbit.e} inclinationDeg={orbit.i} raanDeg={orbit.raan} argumentOfPerigeeDeg={orbit.argp} trueAnomalyDeg={orbit.nu} periodMin={orbitalSummary(orbit).period / 60} panelAreaM2={spacecraft.panelAreaM2} /></div>
-      <div className="telemetry-panel">
-        <div className="panel-title"><Gauge size={16} /> LIVE TELEMETRY <span>STATE t</span></div>
-        <Telemetry label="TIME" value={`${seconds.toFixed(1)} s`} />
-        <Telemetry label="ALTITUDE" value={`${current.lla.alt.toFixed(2)} km`} />
-        <Telemetry label="LATITUDE" value={`${current.lla.lat.toFixed(3)}°`} />
-        <Telemetry label="LONGITUDE" value={`${current.lla.lon.toFixed(3)}°`} />
-        <Telemetry label="SPEED" value={`${speed.toFixed(4)} km/s`} />
-        <Telemetry label="ECI X" value={`${current.r[0].toFixed(3)} km`} />
-        <Telemetry label="ECI Y" value={`${current.r[1].toFixed(3)} km`} />
-        <Telemetry label="ECI Z" value={`${current.r[2].toFixed(3)} km`} />
-        <Telemetry label="VX / VY / VZ" value={current.v.map((v:number)=>v.toFixed(4)).join(' / ')} />
-        <div className="model-box"><small>MODEL FIDELITY</small><b>Two-body Keplerian</b><span>Transparent analytical model. No J2, drag, SRP or third-body gravity.</span></div>
+      <div className="scene-wrap"><Earth3DScene model={model} current={current} seconds={seconds} name={mission.name} propagator="KEPLER" objectStatus="SIMULATED" missionType={mission.type} missionTarget={mission.target} payloadName={payload.name} payloadMassKg={payload.massKg} payloadPowerW={payload.powerW} spacecraftDryMassKg={spacecraft.dryMassKg} selectedPreset={selectedPreset} onApplyPreset={applyPreset} onUpdateOrbit={updateOrbit} onOpenMissionSetup={() => go('mission')} onOpenOrbitDesign={() => go('orbit')} footprintAngleDeg={footprintAngle} busWidthM={spacecraft.busWidthM} busHeightM={spacecraft.busHeightM} busDepthM={spacecraft.busDepthM} altitudeKm={orbit.altitudeKm} eccentricity={orbit.e} inclinationDeg={orbit.i} raanDeg={orbit.raan} argumentOfPerigeeDeg={orbit.argp} trueAnomalyDeg={orbit.nu} periodMin={orbitMetrics.period / 60} panelAreaM2={spacecraft.panelAreaM2} running={running} setRunning={setRunning} playback={playback} setPlayback={setPlayback} duration={duration} setSeconds={setSeconds} />
       </div>
     </div>
-    <div className="timeline">
-      <button onClick={() => setRunning(!running)}>{running ? <Pause size={15} /> : <Play size={15} />}{running ? 'PAUSE' : 'PLAY'}</button>
-      <button onClick={() => setSeconds(Math.max(0, seconds - 10))}>−10s</button>
-      <input aria-label="Simulation timeline" type="range" min="0" max={duration} step="1" value={seconds} onChange={e => setSeconds(Number(e.target.value))} />
-      <button onClick={() => setSeconds(Math.min(duration, seconds + 10))}>+10s</button>
-      <select aria-label="Simulation playback speed" value={playback} onChange={e => setPlayback(Number(e.target.value))}><option value="1">1×</option><option value="10">10×</option><option value="20">20×</option><option value="60">60×</option><option value="120">120×</option></select>
-      <span>{(duration/60).toFixed(1)} min scenario</span>
-    </div>
-    <GroundTrackMap model={model} current={current} />
-    <div className="state-sheet">
-      <div><small>PAYLOAD FOOTPRINT</small><b>{footprintAngle.toFixed(3)}° central angle</b><span>FOV {payload.fovDeg}° at {orbit.altitudeKm} km</span></div>
-      <div><small>SCENARIO EPOCH</small><b>2026-01-01T00:00:00Z</b><span>Deterministic replay</span></div>
-      <div><small>STATE SOURCE</small><b>Propagate → ECI/ECEF/WGS84</b><span>One mathematical source of truth</span></div>
+    <div className="earth3d-bottom-panels" data-testid="earth3d-bottom-panels">
+      <div id="earth3d-ground-track-panel" className="earth3d-bottom-panel earth3d-ground-track-panel"><GroundTrackMap model={model} current={current} /></div>
+      <Card title="Orbit Parameters" icon={<Orbit size={17} />}>
+        <div className="earth3d-bottom-metrics">
+          <div><small>APOGEE</small><b>{formatNumber(orbitMetrics.ra - EARTH_RADIUS, 1)} km</b></div>
+          <div><small>PERIGEE</small><b>{formatNumber(orbitMetrics.rp - EARTH_RADIUS, 1)} km</b></div>
+          <div><small>INCLINATION</small><b>{formatNumber(orbit.i, 2)}°</b></div>
+          <div><small>ECCENTRICITY</small><b>{formatNumber(orbit.e, 4)}</b></div>
+          <div><small>PERIOD</small><b>{formatNumber(orbitMetrics.period / 60, 2)} min</b></div>
+          <div><small>SEMI-MAJOR AXIS</small><b>{formatNumber(orbit.a, 1)} km</b></div>
+        </div>
+        <p className="earth3d-card-note">Two-body Keplerian reference elements at the selected scenario epoch.</p>
+      </Card>
+      <Card title="Mission Info" icon={<Info size={17} />}>
+        <div className="earth3d-mission-info">
+          <div className="earth3d-mission-identity"><b>{mission.name}</b><span>{mission.type} · {mission.target}</span></div>
+          <div className="earth3d-mission-info-grid">
+            <div><small>PAYLOAD</small><b>{payload.name}</b><span>{formatNumber(payload.massKg, 2)} kg · {formatNumber(payload.powerW, 1)} W</span></div>
+            <div><small>SPACECRAFT DRY MASS</small><b>{formatNumber(spacecraft.dryMassKg, 2)} kg</b><span>Bus {spacecraft.busWidthM.toFixed(2)} × {spacecraft.busHeightM.toFixed(2)} × {spacecraft.busDepthM.toFixed(2)} m</span></div>
+            <div><small>FOOTPRINT / FOV</small><b>{formatNumber(footprintAngle, 3)}°</b><span>Payload FOV {formatNumber(payload.fovDeg, 1)}°</span></div>
+            <div><small>STATE PROVENANCE</small><b>SIMULATED · KEPLER</b><span>Two-body spacecraft state; Moon and visual bodies are not TLE-tracked objects.</span></div>
+          </div>
+          <div className="earth3d-mission-info-footer"><span>SCENARIO EPOCH</span><b>{String(current?.time ?? '2026-01-01T00:00:00.000Z').slice(0, 19)} UTC</b><span>ECI → ECEF → WGS84</span></div>
+        </div>
+      </Card>
     </div>
   </div>;
 }
@@ -468,7 +486,7 @@ function GroundTrackMap({ model, current }: { model: any[]; current: any }) {
   const hasCurrentPoint = Number.isFinite(currentLat) && Number.isFinite(currentLon);
 
   return (
-    <Card title="2D Ground Track · Equirectangular" icon={<Globe2 size={17} />}>
+    <Card title="2D Ground Track" icon={<Globe2 size={17} />}>
       <div className="ground-track-controls">
         <label htmlFor="solar-epoch">Solar overlay epoch</label>
         <select id="solar-epoch" value={solarEpoch} onChange={event => setSolarEpoch(event.target.value)}>
@@ -898,7 +916,6 @@ function SelectField({ label, value, options, onChange }: { label:string; value:
 }
 function Stat({ label, value }: { label:string; value:string }) { return <div data-context-label={label} className="stat-row"><span className="result-label">{label}<HelpTip label={label} /></span><b>{value}</b></div>; }
 function Flow({ items }: { items:string[] }) { return <div data-context-label={items.join(' → ')} className="flow">{items.map((item,i)=><div key={item}><span>{String(i+1).padStart(2,'0')}</span><b>{item}</b>{i<items.length-1&&<ArrowRight size={13}/>}</div>)}</div>; }
-function Telemetry({ label, value }: { label:string; value:string }) { return <div data-context-label={label} className="telemetry"><small className="result-label">{label}<HelpTip label={label} /></small><b>{value}</b></div>; }
 function ReportRow({ k, v }: { k:string; v:string }) { return <div data-context-label={k} className="report-row"><span className="result-label">{k}<HelpTip label={k} /></span><b>{v}</b></div>; }
 
 export default App;

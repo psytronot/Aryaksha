@@ -17,6 +17,17 @@ function normalizeLongitude(lon: number) {
   return ((lon + 540) % 360 + 360) % 360 - 180;
 }
 
+/** Greenwich mean sidereal angle, radians, matching the ECI→ECEF rotation used by orbit.ts. */
+export function greenwichMeanSiderealAngle(date: Date) {
+  const jd = date.getTime() / 86400000 + 2440587.5;
+  const T = (jd - 2451545) / 36525;
+  const degrees = ((280.46061837
+    + 360.98564736629 * (jd - 2451545)
+    + 0.000387933 * T * T
+    - (T * T * T) / 38710000) % 360 + 360) % 360;
+  return degrees * DEG;
+}
+
 export function solarSubpoint(date: Date) {
   const jd = date.getTime() / 86400000 + 2440587.5;
   const T = (jd - 2451545) / 36525;
@@ -30,17 +41,18 @@ export function solarSubpoint(date: Date) {
   const eps = (23.439291 - 0.0130042 * T) * DEG;
   const ra = Math.atan2(Math.cos(eps) * Math.sin(lambda), Math.cos(lambda));
   const dec = Math.asin(Math.sin(eps) * Math.sin(lambda));
-  const gmst = ((280.46061837 + 360.98564736629 * (jd - 2451545)) % 360 + 360) % 360;
+  const gmst = greenwichMeanSiderealAngle(date) / DEG;
   const lon = normalizeLongitude(ra / DEG - gmst);
   return { lat: dec / DEG, lon, ra, dec };
 }
 
 export function solarEciDirection(date: Date) {
   const sun = solarSubpoint(date);
+  // Conventional ECI axes: x/y lie in the equatorial plane; z points north.
   return {
     x: Math.cos(sun.dec) * Math.cos(sun.ra),
-    y: Math.sin(sun.dec),
-    z: Math.cos(sun.dec) * Math.sin(sun.ra),
+    y: Math.cos(sun.dec) * Math.sin(sun.ra),
+    z: Math.sin(sun.dec),
   };
 }
 
