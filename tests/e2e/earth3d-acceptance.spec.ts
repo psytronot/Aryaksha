@@ -1207,3 +1207,66 @@ test('Earth 3D mobile shell keeps the globe visible and retains navigation in th
   await expect(page.getByRole('heading', { name: 'Start with the engineering problem.' })).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
+
+
+test('Earth imagery provenance and physical-scale disclosures remain legible at desktop and mobile sizes', async ({ page }, testInfo) => {
+  test.setTimeout(60_000);
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
+  await page.setViewportSize({ width: 1536, height: 1024 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+
+  const status = page.getByTestId('earth-imagery-status');
+  const scale = page.locator('.earth3d-page-header > div > small:last-child');
+  const canvas = page.locator('.earth3d-canvas canvas');
+  await expect(canvas).toBeVisible();
+  await expect(status).toBeVisible();
+  await expect(status).toContainText('NASA');
+  await expect(scale).toBeVisible();
+  await expect(scale).toContainText('Scale disclosure:');
+
+  const readDisclosureMetrics = async () => page.evaluate(() => {
+    const statusElement = document.querySelector<HTMLElement>('[data-testid="earth-imagery-status"]');
+    const scaleElement = document.querySelector<HTMLElement>('.earth3d-page-header > div > small:last-child');
+    if (!statusElement || !scaleElement) throw new Error('Required Earth provenance/scale disclosures are missing.');
+    const statusStyle = getComputedStyle(statusElement);
+    const scaleStyle = getComputedStyle(scaleElement);
+    return {
+      statusFontSize: Number.parseFloat(statusStyle.fontSize),
+      scaleFontSize: Number.parseFloat(scaleStyle.fontSize),
+      statusVisible: statusElement.getBoundingClientRect().height > 0,
+      scaleVisible: scaleElement.getBoundingClientRect().height > 0,
+      pageWidth: document.documentElement.scrollWidth,
+      viewportWidth: window.innerWidth
+    };
+  });
+  const desktop = await readDisclosureMetrics();
+  expect(desktop.statusFontSize).toBeGreaterThanOrEqual(9);
+  expect(desktop.scaleFontSize).toBeGreaterThanOrEqual(9);
+  expect(desktop.statusVisible).toBe(true);
+  expect(desktop.scaleVisible).toBe(true);
+  expect(desktop.pageWidth).toBeLessThanOrEqual(desktop.viewportWidth);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const desktopPath = testInfo.outputPath('earth3d-disclosures-desktop-1536x1024.png');
+  await page.screenshot({ path: desktopPath, fullPage: false, animations: 'disabled' });
+  await testInfo.attach('earth3d-disclosures-desktop-1536x1024.png', { path: desktopPath, contentType: 'image/png' });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(status).toBeVisible();
+  await expect(scale).toBeVisible();
+  const mobile = await readDisclosureMetrics();
+  expect(mobile.statusFontSize).toBeGreaterThanOrEqual(8);
+  expect(mobile.scaleFontSize).toBeGreaterThanOrEqual(8);
+  expect(mobile.statusVisible).toBe(true);
+  expect(mobile.scaleVisible).toBe(true);
+  expect(mobile.pageWidth).toBeLessThanOrEqual(mobile.viewportWidth);
+  const mobileCanvasBox = await page.locator('.earth3d-canvas').boundingBox();
+  expect(mobileCanvasBox).not.toBeNull();
+  expect(mobileCanvasBox!.y).toBeLessThan(440);
+  const mobilePath = testInfo.outputPath('earth3d-disclosures-mobile-390x844.png');
+  await page.screenshot({ path: mobilePath, fullPage: false, animations: 'disabled' });
+  await testInfo.attach('earth3d-disclosures-mobile-390x844.png', { path: mobilePath, contentType: 'image/png' });
+  expect(pageErrors).toEqual([]);
+});
