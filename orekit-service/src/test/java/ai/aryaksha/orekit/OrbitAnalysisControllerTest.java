@@ -15,7 +15,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 class OrbitAnalysisControllerTest {
     private static final double EARTH_RADIUS_KM = 6378.137;
-    private final OrbitAnalysisController controller = new OrbitAnalysisController();
+    private final OrbitAnalysisController controller = new OrbitAnalysisController("test-secret");
     private final MockMvc http = MockMvcBuilders.standaloneSetup(controller).build();
 
     @Test
@@ -193,6 +193,7 @@ class OrbitAnalysisControllerTest {
     @Test
     void httpAnalysisEndpointReturnsMetricsForValidRequest() throws Exception {
         http.perform(post("/api/v1/orbit/analysis")
+                .header("X-Aryaksha-Service-Token", "test-secret")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"altitudeKm\":550,\"inclinationDeg\":97.6,\"eccentricity\":0.001}"))
             .andExpect(status().isOk())
@@ -214,6 +215,25 @@ class OrbitAnalysisControllerTest {
             .andExpect(jsonPath("$.error", containsString("intersects Earth")));
     }
 
+
+    @Test
+    void httpAnalysisEndpointRejectsMissingServiceCredential() throws Exception {
+        http.perform(post("/api/v1/orbit/analysis")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\\"altitudeKm\\":550,\\"inclinationDeg\\":97.6,\\"eccentricity\\":0.001}"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error").value("A valid service credential is required."));
+    }
+
+    @Test
+    void httpAnalysisEndpointRejectsIncorrectServiceCredential() throws Exception {
+        http.perform(post("/api/v1/orbit/analysis")
+                .header("X-Aryaksha-Service-Token", "wrong-secret")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\\"altitudeKm\\":550,\\"inclinationDeg\\":97.6,\\"eccentricity\\":0.001}"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error").value("A valid service credential is required."));
+    }
 
     @Test
     void httpAnalysisEndpointReturnsStructuredErrorForMalformedJson() throws Exception {
