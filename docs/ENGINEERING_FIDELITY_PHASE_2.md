@@ -4,7 +4,7 @@ This phase addresses the five workstreams tracked in issue #111. A UI state or s
 
 ## 1. Earth–Moon precision ephemeris
 
-The `backend/horizonsEphemeris.mjs` adapter now queries JPL Horizons for a geocentric Moon state at a user-supplied TDB epoch. The Mission Analysis panel displays its ICRF position and velocity in SI units and records the API/kernel provenance when exposed. Formal position uncertainty is explicitly unknown when the API does not supply it. The point lookup is not yet connected to the 3D Moon renderer or a continuous local SPK kernel; the visual Moon model remains a presentation approximation.
+The `backend/horizonsEphemeris.mjs` adapter now queries JPL Horizons for a geocentric Moon state at a user-supplied TDB epoch. The Mission Analysis panel displays its ICRF position and velocity in SI units and records the API/kernel provenance when exposed. Formal position uncertainty is explicitly unknown when the API does not supply it. The point snapshot now drives the Moon's 3D position after the user queries it in Mission Analysis and navigates to Simulation. It remains a single-epoch snapshot: the displayed orbit line and lunar orientation are still schematic, and no continuous local SPK kernel is loaded.
 
 Acceptance: documented kernel version and coverage; UTC/TT/TDB conversion tests; reference comparisons against JPL Horizons or SPICE; error budget declared for the chosen time span.
 
@@ -37,7 +37,7 @@ Acceptance: reference truth vectors with source/version/epoch/frame, position/ve
 - **Catalog estimate:** TLE/GP + SGP4, not spacecraft telemetry.
 - **Authenticated telemetry:** signed external state-vector input, currently process-memory only.
 - **Two-body propagation:** Orekit numerical integration with Newtonian central gravity only.
-- **JPL lunar state lookup:** JPL Horizons point query in TDB/ICRF; formal uncertainty may be unknown; not yet connected to 3D scene playback.
+- **JPL lunar state lookup:** JPL Horizons point query in TDB/ICRF; the queried position is applied to the 3D Moon as a static snapshot. Formal uncertainty may be unknown; the orbit path and orientation remain schematic.
 - **Perturbed propagation:** J2-only option is active with a fixed-axis approximation; other perturbations remain unavailable until their environmental inputs are validated.
 
 ## Durable telemetry storage adapter
@@ -53,5 +53,5 @@ The API adapter requests a geometric Moon state relative to Earth's centre from 
 - Spacecraft model import is local to the browser and supports GLB, self-contained glTF, OBJ and STL. External glTF sidecar assets are not bundled. The import path computes mesh bounds only; source units must be explicitly selected for OBJ/STL and material density is never inferred.
 - The component mass model updates the main spacecraft dry-mass and diagonal inertia budgets. Component products of inertia are assumed zero in the current UI; independent CAD exports are still required for verification.
 - The J2 option is wired into Orekit with a fixed EME2000 +Z axis. It is not a full Earth gravity field.
-- The JPL Horizons point query is not a local continuous ephemeris kernel and does not yet drive the 3D scene.
+- The JPL Horizons point query drives a static 3D Moon position snapshot; it is not a continuous local ephemeris kernel or time-propagated lunar animation.
 - The telemetry store supports an optional file path but the live Render service has no confirmed persistent volume; production still reports process-memory storage until durable storage is provisioned.
