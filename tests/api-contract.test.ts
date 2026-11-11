@@ -3,11 +3,13 @@ import { describe, expect, it } from 'vitest';
 import requestSchema from '../schemas/orbit-analysis-request.v1.schema.json';
 import responseSchema from '../schemas/orbit-analysis-response.v1.schema.json';
 import errorSchema from '../schemas/api-error.v1.schema.json';
+import spacecraftSchema from '../schemas/spacecraft-configuration.v1.schema.json';
 
 const ajv = new Ajv({ allErrors: true, strict: true });
 const validateRequest = ajv.compile(requestSchema);
 const validateResponse = ajv.compile(responseSchema);
 const validateError = ajv.compile(errorSchema);
+const validateSpacecraft = ajv.compile(spacecraftSchema);
 
 const validRequest = {
   altitudeKm: 550,
@@ -88,5 +90,34 @@ describe('Orbit analysis API v1 JSON Schemas', () => {
   it('accepts the standard error envelope', () => {
     expect(validateError({ error: 'The selected orbit intersects Earth at periapsis.' })).toBe(true);
     expect(validateError({ error: '' })).toBe(false);
+  });
+});
+
+
+describe('Spacecraft configuration v1 JSON Schema', () => {
+  const referenceConfiguration = {
+    schemaVersion: '1.0.0',
+    configurationId: 'ARY-SC-001',
+    name: 'Reference 6U spacecraft',
+    revision: 'A',
+    units: { length: 'm', mass: 'kg', angle: 'deg' },
+    referenceFrame: '+X forward, +Y starboard, +Z nadir',
+    geometry: { bus: { width: 0.226, height: 0.366, depth: 0.1 }, modelFormat: 'unknown' },
+    massProperties: { dryMassKg: 8.5 },
+    components: [
+      { componentId: 'BUS-01', type: 'bus', name: 'Primary structure', massKg: 4.2 },
+      { componentId: 'PWR-01', type: 'solar-array', name: 'Deployable array', massKg: 1.1, powerW: 40 }
+    ],
+    provenance: { author: 'Aryaksha engineering', notes: 'Illustrative schema fixture; not flight hardware data.' }
+  };
+
+  it('accepts a fully unit-tagged spacecraft configuration with explicit body frame', () => {
+    expect(validateSpacecraft(referenceConfiguration)).toBe(true);
+  });
+
+  it('rejects missing unit declarations, dimensions and dry mass', () => {
+    expect(validateSpacecraft({ ...referenceConfiguration, units: undefined })).toBe(false);
+    expect(validateSpacecraft({ ...referenceConfiguration, geometry: { bus: { width: 0, height: 1, depth: 1 } } })).toBe(false);
+    expect(validateSpacecraft({ ...referenceConfiguration, massProperties: {} })).toBe(false);
   });
 });

@@ -15,7 +15,11 @@ import {
   PLANETARY_BODY_SPECS,
   planetaryPositionAt,
   SYSTEM_CAMERA_MARGIN,
-  SYSTEM_DISPLAY_DISTANCE_RATIO
+  SYSTEM_DISPLAY_DISTANCE_RATIO,
+  EARTH_EQUATORIAL_RADIUS_KM,
+  MOON_MEAN_RADIUS_KM,
+  EARTH_MOON_MEAN_CENTRE_DISTANCE_KM,
+  earthMoonCentreDistanceSceneUnits
 } from '../src/earth3dMath';
 import { applyEarthNightLightMask, atmosphereSolarResponse, createSunDrivenAtmosphereMaterial, EARTH_ATMOSPHERE_MODEL, makeFallbackNightLightsTexture } from '../src/earthVisuals';
 import { EARTH_IMAGERY_SOURCES, loadEarthImagery } from '../src/earthImagery';
@@ -400,5 +404,25 @@ describe('Earth cloud rotation relative to the rotating Earth frame', () => {
   it('returns a finite neutral rotation for invalid inputs', () => {
     expect(cloudRelativeRotation(Number.NaN)).toBe(0);
     expect(cloudRelativeRotation(Number.POSITIVE_INFINITY)).toBe(0);
+  });
+});
+
+
+describe('Earth–Moon engineering scale references', () => {
+  it('uses declared physical mean reference values and exposes presentation compression explicitly', () => {
+    expect(EARTH_EQUATORIAL_RADIUS_KM).toBe(6378.137);
+    expect(MOON_MEAN_RADIUS_KM).toBe(1737.4);
+    expect(EARTH_MOON_MEAN_CENTRE_DISTANCE_KM).toBe(384400);
+    const trueScale = earthMoonCentreDistanceSceneUnits(5.15, 1);
+    const presentationScale = earthMoonCentreDistanceSceneUnits(5.15, SYSTEM_DISPLAY_DISTANCE_RATIO);
+    expect(trueScale / 5.15).toBeCloseTo(384400 / 6378.137, 10);
+    expect(presentationScale / trueScale).toBeCloseTo(SYSTEM_DISPLAY_DISTANCE_RATIO, 10);
+    expect(trueScale).toBeGreaterThan(300);
+    expect(presentationScale).toBeLessThan(10);
+  });
+
+  it('falls back safely for invalid scale inputs rather than emitting non-finite geometry', () => {
+    expect(earthMoonCentreDistanceSceneUnits(Number.NaN, Number.NaN)).toBeCloseTo(5.15 * (384400 / 6378.137), 8);
+    expect(Number.isFinite(earthMoonCentreDistanceSceneUnits(-1, -1))).toBe(true);
   });
 });
