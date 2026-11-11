@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity, ArrowRight, Battery, BookOpen, Calculator, Check, CircleHelp, Cpu, Download,
   Gauge, Globe2, Info, Layers3, Orbit, Play, Radio, RefreshCw, Rocket,
@@ -68,6 +68,16 @@ function App() {
   const [selectedPreset, setSelectedPreset] = useState('Sun-Synchronous Reference');
   const [maneuverAltitude, setManeuverAltitude] = useState(700);
   const [maneuverInclination, setManeuverInclination] = useState(97.6);
+
+  const syncSpacecraftMassProperties = useCallback((properties: { totalMassKg: number; inertiaKgM2: readonly (readonly number[])[] }) => {
+    setSpacecraft(current => ({
+      ...current,
+      dryMassKg: properties.totalMassKg,
+      inertiaX: properties.inertiaKgM2[0][0],
+      inertiaY: properties.inertiaKgM2[1][1],
+      inertiaZ: properties.inertiaKgM2[2][2]
+    }));
+  }, []);
 
   const summary = useMemo(() => orbitalSummary(orbit), [orbit]);
   const duration = Math.max(3600, summary.period * 2);
@@ -376,7 +386,7 @@ function SpacecraftView({ spacecraft, setSpacecraft, payload, mission, verificat
         <div className="callout"><Thermometer size={15} /><span>Thermal model is deliberately preliminary. It is a lumped-node estimate, not a spacecraft thermal qualification analysis.</span></div>
       </Card>
     </div>
-    <SpacecraftGeometryWorkbench busDimensionsM={{ width: spacecraft.busWidthM, height: spacecraft.busHeightM, depth: spacecraft.busDepthM }} dryMassKg={spacecraft.dryMassKg} />
+    <SpacecraftGeometryWorkbench busDimensionsM={{ width: spacecraft.busWidthM, height: spacecraft.busHeightM, depth: spacecraft.busDepthM }} dryMassKg={spacecraft.dryMassKg} onMassPropertiesChange={syncSpacecraftMassProperties} />
     <div className="bottom-bar"><b>Current wet mass: {formatNumber(verification.massKg,2)} kg</b><span>Limit {mission.maxMassKg} kg · {verification.massKg <= mission.maxMassKg ? 'PASS' : 'FAIL'}</span><span>Payload {payload.massKg} kg included.</span></div>
   </div>;
 }

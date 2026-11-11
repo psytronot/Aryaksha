@@ -97,6 +97,35 @@ describe('standalone orbit-analysis HTTP contract', () => {
     expect(payload.error.length).toBeGreaterThan(0);
   });
 
+  it('rejects an unsupported force model at the web API boundary', async () => {
+    const response = await fetch(`${baseUrl}/api/mission-analysis/orbit`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ altitudeKm: 550, inclinationDeg: 97.6, eccentricity: 0.001, forceModel: 'UNSUPPORTED' })
+    });
+    const payload = await response.json();
+    expect(response.status).toBe(400);
+    expect(payload.error).toContain('forceModel must be TWO_BODY or J2');
+  });
+
+  it('accepts J2 as a valid model choice and then reports unavailable Orekit explicitly', async () => {
+    const response = await fetch(`${baseUrl}/api/mission-analysis/orbit`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ altitudeKm: 550, inclinationDeg: 97.6, eccentricity: 0.001, forceModel: 'J2' })
+    });
+    const payload = await response.json();
+    expect(response.status).toBe(503);
+    expect(payload.error).toContain('Orekit service is not configured');
+  });
+
+  it('rejects a malformed TDB ephemeris epoch before making an upstream request', async () => {
+    const response = await fetch(`${baseUrl}/api/v1/ephemeris/moon?epochTdb=not-a-date`);
+    const payload = await response.json();
+    expect(response.status).toBe(400);
+    expect(payload.error).toContain('epochTdb');
+  });
+
   it('rejects a physically Earth-intersecting orbit even when each field is in range', async () => {
     const response = await fetch(`${baseUrl}/api/mission-analysis/orbit`, {
       method: 'POST',

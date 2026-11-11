@@ -58,7 +58,7 @@ function disposeObject(root: THREE.Object3D) {
   });
 }
 
-export default function SpacecraftGeometryWorkbench({ busDimensionsM, dryMassKg }: { busDimensionsM: { width: number; height: number; depth: number }; dryMassKg: number }) {
+export default function SpacecraftGeometryWorkbench({ busDimensionsM, dryMassKg, onMassPropertiesChange }: { busDimensionsM: { width: number; height: number; depth: number }; dryMassKg: number; onMassPropertiesChange: (properties: { totalMassKg: number; inertiaKgM2: readonly (readonly number[])[] }) => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -176,6 +176,10 @@ export default function SpacecraftGeometryWorkbench({ busDimensionsM, dryMassKg 
     }
   }, [components]);
 
+  useEffect(() => {
+    if (!('error' in massProperties)) onMassPropertiesChange(massProperties);
+  }, [massProperties, onMassPropertiesChange]);
+
   const updateComponent = (id: string, patch: Partial<ComponentRow>) => {
     setComponents(rows => rows.map(row => row.id === id ? { ...row, ...patch } : row));
   };
@@ -258,7 +262,7 @@ export default function SpacecraftGeometryWorkbench({ busDimensionsM, dryMassKg 
       </div>
     </div>
     <div className="spacecraft-mass-panel">
-      <div className="spacecraft-mass-heading"><div><small>BODY-FRAME COMPONENT MODEL</small><h3>Mass properties calculator</h3><p>Enter each component's mass, centre of mass and intrinsic diagonal inertia in kg, m and kg·m².</p></div><button type="button" onClick={() => setComponents(rows => [...rows, { id: `component-${rows.length + 1}`, massKg: 1, x: 0, y: 0, z: 0, ixx: 0, iyy: 0, izz: 0 }])}><Plus size={14} /> Add component</button></div>
+      <div className="spacecraft-mass-heading"><div><small>BODY-FRAME COMPONENT MODEL</small><h3>Mass properties calculator</h3><p>Enter each component's mass, centre of mass and intrinsic diagonal inertia in kg, m and kg·m². Valid results update the spacecraft dry-mass and inertia budgets.</p></div><button type="button" onClick={() => setComponents(rows => [...rows, { id: `component-${Date.now()}-${rows.length + 1}`, massKg: 1, x: 0, y: 0, z: 0, ixx: 0, iyy: 0, izz: 0 }])}><Plus size={14} /> Add component</button></div>
       <div className="spacecraft-component-list">
         {components.map(component => <div className="spacecraft-component-row" key={component.id}>
           <div className="spacecraft-component-title"><b>{component.id}</b><button type="button" aria-label={`Remove ${component.id}`} disabled={components.length === 1} onClick={() => setComponents(rows => rows.filter(row => row.id !== component.id))}><Trash2 size={14} /></button></div>
