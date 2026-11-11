@@ -68,7 +68,7 @@ jobs:
         run: npm install --no-save --package-lock=false axe-core@4.10.3
       - name: Install Chromium for Playwright
         timeout-minutes: 15
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
       - run: npm run build
       - run: npm run test:e2e
       - name: Upload Earth 3D browser screenshots and traces
@@ -273,5 +273,5 @@ jobs:
           node-version-file: .nvmrc
       - run: npm ci
       - name: Install Chromium for Playwright
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
       - run: npx playwright test tests/e2e/live-ui-smoke.spec.ts
