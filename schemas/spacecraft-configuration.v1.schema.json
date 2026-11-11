@@ -31,7 +31,7 @@
     },
     "epoch": {
       "type": "string",
-      "format": "date-time"
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})$"
     },
     "units": {
       "type": "object",
@@ -73,7 +73,7 @@
         },
         "modelUri": {
           "type": "string",
-          "format": "uri"
+          "pattern": "^https?://"
         },
         "modelFormat": {
           "enum": [
