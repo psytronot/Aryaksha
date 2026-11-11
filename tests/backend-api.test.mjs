@@ -249,3 +249,28 @@ describe('authenticated telemetry HTTP contract', () => {
     expect(response.status).toBe(401);
   });
 });
+
+describe('deployed API security boundary', () => {
+  it('returns baseline security headers from the health endpoint', async () => {
+    const response = await fetch(`${baseUrl}/api/v1/health`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(response.headers.get('x-frame-options')).toBe('DENY');
+    expect(response.headers.get('referrer-policy')).toBe('strict-origin-when-cross-origin');
+    expect(response.headers.get('content-security-policy-report-only')).toContain("default-src 'self'");
+  });
+
+  it('rate-limits a client after the configured request budget', async () => {
+    const clientIp = '198.51.100.77';
+    let lastResponse;
+    for (let index = 0; index < 61; index += 1) {
+      lastResponse = await fetch(`${baseUrl}/api/v1/ephemeris/moon?epochTdb=invalid`, {
+        headers: { 'x-forwarded-for': clientIp }
+      });
+      if (index < 60) expect(lastResponse.status).toBe(400);
+    }
+    expect(lastResponse.status).toBe(429);
+    const payload = await lastResponse.json();
+    expect(payload.error).toContain('Rate limit exceeded');
+  });
+});
