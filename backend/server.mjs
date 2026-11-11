@@ -3,6 +3,7 @@ import path from 'node:path';
 import * as satellite from 'satellite.js';
 import { createRateLimiter, securityHeaders } from './security.mjs';
 import { createPlanetaryImageryHandler } from './planetaryImagery.mjs';
+import { createTelemetryStore, verifyAndParseTelemetry } from './telemetry.mjs';
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -12,11 +13,38 @@ app.disable('x-powered-by');
 // Render terminates TLS and forwards requests through one trusted proxy hop.
 app.set('trust proxy', 1);
 app.use(securityHeaders);
-app.use(express.json({ limit: '64kb', strict: false }));
+app.use(express.json({ limit: '64kb', strict: false, verify: (req, _res, buffer) => { req.rawBody = Buffer.from(buffer); } }));
 const apiRateLimit = createRateLimiter({ windowMs: 60_000, maxRequests: 60 });
 const planetaryImageryHandler = createPlanetaryImageryHandler();
+const telemetryStore = createTelemetryStore({ maxRecords: 1000 });
 app.get('/api/_healthcheck', (_req, res) => res.json({ message: 'Success', service: 'aryaksha-api' }));
 app.get('/api/v1/health', (_req, res) => res.json({ status: 'ok', service: 'aryaksha-api' }));
+app.post('/api/v1/telemetry/ingest', apiRateLimit, (req, res) => {
+  const secret = process.env.ARYAKSHA_TELEMETRY_HMAC_SECRET;
+  if (!secret) return res.status(503).json({ error: 'Telemetry ingestion is not configured.' });
+  const rawBody = req.rawBody;
+  if (!Buffer.isBuffer(rawBody)) return res.status(400).json({ error: 'Raw request body is required for signature verification.' });
+  const verified = verifyAndParseTelemetry({
+    rawBody,
+    timestamp: req.get('x-aryaksha-timestamp'),
+    signature: req.get('x-aryaksha-signature'),
+    secret
+  });
+  if (!verified.ok) return res.status(verified.status).json({ error: verified.error });
+  const accepted = telemetryStore.accept(verified.record);
+  if (!accepted.ok) return res.status(accepted.status).json({ error: accepted.error });
+  return res.status(202).json({
+    accepted: true,
+    persisted: false,
+    storage: 'process-memory',
+    record: accepted.record
+  });
+});
+app.get('/api/v1/telemetry/:spacecraftId/latest', apiRateLimit, (req, res) => {
+  const record = telemetryStore.latest(req.params.spacecraftId);
+  if (!record) return res.status(404).json({ error: 'No telemetry record is available for this spacecraft in the current process.' });
+  return res.json({ record, persisted: false, storage: 'process-memory' });
+});
 app.get('/api/imagery/:assetId', apiRateLimit, planetaryImageryHandler);
 
 app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
