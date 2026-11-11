@@ -155,3 +155,14 @@ html,body{min-width:320px;overflow-x:clip}
 html.aryaksha-app-active pwa-install {
   pointer-events: none !important;
 }
+
+
+/* Coach controls: visible pin and dismiss actions with comfortable touch targets. */
+.coach-head-actions{display:flex;align-items:center;gap:7px}
+.coach-head-actions button{min-width:34px;min-height:34px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.16);border-radius:8px;background:rgba(255,255,255,.04);color:#edf6fb;cursor:pointer}
+.coach-head-actions .coach-dismiss{font-size:22px;line-height:1}
+.coach-head-actions button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+@media(max-width:800px){
+  .coach-head-actions button{min-width:40px;min-height:40px}
+  .coach-body{max-height:min(48vh,420px);max-height:min(48dvh,420px);padding-bottom:max(16px,env(safe-area-inset-bottom))}
+}
