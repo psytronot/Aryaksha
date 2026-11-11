@@ -19,7 +19,8 @@ import {
   EARTH_EQUATORIAL_RADIUS_KM,
   MOON_MEAN_RADIUS_KM,
   EARTH_MOON_MEAN_CENTRE_DISTANCE_KM,
-  earthMoonCentreDistanceSceneUnits
+  earthMoonCentreDistanceSceneUnits,
+  moonEphemerisPositionSceneUnits
 } from '../src/earth3dMath';
 import { applyEarthNightLightMask, atmosphereSolarResponse, createSunDrivenAtmosphereMaterial, EARTH_ATMOSPHERE_MODEL, makeFallbackNightLightsTexture } from '../src/earthVisuals';
 import { EARTH_IMAGERY_SOURCES, loadEarthImagery } from '../src/earthImagery';
