@@ -53,7 +53,7 @@ test('satellite tracking validates TLEs and exposes SGP4 look angles and Doppler
   await page.getByRole('button', { name: 'Satellite Tracking', exact: true }).click();
 
   await expect(page.getByRole('heading', { name: 'Catalog-derived orbit estimates & pass planning' })).toBeVisible({ timeout: 15000 });
-  await expect(page.getByText('Live data loaded · 1 objects · Space stations')).toBeVisible();
+  await expect(page.getByText('Catalog elements fetched · 1 objects · Space stations')).toBeVisible();
   await expect(page.getByText('SGP4 / TEME')).toBeVisible();
   await expect(page.locator('.sat-track-doppler-grid').getByText(/km\/s$/)).toBeVisible();
   await expect(page.locator('.sat-track-doppler-wide b')).toHaveText(/145\.\d{6} MHz/);
@@ -81,7 +81,7 @@ test('mobile tracking supports catalogue groups, name filtering and pass CSV exp
   await expect(page.getByRole('heading', { name: 'Catalog-derived orbit estimates & pass planning' })).toBeVisible();
   const group = page.locator('.sat-track-field').filter({ hasText: 'CATALOG GROUP' }).locator('select');
   await group.selectOption('active');
-  await expect(page.getByText('Live data loaded · 1 objects · Active satellites')).toBeVisible();
+  await expect(page.getByText('Catalog elements fetched · 1 objects · Active satellites')).toBeVisible();
 
   await page.getByPlaceholder('Filter by satellite name').fill('ISS');
   await expect(page.locator('.sat-track-field').filter({ hasText: 'SELECTED OBJECT' }).locator('select option')).toHaveCount(1);
