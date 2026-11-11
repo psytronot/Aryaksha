@@ -23,7 +23,7 @@ The following account- and host-level controls must be enabled by a repository/h
 ### GitHub repository
 
 - Set repository visibility to **Private** if the source is proprietary. Public forks and copies made before the change cannot be recalled.
-- Enable secret scanning and push protection where available; review and remediate existing alerts.
+- Enable the GitHub dependency graph, secret scanning, and push protection where available; review and remediate existing alerts. The dependency-review workflow requires the dependency graph to be enabled before it can be added as a required check.
 - Enable private vulnerability reporting.
 - Protect `main` with a ruleset: require pull requests, require the CI and CodeQL checks, block force pushes and branch deletion, and require conversation resolution.
 - Require signed commits if the owner's signing workflow is configured.
