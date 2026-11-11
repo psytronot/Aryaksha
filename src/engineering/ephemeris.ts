@@ -57,13 +57,13 @@ export function validateEphemerisState(
     if (stateEpoch !== requestedEpoch) issues.push('Ephemeris epoch does not match the requested epoch.');
     if (start > end) {
       issues.push('Ephemeris coverage interval is invalid.');
-    } else {
-      if (requestedEpoch < start || requestedEpoch > end) {
-        issues.push('Requested epoch is outside the declared ephemeris kernel coverage.');
-      }
-      if (stateEpoch < start || stateEpoch > end) {
-        issues.push('Ephemeris state epoch is outside the declared coverage.');
-      }
+    } else if (requestedEpoch < start || requestedEpoch > end) {
+      issues.push('Requested epoch is outside the declared ephemeris kernel coverage.');
+    }
+    // Report state coverage independently, including when the declared interval is
+    // itself reversed; this keeps both defects visible to callers and diagnostics.
+    if (stateEpoch < start || stateEpoch > end) {
+      issues.push('Ephemeris state epoch is outside the declared coverage.');
     }
   }
 
