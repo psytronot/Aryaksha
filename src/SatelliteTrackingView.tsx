@@ -8,7 +8,7 @@ import { generateContinuousGroundTrack, parseTle, SubPoint, Tracking } from './t
 import './satellite-tracking.css';
 import { Globe2 } from 'lucide-react';
 
-type Tle = { name: string; line1: string; line2: string };
+type Tle = { name: string; line1: string; line2: string; source?: string; fetchedAt?: string };
 type CatalogGroup = 'stations' | 'amateur' | 'active' | 'weather' | 'starlink' | 'geosync' | 'gps-ops';
 type Station = { lat: number; lon: number; heightM: number };
 type SkyPoint = { azimuth: number; elevation: number };
@@ -214,7 +214,6 @@ function exportPassesCsv(passes: Pass[], satelliteName: string) {
 
 export default function SatelliteTrackingView() {
   const [catalog, setCatalog] = useState<Tle[]>([]);
-  const [catalogFetchedAt, setCatalogFetchedAt] = useState<Date | null>(null);
   const [selectedName, setSelectedName] = useState('');
   const [catalogGroup, setCatalogGroup] = useState<CatalogGroup>('stations');
   const [catalogStatus, setCatalogStatus] = useState('Loading current orbital elements…');
@@ -296,8 +295,8 @@ export default function SatelliteTrackingView() {
       if (!response.ok) throw new Error('CelesTrak returned HTTP ' + response.status + '.');
       const rows = parseCatalog(await response.text());
       if (!rows.length) throw new Error('The source returned no valid two-line element records.');
-      setCatalog(rows);
-      setCatalogFetchedAt(new Date());
+      const fetchedAt = new Date().toISOString();
+      setCatalog(rows.map(item => ({ ...item, source: 'CelesTrak GP catalogue', fetchedAt })));
       const preferred = rows.find(item => /ISS\s*\(ZARYA\)|\bISS\b|ZARYA/i.test(item.name)) || rows[0];
       setSelectedName(preferred.name);
       setPasses([]);
@@ -322,12 +321,11 @@ export default function SatelliteTrackingView() {
       const line1 = named ? lines[1] || '' : lines[0] || '';
       const line2 = named ? lines[2] || '' : lines[1] || '';
       const parsed = parseTle(name, line1, line2);
-      const entry = { name: parsed.name, line1, line2 };
+      const entry = { name: parsed.name, line1, line2, source: 'Manual TLE import' };
       setCatalog(previous => [entry, ...previous.filter(item => item.name !== entry.name)]);
       setSelectedName(entry.name);
       setPasses([]);
       setSelectedPassIndex(0);
-      setCatalogFetchedAt(null);
       setCatalogStatus('Manual orbital elements loaded · SGP4 active');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'The TLE could not be parsed.');
@@ -431,8 +429,8 @@ export default function SatelliteTrackingView() {
               <div><small>TLE EPOCH · UTC</small><b>{tracking.epoch.toISOString()}</b></div>
               <div><small>ELEMENT AGE AT CURRENT TIME</small><b className={tleOld || tleFutureEpoch ? 'sat-track-warning' : ''}>{tleFutureEpoch ? 'Future epoch — verify source' : tleAgeHours! < 1 ? Math.round(tleAgeHours! * 60) + ' min' : tleAgeHours!.toFixed(1) + ' h'}</b></div>
               <div><small>PROPAGATOR / FRAME</small><b>SGP4 / TEME</b></div>
-              <div><small>ELEMENT SOURCE</small><b>{catalogFetchedAt ? 'CelesTrak GP catalogue' : 'Manual TLE import'}</b></div>
-              <div><small>CATALOG FETCH TIME</small><b>{catalogFetchedAt ? catalogFetchedAt.toISOString() : 'Not recorded for manual TLE'}</b></div>
+              <div><small>ELEMENT SOURCE</small><b>{selected?.source || 'Unknown source'}</b></div>
+              <div><small>CATALOG FETCH TIME</small><b>{selected?.fetchedAt || 'Not recorded for manual TLE'}</b></div>
             </div>
           )}
           {tleFutureEpoch && <div className="sat-track-warning-panel">TLE epoch is in the future relative to the current clock. Verify the element source and system time before using predictions.</div>}
