@@ -431,7 +431,7 @@ export default function SatelliteTrackingView() {
               <div><small>TLE EPOCH · UTC</small><b>{tracking.epoch.toISOString()}</b></div>
               <div><small>ELEMENT AGE AT CURRENT TIME</small><b className={tleOld || tleFutureEpoch ? 'sat-track-warning' : ''}>{tleFutureEpoch ? 'Future epoch — verify source' : tleAgeHours! < 1 ? Math.round(tleAgeHours! * 60) + ' min' : tleAgeHours!.toFixed(1) + ' h'}</b></div>
               <div><small>PROPAGATOR / FRAME</small><b>SGP4 / TEME</b></div>
-              <div><small>ELEMENT SOURCE</small><b>{tracking.source.startsWith('Manual') ? 'Manual TLE import' : 'CelesTrak GP catalogue'}</b></div>
+              <div><small>ELEMENT SOURCE</small><b>{catalogFetchedAt ? 'CelesTrak GP catalogue' : 'Manual TLE import'}</b></div>
               <div><small>CATALOG FETCH TIME</small><b>{catalogFetchedAt ? catalogFetchedAt.toISOString() : 'Not recorded for manual TLE'}</b></div>
             </div>
           )}
