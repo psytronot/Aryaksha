@@ -24,7 +24,7 @@ test('spacecraft mass closure updates with mission limit and exports a traceable
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export report', exact: true }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/engineering-report\\.txt$/);
+  expect(download.suggestedFilename()).toMatch(/engineering-report\.txt$/);
   const stream = await download.createReadStream();
   let report = '';
   if (stream) for await (const chunk of stream) report += chunk.toString();
