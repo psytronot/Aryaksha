@@ -22,6 +22,7 @@ const validResponse = {
   engine: 'Orekit',
   engineVersion: '13.1.9',
   fidelity: 'Orekit numerical propagation (two-body)',
+  forceModels: ['NewtonianAttraction (WGS-84 GM)'],
   assumptions: [
     'Orekit 13.1.9; Apache-2.0; Java 21',
     'Frame: EME2000; epoch: J2000; Earth gravity parameter: WGS-84',
@@ -72,6 +73,18 @@ describe('Orbit analysis API v1 JSON Schemas', () => {
 
   it('accepts a representative Orekit response with explicit frame, time scale and units', () => {
     expect(validateResponse(validResponse)).toBe(true);
+  });
+
+  it('accepts an explicit J2-only Orekit response and active force-model list', () => {
+    const j2Response = {
+      ...validResponse,
+      fidelity: 'Orekit numerical propagation (two-body + J2-only)',
+      forceModels: [
+        'NewtonianAttraction (WGS-84 GM)',
+        'J2OnlyPerturbation (constant WGS-84 J2, EME2000 +Z axis)'
+      ]
+    };
+    expect(validateResponse(j2Response)).toBe(true);
   });
 
   it('rejects responses that omit the time scale or have malformed state vectors', () => {
