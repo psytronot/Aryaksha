@@ -2,10 +2,13 @@ package ai.aryaksha.orekit;
 
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.Locale;
 
 import org.hipparchus.geometry.euclidean.threed.Vector3D;
 import org.hipparchus.ode.nonstiff.DormandPrince853Integrator;
 import org.orekit.forces.gravity.NewtonianAttraction;
+import org.orekit.forces.gravity.J2OnlyPerturbation;
 import org.orekit.frames.FramesFactory;
 import org.orekit.orbits.KeplerianOrbit;
 import org.orekit.orbits.OrbitType;
@@ -33,9 +36,12 @@ public class OrbitAnalysisController {
     @Value("${ARYAKSHA_ALLOWED_ORIGIN:https://orbital-lab-lq22ug.v2.appdeploy.ai}")
     private String allowedOrigin;
 
-    public record AnalysisRequest(double altitudeKm, double inclinationDeg, double eccentricity, double elapsedSeconds) {
+    public record AnalysisRequest(double altitudeKm, double inclinationDeg, double eccentricity, double elapsedSeconds, String forceModel) {
+        public AnalysisRequest(double altitudeKm, double inclinationDeg, double eccentricity, double elapsedSeconds) {
+            this(altitudeKm, inclinationDeg, eccentricity, elapsedSeconds, "TWO_BODY");
+        }
         public AnalysisRequest(double altitudeKm, double inclinationDeg, double eccentricity) {
-            this(altitudeKm, inclinationDeg, eccentricity, 0.0);
+            this(altitudeKm, inclinationDeg, eccentricity, 0.0, "TWO_BODY");
         }
     }
     public record OrbitMetrics(
@@ -46,7 +52,7 @@ public class OrbitAnalysisController {
     public record StateVector(double elapsedSeconds, String epoch, String timeScale, String frame, double[] positionKm, double[] velocityKmS) {}
     public record AnalysisResponse(
         boolean valid, String engine, String engineVersion, String fidelity,
-        List<String> assumptions, OrbitMetrics orbit, StateVector state, Map<String, Object> comparison
+        List<String> assumptions, List<String> forceModels, OrbitMetrics orbit, StateVector state, Map<String, Object> comparison
     ) {}
 
     @GetMapping("/health")
@@ -73,6 +79,11 @@ public class OrbitAnalysisController {
             FramesFactory.getEME2000(), epoch, Constants.WGS84_EARTH_MU
         );
 
+        String forceModel = input.forceModel() == null ? "TWO_BODY" : input.forceModel().trim().toUpperCase(Locale.ROOT);
+        if (!forceModel.equals("TWO_BODY") && !forceModel.equals("J2")) {
+            throw new IllegalArgumentException("forceModel must be TWO_BODY or J2.");
+        }
+
         // Use Orekit's numerical integrator rather than the analytical Keplerian propagator.
         // The only force model is Newtonian central gravity; this is numerical two-body
         // propagation, not a high-fidelity perturbed orbit model.
@@ -85,6 +96,18 @@ public class OrbitAnalysisController {
         propagator.setOrbitType(OrbitType.CARTESIAN);
         propagator.setInitialState(new SpacecraftState(initialOrbit));
         propagator.addForceModel(new NewtonianAttraction(Constants.WGS84_EARTH_MU));
+        List<String> activeForceModels = new ArrayList<>();
+        activeForceModels.add("NewtonianAttraction (WGS-84 GM)");
+        if (forceModel.equals("J2")) {
+            // The J2 axis is held fixed to EME2000 +Z; pole motion/EOP and higher harmonics are not modelled.
+            propagator.addForceModel(new J2OnlyPerturbation(
+                Constants.WGS84_EARTH_MU,
+                Constants.WGS84_EARTH_EQUATORIAL_RADIUS,
+                1.08262668e-3,
+                FramesFactory.getEME2000()
+            ));
+            activeForceModels.add("J2OnlyPerturbation (constant WGS-84 J2, EME2000 +Z axis)");
+        }
 
         AbsoluteDate targetDate = epoch.shiftedBy(input.elapsedSeconds());
         SpacecraftState propagated = propagator.propagate(targetDate);
@@ -104,13 +127,23 @@ public class OrbitAnalysisController {
             new double[] { position.getX() / 1000.0, position.getY() / 1000.0, position.getZ() / 1000.0 },
             new double[] { velocity.getX() / 1000.0, velocity.getY() / 1000.0, velocity.getZ() / 1000.0 }
         );
-        return new AnalysisResponse(true, "Orekit", "13.1.9", "Orekit numerical propagation (two-body)",
-            List.of("Orekit 13.1.9; Apache-2.0; Java 21",
-                    "Numerical integrator: Dormand-Prince 8(5,3); position tolerance: 1 m; maximum step: 60 s",
-                    "Frame: EME2000; epoch: J2000 TAI; Earth gravity parameter: WGS-84",
-                    "Only Newtonian central gravity is configured; no J2, atmospheric drag, solar radiation pressure or third-body forces",
-                    "Propagation horizon limited to seven days"),
-            metrics, state,
+        List<String> assumptions = new ArrayList<>(List.of(
+            "Orekit 13.1.9; Apache-2.0; Java 21",
+            "Numerical integrator: Dormand-Prince 8(5,3); position tolerance: 1 m; maximum step: 60 s",
+            "Frame: EME2000; epoch: J2000 TAI; Earth gravity parameter: WGS-84",
+            "Propagation horizon limited to seven days"
+        ));
+        if (forceModel.equals("J2")) {
+            assumptions.add("Constant WGS-84 J2 coefficient 1.08262668e-3; J2 symmetry axis fixed to EME2000 +Z.");
+            assumptions.add("No Earth pole motion/EOP, higher gravity harmonics, drag, SRP, third-body gravity or manoeuvres.");
+        } else {
+            assumptions.add("Only Newtonian central gravity is configured; no J2, atmospheric drag, solar radiation pressure or third-body forces.");
+        }
+        String fidelity = forceModel.equals("J2")
+            ? "Orekit numerical propagation (two-body + J2-only)"
+            : "Orekit numerical propagation (two-body)";
+        return new AnalysisResponse(true, "Orekit", "13.1.9", fidelity,
+            assumptions, activeForceModels, metrics, state,
             Map.of("engineAdapter", "orekit-http", "status", "connected",
                    "note", "Computed by the independently hosted Orekit service using numerical two-body propagation."));
     }

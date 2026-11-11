@@ -98,6 +98,27 @@ class OrbitAnalysisControllerTest {
     }
 
     @Test
+    void j2ModelActivatesOrekitPerturbationAndChangesPropagatedState() {
+        var twoBody = controller.analyze(new OrbitAnalysisController.AnalysisRequest(550, 97.6, 0.001, 6000.0, "TWO_BODY"));
+        var j2 = controller.analyze(new OrbitAnalysisController.AnalysisRequest(550, 97.6, 0.001, 6000.0, "J2"));
+
+        assertTrue(j2.forceModels().stream().anyMatch(model -> model.startsWith("J2OnlyPerturbation")));
+        assertTrue(j2.fidelity().contains("J2-only"));
+        double dx = j2.state().positionKm()[0] - twoBody.state().positionKm()[0];
+        double dy = j2.state().positionKm()[1] - twoBody.state().positionKm()[1];
+        double dz = j2.state().positionKm()[2] - twoBody.state().positionKm()[2];
+        assertTrue(Math.sqrt(dx * dx + dy * dy + dz * dz) > 0.01,
+            "J2 must change the propagated state measurably over 6000 seconds");
+        assertTrue(j2.assumptions().stream().anyMatch(value -> value.contains("fixed to EME2000 +Z")));
+    }
+
+    @Test
+    void rejectsUnsupportedForceModel() {
+        assertThrows(IllegalArgumentException.class, () -> controller.analyze(
+            new OrbitAnalysisController.AnalysisRequest(550, 45, 0.001, 0.0, "FULL_HIGH_FIDELITY")));
+    }
+
+    @Test
     void rejectsPropagationOutsideSevenDayHorizon() {
         assertThrows(IllegalArgumentException.class, () -> controller.analyze(
             new OrbitAnalysisController.AnalysisRequest(550, 45, 0.001, -1.0)));
