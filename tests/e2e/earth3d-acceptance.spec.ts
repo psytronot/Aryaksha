@@ -822,6 +822,7 @@ test('Earth 3D Moon camera tracks the Earth-facing hemisphere on desktop and mob
   await page.getByRole('button', { name: 'Reset camera framing' }).click();
   await expect.poll(facingDot, { timeout: 10000 }).toBeGreaterThan(0.999);
   const timeline = page.getByRole('region', { name: 'Mission timeline and scene gallery' });
+  await page.getByRole('button', { name: 'Show mission timeline' }).click();
   await timeline.getByRole('button', { name: 'Advance simulation by 10 seconds' }).click();
   await expect.poll(facingDot, { timeout: 10000 }).toBeGreaterThan(0.999);
   const workspace = page.locator('.earth3d-workspace');
@@ -1107,20 +1108,18 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   const workspaceBounds = await page.locator('.earth3d-workspace').boundingBox();
   const bottomBounds = await bottom.boundingBox();
   const legendBounds = await page.locator('.earth3d-bottom-bar').boundingBox();
-  const timelineBounds = await page.locator('.earth3d-timeline').boundingBox();
+  await expect(page.getByRole('region', { name: 'Mission timeline and scene gallery' })).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Show mission timeline' })).toBeVisible();
   expect(canvasBounds).not.toBeNull();
   expect(workspaceBounds).not.toBeNull();
   expect(bottomBounds).not.toBeNull();
   expect(legendBounds).not.toBeNull();
-  expect(timelineBounds).not.toBeNull();
   expect(canvasBounds!.width).toBeGreaterThan(700);
   expect(canvasBounds!.height).toBeGreaterThan(600);
   expect(workspaceBounds!.height).toBeLessThanOrEqual(681);
   expect(bottomBounds!.y).toBeLessThan(850);
   expect(legendBounds!.x).toBeGreaterThanOrEqual(canvasBounds!.x);
-  expect(timelineBounds!.x).toBeGreaterThanOrEqual(canvasBounds!.x);
   expect(legendBounds!.x + legendBounds!.width).toBeLessThanOrEqual(canvasBounds!.x + canvasBounds!.width + 1);
-  expect(timelineBounds!.x + timelineBounds!.width).toBeLessThanOrEqual(canvasBounds!.x + canvasBounds!.width + 1);
 
   // Read the sticky navigation geometry and pointer target before the WebGL
   // screenshot. Chromium can keep the canvas compositor busy after a large
