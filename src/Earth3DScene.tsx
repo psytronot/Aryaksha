@@ -7,7 +7,7 @@ import { EARTH_IMAGERY_SOURCES, loadEarthImagery } from './earthImagery';
 import { loadPlanetaryImagery, PLANETARY_IMAGERY_SOURCES } from './planetaryImagery';
 import { formatIstDateTime } from './time';
 import { createSpaceEnvironment } from './solarSystem';
-import { cloudRelativeRotation, earthCameraDistance, fitCameraDistance, MOON_CAMERA_MARGIN, MOON_ORBIT_PERIOD_SECONDS, moonCameraYaw, PLANETARY_BODY_SPECS, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO, type PlanetaryBodyName } from './earth3dMath';
+import { cloudRelativeRotation, earthCameraDistance, earthMoonCentreDistanceSceneUnits, fitCameraDistance, MOON_CAMERA_MARGIN, MOON_ORBIT_PERIOD_SECONDS, moonCameraYaw, PLANETARY_BODY_SPECS, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO, type PlanetaryBodyName } from './earth3dMath';
 import { disposeObjectResources, updateFootprint } from './earth3dGeometry';
 import './earth3d-upgrade.css';
 
@@ -141,12 +141,12 @@ const SceneGallery = memo(function SceneGallery({ cameraMode, setCameraMode, set
   );
 });
 
-function systemCameraDistance(width: number, height: number) {
+function systemCameraDistance(width: number, height: number, distanceScale = SYSTEM_DISPLAY_DISTANCE_RATIO) {
   const earthRadius = 5.15;
   const moonRadius = earthRadius * (1737.4 / 6378.137);
-  const moonDistance = earthRadius * (384400 / 6378.137);
+  const moonDistance = earthMoonCentreDistanceSceneUnits(earthRadius, distanceScale);
   return Math.max(2, Math.min(2600,
-    fitCameraDistance(width, height, moonDistance * SYSTEM_DISPLAY_DISTANCE_RATIO + moonRadius, 42, SYSTEM_CAMERA_MARGIN)
+    fitCameraDistance(width, height, moonDistance + moonRadius, 42, SYSTEM_CAMERA_MARGIN)
   ));
 }
 
@@ -341,6 +341,9 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mobileHudOpen, setMobileHudOpen] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
+  const [earthMoonTrueScale, setEarthMoonTrueScale] = useState(false);
+  const earthMoonDistanceScaleRef = useRef(SYSTEM_DISPLAY_DISTANCE_RATIO);
+  earthMoonDistanceScaleRef.current = earthMoonTrueScale ? 1 : SYSTEM_DISPLAY_DISTANCE_RATIO;
   const [missionSetupTab, setMissionSetupTab] = useState<'presets' | 'custom'>('presets');
   const [imageryStatus, setImageryStatus] = useState('Loading NASA Earth, cloud and lunar imagery…');
   const [wallTime, setWallTime] = useState(() => new Date());
@@ -815,7 +818,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         sun.position.copy(earthSunUniform.value).multiplyScalar(30);
         rim.position.copy(earthSunUniform.value).multiplyScalar(-14);
         const mode = cameraModeRef.current;
-        spaceEnvironment.update(simSeconds, mode === 'SYSTEM' ? SYSTEM_DISPLAY_DISTANCE_RATIO : 1);
+        spaceEnvironment.update(simSeconds, mode === 'SYSTEM' ? earthMoonDistanceScaleRef.current : 1);
         const moonPhase = (simSeconds / MOON_ORBIT_PERIOD_SECONDS) * Math.PI * 2;
         const isPlanetaryMode = mode === 'PLANETS';
         spaceEnvironment.group.visible = showSpaceEnvironmentRef.current && !isPlanetaryMode;
@@ -969,12 +972,12 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
     if (cameraMode === 'TRACK') cameraState.current.distance = Math.min(cameraState.current.distance, 12);
     if (cameraMode === 'SATELLITE') cameraState.current.distance = Math.min(cameraState.current.distance, 6.5);
     if (cameraMode === 'MOON') cameraState.current.distance = Math.max(2, Math.min(2600, moonCameraDistance(containerRef.current?.clientWidth || 1, containerRef.current?.clientHeight || 1) * moonZoomRatioRef.current));
-    if (cameraMode === 'SYSTEM') cameraState.current.distance = Math.max(2, Math.min(2600, systemCameraDistance(containerRef.current?.clientWidth || 1, containerRef.current?.clientHeight || 1) * systemZoomRatioRef.current));
+    if (cameraMode === 'SYSTEM') cameraState.current.distance = Math.max(2, Math.min(2600, systemCameraDistance(containerRef.current?.clientWidth || 1, containerRef.current?.clientHeight || 1, earthMoonDistanceScaleRef.current) * systemZoomRatioRef.current));
     if (cameraMode === 'PLANETS') {
       planetZoomRatioRef.current = 1;
       cameraState.current.distance = Math.max(2, Math.min(2600, planetCameraDistance(containerRef.current?.clientWidth || 1, containerRef.current?.clientHeight || 1, selectedBody) * planetZoomRatioRef.current));
     }
-  }, [cameraMode, selectedBody]);
+  }, [cameraMode, selectedBody, earthMoonTrueScale]);
 
   const toggleFullscreen = async () => {
     const workspace = workspaceRef.current;
@@ -1125,7 +1128,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         </div>
         <div className="earth3d-bottom-bar">
           <span><i className="legend-spacecraft" /> SPACECRAFT</span><span><i className="legend-orbit" /> ORBIT</span><span><i className="legend-footprint" /> FOOTPRINT · FOV GEOMETRY</span><span><i className="legend-vector" /> VECTORS</span>
-          <span className="earth3d-help">DRAG TO ORBIT · WHEEL TO ZOOM · SYSTEM FRAMES EARTH + MOON · TRACK FOLLOWS SATELLITE</span><button type="button" className="earth3d-timeline-toggle" aria-label={timelineOpen ? "Hide mission timeline" : "Show mission timeline"} aria-expanded={timelineOpen} aria-controls="earth3d-timeline" onClick={() => setTimelineOpen(value => !value)}>{timelineOpen ? "HIDE TIMELINE" : "TIMELINE"}</button>{cameraMode === "SYSTEM" && <span className="earth3d-scale-note" data-testid="earth3d-scale-note">SCHEMATIC SYSTEM · {(1 / SYSTEM_DISPLAY_DISTANCE_RATIO).toFixed(1)}× CENTRE-DISTANCE COMPRESSION · PHYSICAL RADII RETAINED · NOT TO SCALE</span>}{cameraMode === "PLANETS" && <span className="earth3d-scale-note" data-testid="earth3d-planetary-scale-note">SCHEMATIC SOLAR SYSTEM · ORBIT RADII + BODY SIZES EXAGGERATED · NOT TO SCALE · NOT EPHEMERIS-GRADE</span>}
+          <span className="earth3d-help">DRAG TO ORBIT · WHEEL TO ZOOM · SYSTEM FRAMES EARTH + MOON · TRACK FOLLOWS SATELLITE</span><button type="button" className="earth3d-timeline-toggle" aria-label={timelineOpen ? "Hide mission timeline" : "Show mission timeline"} aria-expanded={timelineOpen} aria-controls="earth3d-timeline" onClick={() => setTimelineOpen(value => !value)}>{timelineOpen ? "HIDE TIMELINE" : "TIMELINE"}</button>{cameraMode === "SYSTEM" && <><button type="button" className="earth3d-timeline-toggle" data-testid="earth3d-scale-toggle" aria-pressed={earthMoonTrueScale} onClick={() => setEarthMoonTrueScale(value => !value)}>{earthMoonTrueScale ? "PRESENTATION SCALE" : "TRUE MEAN-DISTANCE SCALE"}</button><span className="earth3d-scale-note" data-testid="earth3d-scale-note">{earthMoonTrueScale ? "TRUE MEAN CENTRE-DISTANCE RATIO · CIRCULAR MEAN-DISTANCE DISPLAY · NOT AN EPHEMERIS" : `PRESENTATION SCALE · ${(1 / SYSTEM_DISPLAY_DISTANCE_RATIO).toFixed(1)}× CENTRE-DISTANCE COMPRESSION · PHYSICAL RADII RETAINED · NOT TO SCALE`}</span></>}{cameraMode === "PLANETS" && <span className="earth3d-scale-note" data-testid="earth3d-planetary-scale-note">SCHEMATIC SOLAR SYSTEM · ORBIT RADII + BODY SIZES EXAGGERATED · NOT TO SCALE · NOT EPHEMERIS-GRADE</span>}
         </div>
         <div id="earth3d-timeline" className="earth3d-timeline" role="region" aria-label="Mission timeline and scene gallery" data-testid="earth3d-timeline" hidden={!timelineOpen}>
           <div className="earth3d-timeline-heading"><span>MISSION TIMELINE / SCENE GALLERY</span><b>T+ {Number(seconds || 0).toFixed(1)} s</b></div>
