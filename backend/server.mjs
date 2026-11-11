@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'node:path';
 import * as satellite from 'satellite.js';
 import { rateLimit } from 'express-rate-limit';
-import { createRateLimiter, securityHeaders } from './security.mjs';
+import { securityHeaders } from './security.mjs';
 import { createPlanetaryImageryHandler } from './planetaryImagery.mjs';
 import { createTelemetryStore, verifyAndParseTelemetry, verifyTelemetryReadToken, parseBearerToken } from './telemetry.mjs';
 import { fetchMoonStateAtTdbEpoch } from './horizonsEphemeris.mjs';
