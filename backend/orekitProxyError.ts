@@ -35,13 +35,13 @@ export function mapOrekitProxyFailure(status: number, payload: unknown): OrekitP
 
 /**
  * Classify proxy transport failures separately from upstream validation.
- * A 15-second abort is retryable: Render may still be waking from idle.
+ * A 15-second abort is retryable; observed cold readiness has exceeded 50 seconds, so wait 60 seconds before retrying.
  */
 export function mapOrekitProxyException(cause: unknown): OrekitProxyFailure {
   if (cause instanceof Error && cause.name === 'AbortError') {
     return {
       status: 503,
-      message: 'Orekit did not become ready within 15 seconds. The service may be waking from idle; retry after 20 seconds.'
+      message: 'Orekit did not become ready within 15 seconds. The service may be waking from idle; retry after 60 seconds.'
     };
   }
 
