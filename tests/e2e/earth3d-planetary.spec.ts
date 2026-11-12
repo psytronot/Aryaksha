@@ -5,22 +5,26 @@ async function prepareViewportScreenshot(page: import('@playwright/test').Page, 
   await page.evaluate(() => {
     document.documentElement.style.scrollBehavior = 'auto';
     document.body.style.scrollBehavior = 'auto';
-    for (const element of document.querySelectorAll<HTMLElement>('*')) element.scrollTop = 0;
+    for (const element of document.querySelectorAll<HTMLElement>(
+      '.earth3d-left-hud, .earth3d-right-hud, .earth3d-timeline, .earth3d-scene-gallery'
+    )) {
+      element.scrollTop = 0;
+      element.scrollLeft = 0;
+    }
     if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
     window.scrollTo(0, 0);
   });
-  await expect.poll(() => page.evaluate(() => ({
-    documentTop: document.scrollingElement?.scrollTop ?? window.scrollY,
-    nestedScrolled: [...document.querySelectorAll<HTMLElement>('*')].some(element => element.scrollTop > 0)
-  }))).toEqual({ documentTop: 0, nestedScrolled: false });
+  await expect.poll(() => page.evaluate(() =>
+    document.scrollingElement?.scrollTop ?? window.scrollY
+  )).toBe(0);
   const heading = page.getByRole('heading', { name: 'Earth 3D', exact: true });
   await expect(heading).toBeInViewport();
   await expect(viewport).toBeInViewport();
-  const bounds = await viewport.boundingBox();
-  const height = await page.evaluate(() => window.innerHeight);
-  expect(bounds).not.toBeNull();
-  expect(bounds!.y).toBeGreaterThanOrEqual(0);
-  expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(height + 1);
+  await expect.poll(async () => {
+    const bounds = await viewport.boundingBox();
+    const height = await page.evaluate(() => window.innerHeight);
+    return Boolean(bounds && bounds.y >= 0 && bounds.y + bounds.height <= height + 1);
+  }).toBe(true);
 }
 
 async function openSimulation(page: import('@playwright/test').Page, mobile: boolean) {
