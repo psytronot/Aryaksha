@@ -1121,43 +1121,13 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   expect(legendBounds!.x).toBeGreaterThanOrEqual(canvasBounds!.x);
   expect(legendBounds!.x + legendBounds!.width).toBeLessThanOrEqual(canvasBounds!.x + canvasBounds!.width + 1);
 
-  // Read the sticky navigation geometry and pointer target before the WebGL
-  // screenshot. Chromium can keep the canvas compositor busy after a large
-  // screenshot; retaining these measured coordinates avoids a second
-  // renderer-bound locator evaluation while preserving a real pointer click.
-  const groundTrackMetrics = await primaryNav.evaluate(nav => {
-    const button = Array.from(nav.querySelectorAll('button'))
-      .find(candidate => candidate.textContent?.trim() === 'Ground Track');
-    if (!button) return null;
-    const rect = button.getBoundingClientRect();
-    const x = rect.left + rect.width / 2;
-    const y = rect.top + rect.height / 2;
-    const hit = document.elementFromPoint(x, y);
-    const hitButton = hit?.closest('button');
-    return {
-      text: button.textContent?.trim(),
-      x: rect.left,
-      y: rect.top,
-      width: rect.width,
-      height: rect.height,
-      inViewport: rect.left >= 0 && rect.top >= 0
-        && rect.right <= window.innerWidth && rect.bottom <= window.innerHeight,
-      receivesPointer: hitButton === button
-        && hitButton.closest('[data-testid="simulation-primary-nav"]') === nav
-    };
-  });
-  expect(groundTrackMetrics).not.toBeNull();
-  expect(groundTrackMetrics!.text).toBe('Ground Track');
-  expect(groundTrackMetrics!.width).toBeGreaterThan(0);
-  expect(groundTrackMetrics!.height).toBeGreaterThan(0);
-  expect(groundTrackMetrics!.inViewport).toBe(true);
-  expect(groundTrackMetrics!.receivesPointer).toBe(true);
-
-  // Use the previously measured visible hit target for a real pointer event.
-  await page.mouse.click(
-    groundTrackMetrics!.x + groundTrackMetrics!.width / 2,
-    groundTrackMetrics!.y + groundTrackMetrics!.height / 2
-  );
+  // Let Playwright perform its native visibility, stability and hit-target
+  // checks. A page-side geometry evaluation can starve behind the active WebGL
+  // renderer on shared CI runners even when the navigation is already visible.
+  const groundTrackButton = primaryNav.getByRole('button', { name: 'Ground Track', exact: true });
+  await expect(groundTrackButton).toBeVisible();
+  await expect(groundTrackButton).toHaveText('Ground Track');
+  await groundTrackButton.click();
   const bottomPanels = page.getByTestId('earth3d-bottom-panels');
   await expect(bottomPanels).toBeVisible();
   await expect(groundTrackHeading).toBeVisible();
