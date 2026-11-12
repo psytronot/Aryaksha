@@ -185,19 +185,30 @@ describe('Earth 3D lighting, camera and lunar geometry', () => {
     material.dispose();
   });
 
-  it('fits the full Earth disc at desktop and portrait aspect ratios', () => {
-    const desktop = earthCameraDistance(1536, 1024);
-    const portrait = earthCameraDistance(390, 844);
-    expect(desktop).toBeGreaterThan(5.15);
-    expect(portrait).toBeGreaterThan(desktop);
-    expect(earthCameraDistance(390, 844, 5.15)).toBeCloseTo(fitCameraDistance(390, 844, 5.15, 42, EARTH_CAMERA_MARGIN), 8);
+  it('frames Earth close to the reference scale while keeping the 550 km orbit inside the frustum', () => {
     const verticalFov = 42 * Math.PI / 180;
-    const desktopHorizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * (1536 / 1024));
-    const portraitHorizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * (390 / 844));
-    const desktopFraction = 2 * Math.asin(5.15 / desktop) / Math.min(verticalFov, desktopHorizontalFov);
-    const portraitFraction = 2 * Math.asin(5.15 / portrait) / Math.min(verticalFov, portraitHorizontalFov);
-    expect(desktopFraction).toBeLessThan(0.8);
-    expect(portraitFraction).toBeLessThan(0.8);
+    const earthRadius = 5.15;
+    const referenceOrbitRadius = earthRadius * (1 + 550 / 6378.137);
+    const viewports = [
+      { width: 1536, height: 1024 },
+      { width: 390, height: 844 }
+    ];
+
+    for (const viewport of viewports) {
+      const distance = earthCameraDistance(viewport.width, viewport.height);
+      const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * (viewport.width / viewport.height));
+      const limitingFov = Math.min(verticalFov, horizontalFov);
+      const projectedDiameterFraction = Math.tan(Math.asin(earthRadius / distance)) / Math.tan(limitingFov / 2);
+      const orbitAngularRadius = Math.asin(referenceOrbitRadius / distance);
+
+      expect(distance).toBeGreaterThan(referenceOrbitRadius);
+      expect(projectedDiameterFraction).toBeGreaterThan(0.86);
+      expect(projectedDiameterFraction).toBeLessThan(0.9);
+      expect(orbitAngularRadius).toBeLessThan(limitingFov / 2);
+    }
+
+    expect(earthCameraDistance(390, 844, earthRadius))
+      .toBeCloseTo(fitCameraDistance(390, 844, earthRadius, 42, EARTH_CAMERA_MARGIN), 8);
   });
 
   it('keeps the same lunar hemisphere facing Earth over a full orbit', () => {
