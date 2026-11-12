@@ -23,8 +23,15 @@ async function prepareViewportScreenshot(page: import('@playwright/test').Page, 
   await expect.poll(async () => {
     const bounds = await viewport.boundingBox();
     const height = await page.evaluate(() => window.innerHeight);
-    return Boolean(bounds && bounds.y >= 0 && bounds.y + bounds.height <= height + 1);
-  }).toBe(true);
+    const top = bounds ? Math.round(bounds.y * 100) / 100 : null;
+    const bottom = bounds ? Math.round((bounds.y + bounds.height) * 100) / 100 : null;
+    return {
+      top,
+      bottom,
+      viewportHeight: height,
+      fits: Boolean(bounds && bounds.y >= 0 && bounds.y + bounds.height <= height + 1)
+    };
+  }, { message: 'Earth 3D canvas must fit fully inside the screenshot viewport.' }).toMatchObject({ fits: true });
 }
 
 async function openSimulation(page: import('@playwright/test').Page, mobile: boolean) {
