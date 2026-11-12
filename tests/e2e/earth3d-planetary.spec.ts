@@ -2,8 +2,18 @@ import { expect, test } from '@playwright/test';
 
 
 async function prepareViewportScreenshot(page: import('@playwright/test').Page, viewport: import('@playwright/test').Locator) {
+  await page.evaluate(() => {
+    document.documentElement.style.scrollBehavior = 'auto';
+    document.body.style.scrollBehavior = 'auto';
+    for (const element of document.querySelectorAll<HTMLElement>('*')) element.scrollTop = 0;
+    if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+    window.scrollTo(0, 0);
+  });
+  await expect.poll(() => page.evaluate(() => ({
+    documentTop: document.scrollingElement?.scrollTop ?? window.scrollY,
+    nestedScrolled: [...document.querySelectorAll<HTMLElement>('*')].some(element => element.scrollTop > 0)
+  }))).toEqual({ documentTop: 0, nestedScrolled: false });
   const heading = page.getByRole('heading', { name: 'Earth 3D', exact: true });
-  await heading.scrollIntoViewIfNeeded();
   await expect(heading).toBeInViewport();
   await expect(viewport).toBeInViewport();
   const bounds = await viewport.boundingBox();
