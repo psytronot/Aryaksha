@@ -47,7 +47,7 @@ describe('Orekit proxy failure mapping', () => {
     timeout.name = 'AbortError';
     expect(mapOrekitProxyException(timeout)).toEqual({
       status: 503,
-      message: 'Orekit did not become ready within 15 seconds. The service may be waking from idle; retry after 20 seconds.'
+      message: 'Orekit did not become ready within 15 seconds. The service may be waking from idle; retry after 60 seconds.'
     });
   });
 
