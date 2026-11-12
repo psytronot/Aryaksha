@@ -633,7 +633,7 @@ html.earth3d-active pwa-install {
     height: auto;
     min-height: 760px;
     max-height: none;
-    grid-template-rows: auto minmax(560px, 1fr) auto auto;
+    grid-template-rows: auto minmax(420px, min(62svh, 620px)) auto auto;
   }
   .app-shell.simulation-active .earth3d-workspace[data-timeline-open="true"] .earth3d-topbar {
     position: relative;
@@ -645,8 +645,9 @@ html.earth3d-active pwa-install {
   .app-shell.simulation-active .earth3d-workspace[data-timeline-open="true"] .earth3d-canvas {
     grid-column: 2;
     grid-row: 2;
-    min-height: 560px;
+    min-height: 0;
     height: 100%;
+    max-height: min(62svh, 620px);
   }
   .app-shell.simulation-active .earth3d-workspace[data-timeline-open="true"] .earth3d-left-hud {
     grid-column: 1;
