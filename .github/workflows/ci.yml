@@ -73,7 +73,7 @@ jobs:
       - run: npm run test:e2e
       - name: Upload Earth 3D browser screenshots and traces
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: earth3d-browser-evidence-${{ github.run_id }}
           path: test-results/
