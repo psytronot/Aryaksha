@@ -1111,9 +1111,11 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   const canvasBounds = await canvas.boundingBox();
   const workspaceBounds = await page.locator('.earth3d-workspace').boundingBox();
   const bottomBounds = await bottom.boundingBox();
-  const legendBounds = await page.locator('.earth3d-bottom-bar').boundingBox();
+  const timelineToggle = page.getByRole('button', { name: 'Show mission timeline' });
+  await expect(timelineToggle).toBeVisible();
+  await expect(page.getByText('DRAG TO ORBIT · WHEEL TO ZOOM · SYSTEM FRAMES EARTH + MOON · TRACK FOLLOWS SATELLITE', { exact: true })).toBeVisible();
+  const legendBounds = await timelineToggle.boundingBox();
   await expect(page.getByRole('region', { name: 'Mission timeline and scene gallery' })).toBeHidden();
-  await expect(page.getByRole('button', { name: 'Show mission timeline' })).toBeVisible();
   expect(canvasBounds).not.toBeNull();
   expect(workspaceBounds).not.toBeNull();
   expect(bottomBounds).not.toBeNull();
