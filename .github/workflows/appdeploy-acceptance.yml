@@ -43,7 +43,7 @@ jobs:
             echo "endpoint=$name"
             curl --silent --show-error --connect-timeout 10 --max-time 70 \
               -o "$body" \
-              -w 'http_code=%{http_code} remote_ip=%{remote_ip} dns_ms=%{time_namelookup} connect_ms=%{time_connect} tls_ms=%{time_appconnect} ttfb_ms=%{time_starttransfer} total_ms=%{time_total}\n' \
+              -w 'http_code=%{http_code} remote_ip=%{remote_ip} dns_s=%{time_namelookup} connect_s=%{time_connect} tls_s=%{time_appconnect} ttfb_s=%{time_starttransfer} total_s=%{time_total}\n' \
               "$url"
             rc=$?
             if [ "$rc" -ne 0 ]; then echo "curl_exit=$rc"; fi
