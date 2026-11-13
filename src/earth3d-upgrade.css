@@ -601,7 +601,7 @@ html.earth3d-active pwa-install {
 }
 .earth3d-planetary-controls .earth3d-planet-select { margin-top: 7px; }
 @media (max-width: 800px) {
-  .earth3d-planetary-disclosure { font-size: 6.5px; }
+  .earth3d-planetary-disclosure { font-size: 7.5px; }
 }
 
 
@@ -701,7 +701,7 @@ html.earth3d-active pwa-install {
 @media (max-width: 800px) {
   .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header .earth3d-imagery-status {
     color: #a8d9ea;
-    font: 8px/1.35 ui-monospace, monospace;
+    font: 9px/1.4 ui-monospace, monospace;
     overflow-wrap: anywhere;
   }
   .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header > div > small:last-child {
