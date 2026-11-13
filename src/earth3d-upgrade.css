@@ -727,9 +727,9 @@ html.earth3d-active pwa-install {
 }
 @media (max-width: 800px) {
   .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header .earth3d-imagery-status {
-    font: 8px/1.35 ui-monospace, monospace;
+    font: 9px/1.35 ui-monospace, monospace;
   }
   .app-shell.simulation-active .simulation-page .scene-wrap > .page > .earth3d-page-header > div > small:last-child {
-    font: 8px/1.35 ui-monospace, monospace;
+    font: 9px/1.35 ui-monospace, monospace;
   }
 }

@@ -187,7 +187,7 @@ function App() {
             <button type="button" onClick={() => setView('spacecraft')}><Satellite size={15} /><span>Spacecraft</span></button>
             <button type="button" onClick={() => setView('orbit')}><Orbit size={15} /><span>Orbits</span></button>
             <button type="button" aria-current="page" onClick={() => setView('simulation')}><Globe2 size={15} /><span>Earth 3D</span></button>
-            <button type="button" onClick={() => document.getElementById('earth3d-ground-track-panel')?.scrollIntoView({ block: 'start', behavior: 'smooth' })}><Globe2 size={15} /><span>Ground Track</span></button>
+            <button type="button" onClick={() => document.getElementById('earth3d-ground-track-panel')?.scrollIntoView({ block: 'start', behavior: 'instant' })}><Globe2 size={15} /><span>Ground Track</span></button>
             <button type="button" onClick={() => setView('instructions')}><BookOpen size={15} /><span>Docs</span></button>
           </nav>
         )}
