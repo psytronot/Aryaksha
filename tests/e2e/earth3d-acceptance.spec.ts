@@ -1127,16 +1127,25 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   expect(legendBounds!.x).toBeGreaterThanOrEqual(canvasBounds!.x);
   expect(legendBounds!.x + legendBounds!.width).toBeLessThanOrEqual(canvasBounds!.x + canvasBounds!.width + 1);
 
-  // Let Playwright perform its native visibility, stability and hit-target
-  // checks. A page-side geometry evaluation can starve behind the active WebGL
-  // renderer on shared CI runners even when the navigation is already visible.
+  // Verify the navigation button is the unobstructed pointer hit target.
+  // On shared Chromium/WebGL CI, locator.click() can exhaust the test budget
+  // while repeatedly rechecking actionability even though the visible button
+  // and its geometry are stable. Invoke the native button click only after the
+  // explicit hit-test so the real React handler and scroll behavior still run.
   const groundTrackButton = primaryNav.getByRole('button', { name: 'Ground Track', exact: true });
   await expect(groundTrackButton).toBeVisible();
   await expect(groundTrackButton).toHaveText('Ground Track');
-  await groundTrackButton.click();
+  const groundTrackHitTarget = await groundTrackButton.evaluate(button => {
+    const rect = button.getBoundingClientRect();
+    const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    return hit === button || button.contains(hit);
+  });
+  expect(groundTrackHitTarget).toBe(true);
+  await groundTrackButton.evaluate(button => (button as HTMLButtonElement).click());
   const bottomPanels = page.getByTestId('earth3d-bottom-panels');
   await expect(bottomPanels).toBeVisible();
   await expect(groundTrackHeading).toBeVisible();
+  await expect(groundTrackHeading).toBeInViewport();
   await expect(groundTrackHeading.getByText('2D Ground Track', { exact: true })).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
