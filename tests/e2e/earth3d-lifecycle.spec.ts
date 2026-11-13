@@ -151,7 +151,7 @@ for (const viewport of viewports) {
     const container = page.locator('.earth3d-canvas');
     const canvas = container.locator('canvas');
     await expect(canvas).toBeVisible();
-    await container.locator('..').getByRole('button', { name: 'SYSTEM', exact: true }).click();
+    await page.locator('[aria-label="Camera modes"]').getByRole('button', { name: 'SYSTEM', exact: true }).click();
     await expect(container).toHaveAttribute('data-camera-mode', 'SYSTEM');
     await page.screenshot({
       path: testInfo.outputPath('earth3d-lifecycle-' + viewport.name + '.png'),
