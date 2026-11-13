@@ -89,6 +89,12 @@ function App() {
     localStorage.setItem('orbital-lab-coach-enabled', String(coachEnabled));
   }, [coachEnabled]);
 
+  // A simulation workspace is a focused mission-control destination, not a
+  // continuation of the long-form landing page's previous scroll position.
+  useEffect(() => {
+    if (view === 'simulation') window.scrollTo(0, 0);
+  }, [view]);
+
   useEffect(() => {
     if (!running) return;
     const id = window.setInterval(() => {
@@ -169,16 +175,27 @@ function App() {
   };
 
   return (
-    <div className="app-shell">
+    <div className={view === 'simulation' ? 'app-shell simulation-active' : 'app-shell'}>
       <header className="topbar">
         <button className="brand" onClick={() => { setView('mission'); setMobileNavOpen(false); }}>
           <span className="brand-mark"><AryakshaMark size={34} /></span>
           <span><strong>ARYAKSHA</strong><small>SPACE EXPLORATION LAB</small></span>
         </button>
+        {view === 'simulation' && (
+          <nav className="simulation-primary-nav" aria-label="Simulation workspace navigation" data-testid="simulation-primary-nav">
+            <button type="button" onClick={() => setView('mission')}><Target size={15} /><span>Mission</span></button>
+            <button type="button" onClick={() => setView('spacecraft')}><Satellite size={15} /><span>Spacecraft</span></button>
+            <button type="button" onClick={() => setView('orbit')}><Orbit size={15} /><span>Orbits</span></button>
+            <button type="button" aria-current="page" onClick={() => setView('simulation')}><Globe2 size={15} /><span>Earth 3D</span></button>
+            <button type="button" onClick={() => document.getElementById('earth3d-ground-track-panel')?.scrollIntoView({ block: 'start', behavior: 'smooth' })}><Globe2 size={15} /><span>Ground Track</span></button>
+            <button type="button" onClick={() => setView('instructions')}><BookOpen size={15} /><span>Docs</span></button>
+          </nav>
+        )}
         <div className="engine-status"><span /> PHYSICS ENGINE <b>READY</b></div>
         <div className="topbar-actions"><button className="mobile-menu-button" type="button" aria-label={mobileNavOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={mobileNavOpen} aria-controls="mobile-navigation" onClick={() => setMobileNavOpen(v => !v)}><Layers3 size={17} /></button><button className={coachEnabled ? "coach-setting active" : "coach-setting"} type="button" aria-pressed={coachEnabled} onClick={() => setCoachEnabled(v => !v)}><CircleHelp size={15} /><span>COACH {coachEnabled ? "ON" : "OFF"}</span></button><button className="top-help" onClick={() => { setView('instructions'); setMobileNavOpen(false); }}><BookOpen size={16} /> <span>HELP · DEFINITIONS</span></button></div>
       </header>
 
+      {view === 'mission' && <>
       <section className="welcome-hero">
         <div className="welcome-orbit-art" aria-hidden="true"><img className="hero-space-illustration" src="/aryaksha-hero.svg" alt="Original illustration of a spacecraft orbiting Earth" /></div>
         <div className="welcome-copy"><div className="welcome-brand-lockup"><span className="welcome-brand-mark"><AryakshaMark size={60} /></span><div><div className="welcome-wordmark">ARYAKSHA</div><div className="welcome-wordmark-sub">SPACE EXPLORATION LAB</div></div></div>
@@ -193,6 +210,7 @@ function App() {
         </div>
       </section>
       <section className="about-kakshiya" id="about-aryaksha"><div className="about-orbit-visual" aria-hidden="true"><div className="about-earth"><Globe2 size={82}/></div><div className="about-orbit-line"/><span className="about-mini-sat"><Satellite size={22}/></span><span className="about-visual-label">LEARN · EXPERIMENT · CREATE</span></div><div className="about-copy"><p className="welcome-kicker">ABOUT ARYAKSHA</p><h2>A Space Lab for the Next Generation</h2><p>Aryaksha brings space exploration and engineering tools into one accessible place. Explore satellite movement, investigate orbital mechanics, experiment with preliminary spacecraft mission design and understand the engineering trade-offs behind a mission.</p><p>Whether you are taking your first steps into space science or building practical aerospace skills, Aryaksha is designed to help you learn by doing.</p><div className="about-values"><span><Rocket size={19}/> Student focused</span><span><Globe2 size={19}/> Explore space data</span><span><Wrench size={19}/> Hands-on tools</span></div><small className="about-disclaimer">Some tools use public orbital data; simulations are educational models, not flight-certified systems.</small></div></section>
+      </>}
       <div className="shell">
         {mobileNavOpen && <div className="mobile-nav-backdrop" onClick={() => setMobileNavOpen(false)} />}
         <aside className={mobileNavOpen ? 'sidebar mobile-open' : 'sidebar'}>
@@ -414,7 +432,7 @@ function SimulationView({ model, current, seconds, duration, running, setRunning
       </div>
     </div>
     <div className="earth3d-bottom-panels" data-testid="earth3d-bottom-panels">
-      <div className="earth3d-bottom-panel earth3d-ground-track-panel"><GroundTrackMap model={model} current={current} /></div>
+      <div id="earth3d-ground-track-panel" className="earth3d-bottom-panel earth3d-ground-track-panel"><GroundTrackMap model={model} current={current} /></div>
       <Card title="Orbit Parameters" icon={<Orbit size={17} />}>
         <div className="earth3d-bottom-metrics">
           <div><small>APOGEE</small><b>{formatNumber(orbitMetrics.ra - EARTH_RADIUS, 1)} km</b></div>

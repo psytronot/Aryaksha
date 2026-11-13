@@ -30,7 +30,14 @@ test('primary engineering workflow connects design, simulation, analysis, verifi
   ];
   for (const workspace of workspaces) {
     await page.getByRole('button', { name: workspace.button, exact: true }).click();
-    await expect(page.getByRole('heading', { name: workspace.heading, exact: true })).toBeVisible();
+    if (workspace.button === 'Simulation') {
+      // The reference mission-control view intentionally replaces the
+      // introductory PageHeader with the live globe and its setup rail.
+      await expect(page.locator('.earth3d-canvas canvas')).toBeVisible();
+      await expect(page.getByTestId('earth3d-mission-setup')).toBeVisible();
+    } else {
+      await expect(page.getByRole('heading', { name: workspace.heading, exact: true })).toBeVisible();
+    }
   }
 
   const downloadPromise = page.waitForEvent('download');
