@@ -3,7 +3,7 @@ export const MOON_CAMERA_MARGIN = 1.7;
 // SphereGeometry's 0° texture meridian is local +X; rotate it onto the Earth-facing +Z axis.
 export const MOON_TEXTURE_CENTER_ROTATION_RAD = -Math.PI / 2;
 export const SYSTEM_CAMERA_MARGIN = 1.08;
-export const EARTH_CAMERA_MARGIN = 1.35;
+export const EARTH_CAMERA_MARGIN = 1.08;
 // In SYSTEM view, compress only the displayed Earth-Moon centre separation.
 // Physical radii and the authoritative 384,400 km reference remain unchanged.
 export const SYSTEM_DISPLAY_DISTANCE_RATIO = 0.0225;
