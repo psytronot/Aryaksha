@@ -1022,6 +1022,10 @@ test('Earth 3D reference dashboard reflows to a globe-first mobile layout', asyn
   const mobileEarthSize = await canvas.evaluate(element => ({ width: element.clientWidth, height: element.clientHeight }));
   const mobileEarthFit = fitCameraDistance(mobileEarthSize.width, mobileEarthSize.height, 5.15, 42, EARTH_CAMERA_MARGIN);
   await expect.poll(async () => Number(await canvas.getAttribute('data-camera-distance'))).toBeCloseTo(mobileEarthFit, 1);
+  const mobileDisclosure = page.locator('.earth3d-page-header > div > small:last-child');
+  await expect(mobileDisclosure).toBeVisible();
+  const mobileDisclosureFontSize = await mobileDisclosure.evaluate(element => Number.parseFloat(getComputedStyle(element).fontSize));
+  expect(mobileDisclosureFontSize).toBeGreaterThanOrEqual(9);
   await expect(setup).toBeHidden();
   await expect(controls).toBeHidden();
   await page.getByRole('button', { name: 'Show mission data panels' }).click();
