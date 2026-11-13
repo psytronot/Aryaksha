@@ -196,8 +196,11 @@ describe('Earth 3D lighting, camera and lunar geometry', () => {
     const portraitHorizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * (390 / 844));
     const desktopFraction = 2 * Math.asin(5.15 / desktop) / Math.min(verticalFov, desktopHorizontalFov);
     const portraitFraction = 2 * Math.asin(5.15 / portrait) / Math.min(verticalFov, portraitHorizontalFov);
-    expect(desktopFraction).toBeLessThan(0.8);
-    expect(portraitFraction).toBeLessThan(0.8);
+    // Keep a small 8% geometric margin while using the viewport more like the reference.
+    expect(desktopFraction).toBeGreaterThan(0.9);
+    expect(desktopFraction).toBeLessThan(0.95);
+    expect(portraitFraction).toBeGreaterThan(0.9);
+    expect(portraitFraction).toBeLessThan(0.95);
   });
 
   it('keeps the same lunar hemisphere facing Earth over a full orbit', () => {
