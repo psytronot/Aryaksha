@@ -36,7 +36,7 @@ async function instrumentWebGlLifecycle(page: Page) {
     ];
     const patched = new Set<object>();
     for (const Constructor of constructors) {
-      const prototype = Constructor?.prototype as (WebGLRenderingContext & Record<string, any>) | undefined;
+      const prototype = Constructor?.prototype as any;
       if (!prototype || patched.has(prototype)) continue;
       patched.add(prototype);
 
@@ -51,8 +51,8 @@ async function instrumentWebGlLifecycle(page: Page) {
       }
 
       if (Object.prototype.hasOwnProperty.call(prototype, 'getExtension')) {
-        const originalGetExtension = prototype.getExtension;
-        prototype.getExtension = function (name: string) {
+        const originalGetExtension = prototype.getExtension as (name: string) => any;
+        prototype.getExtension = function (name: string): any {
           const extension = originalGetExtension.call(this, name);
           if (name !== 'WEBGL_lose_context' || !extension || typeof extension.loseContext !== 'function') {
             return extension;
