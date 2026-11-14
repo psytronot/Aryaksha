@@ -1,5 +1,39 @@
 import { expect, test } from '@playwright/test';
 
+
+async function prepareViewportScreenshot(page: import('@playwright/test').Page, viewport: import('@playwright/test').Locator) {
+  await page.evaluate(() => {
+    document.documentElement.style.scrollBehavior = 'auto';
+    document.body.style.scrollBehavior = 'auto';
+    for (const element of document.querySelectorAll<HTMLElement>(
+      '.earth3d-left-hud, .earth3d-right-hud, .earth3d-timeline, .earth3d-scene-gallery'
+    )) {
+      element.scrollTop = 0;
+      element.scrollLeft = 0;
+    }
+    if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+    window.scrollTo(0, 0);
+  });
+  await expect.poll(() => page.evaluate(() =>
+    document.scrollingElement?.scrollTop ?? window.scrollY
+  )).toBe(0);
+  const heading = page.getByRole('heading', { name: 'Earth 3D', exact: true });
+  await expect(heading).toBeInViewport();
+  await expect(viewport).toBeInViewport();
+  await expect.poll(async () => {
+    const bounds = await viewport.boundingBox();
+    const height = await page.evaluate(() => window.innerHeight);
+    const top = bounds ? Math.round(bounds.y * 100) / 100 : null;
+    const bottom = bounds ? Math.round((bounds.y + bounds.height) * 100) / 100 : null;
+    return {
+      top,
+      bottom,
+      viewportHeight: height,
+      fits: Boolean(bounds && bounds.y >= 0 && bounds.y + bounds.height <= height + 1)
+    };
+  }, { message: 'Earth 3D canvas must fit fully inside the screenshot viewport.' }).toMatchObject({ fits: true });
+}
+
 async function openSimulation(page: import('@playwright/test').Page, mobile: boolean) {
   if (mobile) {
     await page.getByRole('button', { name: 'Open navigation' }).click();
@@ -47,6 +81,7 @@ test('desktop solar-system overview exposes all bodies, Saturn rings and preserv
   await expect(viewport).toHaveAttribute('data-planetary-visible', 'true');
   await expect(page.locator('.earth3d-planetary-disclosure')).toBeVisible();
   await expect(viewport).toHaveAttribute('data-planetary-scale-disclosure', 'schematic-not-to-scale-not-ephemeris');
+  await prepareViewportScreenshot(page, viewport);
   await page.screenshot({ path: testInfo.outputPath('earth3d-planets-overview-desktop-1536x1024.png'), fullPage: false });
 
   const planetaryControls = page.getByTestId('earth3d-planetary-controls');
@@ -59,6 +94,7 @@ test('desktop solar-system overview exposes all bodies, Saturn rings and preserv
   await expect(viewport).toHaveAttribute('data-camera-pitch', '0.620000');
   await expect(telemetryLabel).toHaveText('ECI X / Y / Z');
   await expect(telemetryValue).toHaveText(telemetryBefore);
+  await prepareViewportScreenshot(page, viewport);
   await page.screenshot({ path: testInfo.outputPath('earth3d-saturn-rings-desktop-1536x1024.png'), fullPage: false });
 
   // Reload forces Earth3DScene unmount/remount after the planetary group has been allocated.
@@ -95,6 +131,7 @@ test('mobile planetary controls remain reachable without horizontal overflow', a
   await expect(page.locator('.earth3d-planetary-disclosure')).toBeVisible();
   await page.getByRole('button', { name: 'Hide mission data panels' }).click();
   await expect(page.getByTestId('earth3d-planetary-scale-note')).toBeVisible();
+  await prepareViewportScreenshot(page, viewport);
   await page.screenshot({ path: testInfo.outputPath('earth3d-planets-overview-mobile-390x844.png'), fullPage: false });
 
   await page.getByRole('button', { name: 'Show mission data panels' }).click();
@@ -112,6 +149,7 @@ test('mobile planetary controls remain reachable without horizontal overflow', a
     documentWidth: document.documentElement.scrollWidth
   }));
   expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.viewportWidth);
+  await prepareViewportScreenshot(page, viewport);
   await page.screenshot({ path: testInfo.outputPath('earth3d-jupiter-mobile-390x844.png'), fullPage: false });
   expect(pageErrors).toEqual([]);
 });

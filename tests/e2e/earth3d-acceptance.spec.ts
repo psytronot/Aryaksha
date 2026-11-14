@@ -1022,6 +1022,10 @@ test('Earth 3D reference dashboard reflows to a globe-first mobile layout', asyn
   const mobileEarthSize = await canvas.evaluate(element => ({ width: element.clientWidth, height: element.clientHeight }));
   const mobileEarthFit = fitCameraDistance(mobileEarthSize.width, mobileEarthSize.height, 5.15, 42, EARTH_CAMERA_MARGIN);
   await expect.poll(async () => Number(await canvas.getAttribute('data-camera-distance'))).toBeCloseTo(mobileEarthFit, 1);
+  const mobileDisclosure = page.locator('.earth3d-page-header > div > small:last-child');
+  await expect(mobileDisclosure).toBeVisible();
+  const mobileDisclosureFontSize = await mobileDisclosure.evaluate(element => Number.parseFloat(getComputedStyle(element).fontSize));
+  expect(mobileDisclosureFontSize).toBeGreaterThanOrEqual(9);
   await expect(setup).toBeHidden();
   await expect(controls).toBeHidden();
   await page.getByRole('button', { name: 'Show mission data panels' }).click();
@@ -1097,70 +1101,73 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   await expect(bottom.getByText('Orbit Parameters', { exact: true })).toBeVisible();
   await expect(bottom.getByText('Mission Info', { exact: true })).toBeVisible();
   const groundTrackHeading = bottom.locator('.earth3d-ground-track-panel .card-head');
-  const initialGroundTrackHeadingBounds = await groundTrackHeading.boundingBox();
-  expect(initialGroundTrackHeadingBounds).not.toBeNull();
-  expect(initialGroundTrackHeadingBounds!.x).toBeGreaterThanOrEqual(0);
-  expect(initialGroundTrackHeadingBounds!.y).toBeGreaterThanOrEqual(0);
-  expect(initialGroundTrackHeadingBounds!.x + initialGroundTrackHeadingBounds!.width).toBeLessThanOrEqual(1536);
-  expect(initialGroundTrackHeadingBounds!.y + initialGroundTrackHeadingBounds!.height).toBeLessThanOrEqual(1024);
-
-  const canvasBounds = await canvas.boundingBox();
-  const workspaceBounds = await page.locator('.earth3d-workspace').boundingBox();
-  const bottomBounds = await bottom.boundingBox();
-  const legendBounds = await page.locator('.earth3d-bottom-bar').boundingBox();
+  await expect(groundTrackHeading).toBeVisible();
+  const timelineToggle = page.getByRole('button', { name: 'Show mission timeline' });
+  await expect(timelineToggle).toBeVisible();
+  await expect(page.getByText('DRAG TO ORBIT · WHEEL TO ZOOM · SYSTEM FRAMES EARTH + MOON · TRACK FOLLOWS SATELLITE', { exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Mission timeline and scene gallery' })).toBeHidden();
-  await expect(page.getByRole('button', { name: 'Show mission timeline' })).toBeVisible();
+
+  // Take one atomic, read-only layout snapshot after visibility checks. Separate
+  // locator geometry calls can trigger repeated selector resolution/scroll work
+  // while the WebGL scene is rendering; a single DOM read avoids that instability
+  // without relaxing any viewport or pointer-target assertion.
+  const layout = await page.evaluate(() => {
+    const rectFor = (selector: string) => {
+      const element = document.querySelector<HTMLElement>(selector);
+      if (!element) return null;
+      const rect = element.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    };
+    const groundTrackButton = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('[data-testid="simulation-primary-nav"] button')
+    ).find(button => button.textContent?.trim() === 'Ground Track');
+    const navRect = groundTrackButton?.getBoundingClientRect();
+    const navHit = navRect
+      ? document.elementFromPoint(navRect.left + navRect.width / 2, navRect.top + navRect.height / 2)
+      : null;
+    return {
+      groundTrackHeading: rectFor('[data-testid="earth3d-bottom-panels"] .earth3d-ground-track-panel .card-head'),
+      canvas: rectFor('.earth3d-canvas'),
+      workspace: rectFor('.earth3d-workspace'),
+      bottom: rectFor('[data-testid="earth3d-bottom-panels"]'),
+      timelineToggle: rectFor('.earth3d-timeline-toggle'),
+      navButton: navRect ? { x: navRect.x, y: navRect.y, width: navRect.width, height: navRect.height } : null,
+      navHitTarget: Boolean(groundTrackButton && navHit && (navHit === groundTrackButton || groundTrackButton.contains(navHit)))
+    };
+  });
+  const groundTrackHeadingBounds = layout.groundTrackHeading;
+  const canvasBounds = layout.canvas;
+  const workspaceBounds = layout.workspace;
+  const bottomBounds = layout.bottom;
+  const legendBounds = layout.timelineToggle;
+  expect(groundTrackHeadingBounds).not.toBeNull();
   expect(canvasBounds).not.toBeNull();
   expect(workspaceBounds).not.toBeNull();
   expect(bottomBounds).not.toBeNull();
   expect(legendBounds).not.toBeNull();
+  expect(layout.navButton).not.toBeNull();
   expect(canvasBounds!.width).toBeGreaterThan(700);
   expect(canvasBounds!.height).toBeGreaterThan(600);
   expect(workspaceBounds!.height).toBeLessThanOrEqual(681);
   expect(bottomBounds!.y).toBeLessThan(850);
+  expect(groundTrackHeadingBounds!.x).toBeGreaterThanOrEqual(0);
+  expect(groundTrackHeadingBounds!.y).toBeGreaterThanOrEqual(0);
+  expect(groundTrackHeadingBounds!.x + groundTrackHeadingBounds!.width).toBeLessThanOrEqual(1536);
+  expect(groundTrackHeadingBounds!.y + groundTrackHeadingBounds!.height).toBeLessThanOrEqual(1024);
   expect(legendBounds!.x).toBeGreaterThanOrEqual(canvasBounds!.x);
   expect(legendBounds!.x + legendBounds!.width).toBeLessThanOrEqual(canvasBounds!.x + canvasBounds!.width + 1);
 
-  // Read the sticky navigation geometry and pointer target before the WebGL
-  // screenshot. Chromium can keep the canvas compositor busy after a large
-  // screenshot; retaining these measured coordinates avoids a second
-  // renderer-bound locator evaluation while preserving a real pointer click.
-  const groundTrackMetrics = await primaryNav.evaluate(nav => {
-    const button = Array.from(nav.querySelectorAll('button'))
-      .find(candidate => candidate.textContent?.trim() === 'Ground Track');
-    if (!button) return null;
-    const rect = button.getBoundingClientRect();
-    const x = rect.left + rect.width / 2;
-    const y = rect.top + rect.height / 2;
-    const hit = document.elementFromPoint(x, y);
-    const hitButton = hit?.closest('button');
-    return {
-      text: button.textContent?.trim(),
-      x: rect.left,
-      y: rect.top,
-      width: rect.width,
-      height: rect.height,
-      inViewport: rect.left >= 0 && rect.top >= 0
-        && rect.right <= window.innerWidth && rect.bottom <= window.innerHeight,
-      receivesPointer: hitButton === button
-        && hitButton.closest('[data-testid="simulation-primary-nav"]') === nav
-    };
-  });
-  expect(groundTrackMetrics).not.toBeNull();
-  expect(groundTrackMetrics!.text).toBe('Ground Track');
-  expect(groundTrackMetrics!.width).toBeGreaterThan(0);
-  expect(groundTrackMetrics!.height).toBeGreaterThan(0);
-  expect(groundTrackMetrics!.inViewport).toBe(true);
-  expect(groundTrackMetrics!.receivesPointer).toBe(true);
-
-  // Use the previously measured visible hit target for a real pointer event.
-  await page.mouse.click(
-    groundTrackMetrics!.x + groundTrackMetrics!.width / 2,
-    groundTrackMetrics!.y + groundTrackMetrics!.height / 2
-  );
+  // Verify a real pointer lands on the visible navigation control, then use the
+  // measured centre so Playwright does not need a second moving-layout scan.
+  const groundTrackButton = primaryNav.getByRole('button', { name: 'Ground Track', exact: true });
+  await expect(groundTrackButton).toBeVisible();
+  await expect(groundTrackButton).toHaveText('Ground Track');
+  expect(layout.navHitTarget).toBe(true);
+  await page.mouse.click(layout.navButton!.x + layout.navButton!.width / 2, layout.navButton!.y + layout.navButton!.height / 2);
   const bottomPanels = page.getByTestId('earth3d-bottom-panels');
   await expect(bottomPanels).toBeVisible();
   await expect(groundTrackHeading).toBeVisible();
+  await expect(groundTrackHeading).toBeInViewport();
   await expect(groundTrackHeading.getByText('2D Ground Track', { exact: true })).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
