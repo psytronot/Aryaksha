@@ -136,7 +136,7 @@ describe('fixed NASA planetary imagery proxy', () => {
     const fetchImpl = vi.fn().mockResolvedValue(upstreamResponse(Buffer.alloc(0), {
       status: 302,
       location,
-      body: byteStream([], { onCancel: cancel })
+      body: byteStream([Buffer.from('discarded response body')], { onCancel: cancel })
     }));
     const handler = createPlanetaryImageryHandler({ fetchImpl, cache: new Map() });
     const sink = responseSink();
@@ -187,7 +187,7 @@ describe('fixed NASA planetary imagery proxy', () => {
     const cancel = vi.fn();
     const fetchImpl = vi.fn().mockResolvedValue(upstreamResponse(Buffer.alloc(0), {
       contentLength: 4 * 1024 * 1024 + 1,
-      body: byteStream([], { onCancel: cancel })
+      body: byteStream([Buffer.from('discarded response body')], { onCancel: cancel })
     }));
     const handler = createPlanetaryImageryHandler({ fetchImpl, cache: new Map() });
     const sink = responseSink();
