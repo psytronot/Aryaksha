@@ -1114,7 +1114,10 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   const timelineToggle = page.getByRole('button', { name: 'Show mission timeline' });
   await expect(timelineToggle).toBeVisible();
   await expect(page.getByText('DRAG TO ORBIT · WHEEL TO ZOOM · SYSTEM FRAMES EARTH + MOON · TRACK FOLLOWS SATELLITE', { exact: true })).toBeVisible();
-  const legendBounds = await timelineToggle.boundingBox();
+  const legendBounds = await timelineToggle.evaluate(button => {
+    const rect = button.getBoundingClientRect();
+    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+  });
   await expect(page.getByRole('region', { name: 'Mission timeline and scene gallery' })).toBeHidden();
   expect(canvasBounds).not.toBeNull();
   expect(workspaceBounds).not.toBeNull();
