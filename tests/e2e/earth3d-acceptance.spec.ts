@@ -1101,56 +1101,69 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   await expect(bottom.getByText('Orbit Parameters', { exact: true })).toBeVisible();
   await expect(bottom.getByText('Mission Info', { exact: true })).toBeVisible();
   const groundTrackHeading = bottom.locator('.earth3d-ground-track-panel .card-head');
-  const initialGroundTrackHeadingBounds = await groundTrackHeading.boundingBox();
-  expect(initialGroundTrackHeadingBounds).not.toBeNull();
-  expect(initialGroundTrackHeadingBounds!.x).toBeGreaterThanOrEqual(0);
-  expect(initialGroundTrackHeadingBounds!.y).toBeGreaterThanOrEqual(0);
-  expect(initialGroundTrackHeadingBounds!.x + initialGroundTrackHeadingBounds!.width).toBeLessThanOrEqual(1536);
-  expect(initialGroundTrackHeadingBounds!.y + initialGroundTrackHeadingBounds!.height).toBeLessThanOrEqual(1024);
-
-  const canvasBounds = await canvas.boundingBox();
-  const workspaceBounds = await page.locator('.earth3d-workspace').boundingBox();
-  // Read geometry without invoking locator.boundingBox's scroll/actionability path.
-  // The bottom panels are already asserted visible above; scrolling them into view
-  // can perturb the WebGL canvas and stall this desktop-only layout measurement.
-  const bottomBounds = await bottom.evaluate(element => {
-    const rect = element.getBoundingClientRect();
-    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
-  });
+  await expect(groundTrackHeading).toBeVisible();
   const timelineToggle = page.getByRole('button', { name: 'Show mission timeline' });
   await expect(timelineToggle).toBeVisible();
   await expect(page.getByText('DRAG TO ORBIT · WHEEL TO ZOOM · SYSTEM FRAMES EARTH + MOON · TRACK FOLLOWS SATELLITE', { exact: true })).toBeVisible();
-  const legendBounds = await timelineToggle.evaluate(button => {
-    const rect = button.getBoundingClientRect();
-    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
-  });
   await expect(page.getByRole('region', { name: 'Mission timeline and scene gallery' })).toBeHidden();
+
+  // Take one atomic, read-only layout snapshot after visibility checks. Separate
+  // locator geometry calls can trigger repeated selector resolution/scroll work
+  // while the WebGL scene is rendering; a single DOM read avoids that instability
+  // without relaxing any viewport or pointer-target assertion.
+  const layout = await page.evaluate(() => {
+    const rectFor = (selector: string) => {
+      const element = document.querySelector<HTMLElement>(selector);
+      if (!element) return null;
+      const rect = element.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    };
+    const groundTrackButton = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('[data-testid="simulation-primary-nav"] button')
+    ).find(button => button.textContent?.trim() === 'Ground Track');
+    const navRect = groundTrackButton?.getBoundingClientRect();
+    const navHit = navRect
+      ? document.elementFromPoint(navRect.left + navRect.width / 2, navRect.top + navRect.height / 2)
+      : null;
+    return {
+      groundTrackHeading: rectFor('[data-testid="earth3d-bottom-panels"] .earth3d-ground-track-panel .card-head'),
+      canvas: rectFor('.earth3d-canvas'),
+      workspace: rectFor('.earth3d-workspace'),
+      bottom: rectFor('[data-testid="earth3d-bottom-panels"]'),
+      timelineToggle: rectFor('.earth3d-timeline-toggle'),
+      navButton: navRect ? { x: navRect.x, y: navRect.y, width: navRect.width, height: navRect.height } : null,
+      navHitTarget: Boolean(groundTrackButton && navHit && (navHit === groundTrackButton || groundTrackButton.contains(navHit)))
+    };
+  });
+  const groundTrackHeadingBounds = layout.groundTrackHeading;
+  const canvasBounds = layout.canvas;
+  const workspaceBounds = layout.workspace;
+  const bottomBounds = layout.bottom;
+  const legendBounds = layout.timelineToggle;
+  expect(groundTrackHeadingBounds).not.toBeNull();
   expect(canvasBounds).not.toBeNull();
   expect(workspaceBounds).not.toBeNull();
   expect(bottomBounds).not.toBeNull();
   expect(legendBounds).not.toBeNull();
+  expect(layout.navButton).not.toBeNull();
   expect(canvasBounds!.width).toBeGreaterThan(700);
   expect(canvasBounds!.height).toBeGreaterThan(600);
   expect(workspaceBounds!.height).toBeLessThanOrEqual(681);
   expect(bottomBounds!.y).toBeLessThan(850);
+  expect(groundTrackHeadingBounds!.x).toBeGreaterThanOrEqual(0);
+  expect(groundTrackHeadingBounds!.y).toBeGreaterThanOrEqual(0);
+  expect(groundTrackHeadingBounds!.x + groundTrackHeadingBounds!.width).toBeLessThanOrEqual(1536);
+  expect(groundTrackHeadingBounds!.y + groundTrackHeadingBounds!.height).toBeLessThanOrEqual(1024);
   expect(legendBounds!.x).toBeGreaterThanOrEqual(canvasBounds!.x);
   expect(legendBounds!.x + legendBounds!.width).toBeLessThanOrEqual(canvasBounds!.x + canvasBounds!.width + 1);
 
-  // Verify the navigation button is the unobstructed pointer hit target.
-  // On shared Chromium/WebGL CI, locator.click() can exhaust the test budget
-  // while repeatedly rechecking actionability even though the visible button
-  // and its geometry are stable. Invoke the native button click only after the
-  // explicit hit-test so the real React handler and scroll behavior still run.
+  // Verify a real pointer lands on the visible navigation control, then use the
+  // measured centre so Playwright does not need a second moving-layout scan.
   const groundTrackButton = primaryNav.getByRole('button', { name: 'Ground Track', exact: true });
   await expect(groundTrackButton).toBeVisible();
   await expect(groundTrackButton).toHaveText('Ground Track');
-  const groundTrackHitTarget = await groundTrackButton.evaluate(button => {
-    const rect = button.getBoundingClientRect();
-    const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
-    return hit === button || button.contains(hit);
-  });
-  expect(groundTrackHitTarget).toBe(true);
-  await groundTrackButton.evaluate(button => (button as HTMLButtonElement).click());
+  expect(layout.navHitTarget).toBe(true);
+  await page.mouse.click(layout.navButton!.x + layout.navButton!.width / 2, layout.navButton!.y + layout.navButton!.height / 2);
   const bottomPanels = page.getByTestId('earth3d-bottom-panels');
   await expect(bottomPanels).toBeVisible();
   await expect(groundTrackHeading).toBeVisible();
