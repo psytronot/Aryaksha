@@ -32,7 +32,7 @@ NASA's Earth Science FAQ says most material published under science.nasa.gov/ear
 
 ## Content Security Policy
 
-The browser fetches Blue Marble and Black Marble from the CORS-enabled https://assets.science.nasa.gov origin. Cloud, lunar-color and LOLA requests use same-origin `/api/imagery/<fixed-id>` endpoints; the Express service fetches the three hard-coded NASA SVS URLs server-side. The browser does not contact `svs.gsfc.nasa.gov`, so no wildcard CORS or CSP origin is required. The proxy accepts no caller-supplied URL, follows redirects only within `*.nasa.gov`, validates JPEG content type, byte limits and 2:1 dimensions, and caches successful assets for 24 hours. The CSP retains only the external origins actually used by browser requests.
+The browser fetches Blue Marble and Black Marble from the CORS-enabled https://assets.science.nasa.gov origin. Cloud, lunar-color and LOLA requests use same-origin `/api/imagery/<fixed-id>` endpoints; the Express service fetches the three hard-coded NASA SVS URLs server-side. The browser does not contact `svs.gsfc.nasa.gov`, so no wildcard CORS or CSP origin is required. The proxy accepts no caller-supplied URL. It manually follows at most three redirects and validates HTTPS, the exact `svs.gsfc.nasa.gov` hostname, empty credentials and the default HTTPS port before every hop. It validates JPEG content type, rejects oversized declared Content-Length values, enforces per-asset limits while streaming and cancels the body as soon as the byte limit is exceeded, checks 2:1 dimensions, and caches successful assets for 24 hours. The CSP retains only the external origins actually used by browser requests.
 
 
 ## Cloud opacity — NASA/NOAA Climate Prediction Center composite
@@ -63,7 +63,7 @@ The browser fetches Blue Marble and Black Marble from the CORS-enabled https://a
 
 ## Planetary texture runtime, fallbacks and orientation
 
-- Cloud, lunar color and lunar elevation requests are asynchronous same-origin fetches to the fixed Express imagery proxy. The server validates upstream HTTP status, NASA-domain redirects, JPEG content type, maximum response size and 2:1 equirectangular dimensions; the browser then validates image decoding and dimensions before GPU upload.
+- Cloud, lunar color and lunar elevation requests are asynchronous same-origin fetches to the fixed Express imagery proxy. The server validates upstream HTTP status, exact NASA SVS HTTPS redirects, JPEG content type, declared and streamed maximum response size, and 2:1 equirectangular dimensions before caching; the browser then validates image decoding and dimensions before GPU upload.
 - The browser's `fetch` requests use `mode: same-origin`, same-origin credentials and the browser cache. If the server proxy or upstream NASA source is unavailable, each layer independently retains its deterministic fallback and reports that it is not NASA imagery.
 - Cloud alpha is derived from inverse grayscale luminance because the selected NASA/NOAA CPC print JPEG has a white background. Texture metadata retains the original NASA source page, source URL, credit, historical date and same-origin asset path.
 - The Moon retains deterministic procedural color fallback. If a NASA layer fails CORS, HTTP validation or decoding, that layer remains on its safe fallback; synthetic content is never labelled as NASA data.
@@ -76,7 +76,7 @@ The browser fetches Blue Marble and Black Marble from the CORS-enabled https://a
 ## Same-origin NASA SVS delivery — 2026-11-07
 
 - Browser requests for the cloud, LROC color and LOLA layers use fixed same-origin paths: `/api/imagery/nasa-noaa-cpc-clouds-2014-06-02`, `/api/imagery/nasa-lroc-color-2025` and `/api/imagery/nasa-lola-elevation-2019`.
-- The Express proxy maps those identifiers to the exact NASA SVS source URLs above. It accepts no caller-provided URL, validates the final HTTPS host remains under `*.nasa.gov`, requires JPEG content, enforces per-asset byte limits and checks the 2:1 equirectangular dimensions before caching.
+- The Express proxy maps those identifiers to the exact NASA SVS source URLs above. It accepts no caller-provided URL, manually follows at most three redirects, validates every HTTPS destination against the exact `svs.gsfc.nasa.gov` hostname before requesting it, rejects credentials and non-default ports, requires JPEG content, enforces declared and streamed per-asset byte limits with immediate stream cancellation, and checks the 2:1 equirectangular dimensions before caching.
 - This avoids direct browser requests to the SVS host, which failed in the PR #92 Playwright browser with `net::ERR_FAILED` and no response headers. Blue Marble and Black Marble requests to `assets.science.nasa.gov` succeeded in the same browser run.
 - The proxy is same-origin and cacheable. If the proxy or NASA origin is unavailable, each texture independently retains its deterministic local fallback; the UI never labels fallback content as NASA imagery.
 
