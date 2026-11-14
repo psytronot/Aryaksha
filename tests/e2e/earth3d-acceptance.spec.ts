@@ -1110,7 +1110,13 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
 
   const canvasBounds = await canvas.boundingBox();
   const workspaceBounds = await page.locator('.earth3d-workspace').boundingBox();
-  const bottomBounds = await bottom.boundingBox();
+  // Read geometry without invoking locator.boundingBox's scroll/actionability path.
+  // The bottom panels are already asserted visible above; scrolling them into view
+  // can perturb the WebGL canvas and stall this desktop-only layout measurement.
+  const bottomBounds = await bottom.evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+  });
   const timelineToggle = page.getByRole('button', { name: 'Show mission timeline' });
   await expect(timelineToggle).toBeVisible();
   await expect(page.getByText('DRAG TO ORBIT · WHEEL TO ZOOM · SYSTEM FRAMES EARTH + MOON · TRACK FOLLOWS SATELLITE', { exact: true })).toBeVisible();
