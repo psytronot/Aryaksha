@@ -724,8 +724,8 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         cameraState.current.yaw -= dx * 0.0075;
         cameraState.current.pitch = Math.max(-1.22, Math.min(1.22, cameraState.current.pitch - dy * 0.0075));
       };
-      const onPointerUp = (event: PointerEvent) => {
-        activePointers.delete(event.pointerId);
+      const removeActivePointer = (pointerId: number) => {
+        if (!activePointers.delete(pointerId)) return;
         dragging = activePointers.size === 1;
         if (dragging) {
           const remaining = [...activePointers.values()][0];
@@ -733,7 +733,16 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
           lastY = remaining.y;
         }
         lastPinchDistance = pointerPairDistance();
+      };
+      const onPointerUp = (event: PointerEvent) => {
+        removeActivePointer(event.pointerId);
         try { renderer.domElement.releasePointerCapture(event.pointerId); } catch {}
+      };
+      // Browsers can revoke capture without delivering pointerup (for example,
+      // when a touch gesture is interrupted by the OS). Rebase any remaining
+      // finger as a one-pointer drag instead of leaving the camera gesture stuck.
+      const onLostPointerCapture = (event: PointerEvent) => {
+        removeActivePointer(event.pointerId);
       };
       const onWheel = (event: WheelEvent) => {
         event.preventDefault();
@@ -744,6 +753,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       renderer.domElement.addEventListener('pointermove', onPointerMove);
       renderer.domElement.addEventListener('pointerup', onPointerUp);
       renderer.domElement.addEventListener('pointercancel', onPointerUp);
+      renderer.domElement.addEventListener('lostpointercapture', onLostPointerCapture);
       renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
 
       const updateOrbit = () => {
@@ -906,6 +916,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         renderer.domElement.removeEventListener('pointermove', onPointerMove);
         renderer.domElement.removeEventListener('pointerup', onPointerUp);
         renderer.domElement.removeEventListener('pointercancel', onPointerUp);
+        renderer.domElement.removeEventListener('lostpointercapture', onLostPointerCapture);
         renderer.domElement.removeEventListener('wheel', onWheel);
         if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
         orbitGeometry.dispose();
