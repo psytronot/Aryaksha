@@ -12,25 +12,45 @@ function jpegHeader(width, height) {
   ]);
 }
 
+function byteStream(chunks, { onCancel } = {}) {
+  let index = 0;
+  return new ReadableStream({
+    pull(controller) {
+      if (index < chunks.length) {
+        controller.enqueue(chunks[index]);
+        index += 1;
+      } else {
+        controller.close();
+      }
+    },
+    cancel(reason) {
+      onCancel?.(reason);
+    }
+  });
+}
+
 function upstreamResponse(bytes, {
   status = 200,
   contentType = 'image/jpeg',
-  url = 'https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_2k.jpg'
+  contentLength = String(bytes.length),
+  url = 'https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_2k.jpg',
+  location = null,
+  body = byteStream(bytes.length ? [bytes] : [])
 } = {}) {
+  const values = new Map([['content-type', contentType]]);
+  if (contentLength !== null) values.set('content-length', String(contentLength));
+  if (location !== null) values.set('location', location);
+
   return {
     ok: status >= 200 && status < 300,
     status,
     url,
     headers: {
       get(name) {
-        if (name.toLowerCase() === 'content-type') return contentType;
-        if (name.toLowerCase() === 'content-length') return String(bytes.length);
-        return null;
+        return values.get(name.toLowerCase()) ?? null;
       }
     },
-    async arrayBuffer() {
-      return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-    }
+    body
   };
 }
 
@@ -82,15 +102,76 @@ describe('fixed NASA planetary imagery proxy', () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(fetchImpl).toHaveBeenCalledWith(
       'https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_2k.jpg',
-      expect.objectContaining({ method: 'GET', redirect: 'follow' })
+      expect.objectContaining({ method: 'GET', redirect: 'manual' })
     );
+  });
+
+  it('follows a relative redirect only after validating the same approved NASA SVS host', async () => {
+    const bytes = jpegHeader(2048, 1024);
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(upstreamResponse(Buffer.alloc(0), {
+        status: 302,
+        location: '/vis/redirected/lroc_color_2k.jpg'
+      }))
+      .mockResolvedValueOnce(upstreamResponse(bytes));
+    const handler = createPlanetaryImageryHandler({ fetchImpl, cache: new Map() });
+    const sink = responseSink();
+
+    await handler({ params: { assetId: 'nasa-lroc-color-2025' } }, sink.res);
+
+    expect(sink.statusCode).toBe(200);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(fetchImpl.mock.calls[1][0]).toBe('https://svs.gsfc.nasa.gov/vis/redirected/lroc_color_2k.jpg');
+    expect(fetchImpl.mock.calls.every(([, options]) => options.redirect === 'manual')).toBe(true);
+  });
+
+  it.each([
+    ['external hostname', 'https://example.com/image.jpg'],
+    ['unapproved NASA subdomain', 'https://cdn.svs.gsfc.nasa.gov/image.jpg'],
+    ['non-default port', 'https://svs.gsfc.nasa.gov:8443/image.jpg'],
+    ['embedded credentials', 'https://user:secret@svs.gsfc.nasa.gov/image.jpg'],
+    ['unencrypted HTTP', 'http://svs.gsfc.nasa.gov/image.jpg']
+  ])('never requests a redirect target with %s', async (_label, location) => {
+    const cancel = vi.fn();
+    const fetchImpl = vi.fn().mockResolvedValue(upstreamResponse(Buffer.alloc(0), {
+      status: 302,
+      location,
+      body: byteStream([], { onCancel: cancel })
+    }));
+    const handler = createPlanetaryImageryHandler({ fetchImpl, cache: new Map() });
+    const sink = responseSink();
+
+    await handler({ params: { assetId: 'nasa-lroc-color-2025' } }, sink.res);
+
+    expect(sink.statusCode).toBe(502);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(cancel).toHaveBeenCalled();
+  });
+
+  it('stops after the configured redirect-hop limit', async () => {
+    let responseNumber = 0;
+    const fetchImpl = vi.fn(async () => {
+      responseNumber += 1;
+      return upstreamResponse(Buffer.alloc(0), {
+        status: 302,
+        location: '/redirect-' + responseNumber
+      });
+    });
+    const handler = createPlanetaryImageryHandler({ fetchImpl, cache: new Map() });
+    const sink = responseSink();
+
+    await handler({ params: { assetId: 'nasa-lroc-color-2025' } }, sink.res);
+
+    expect(sink.statusCode).toBe(502);
+    expect(sink.body.error).toContain('redirect-hop limit');
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
   });
 
   it.each([
     ['unexpected content type', jpegHeader(2048, 1024), { contentType: 'text/html' }],
     ['invalid JPEG bytes', Buffer.from('not a jpeg'), {}],
     ['non-equirectangular image', jpegHeader(1024, 1024), {}],
-    ['redirect outside NASA', jpegHeader(2048, 1024), { url: 'https://example.com/image.jpg' }]
+    ['final response URL outside the approved host', jpegHeader(2048, 1024), { url: 'https://example.com/image.jpg' }]
   ])('rejects %s', async (_label, bytes, options) => {
     const fetchImpl = vi.fn().mockResolvedValue(upstreamResponse(bytes, options));
     const handler = createPlanetaryImageryHandler({ fetchImpl, cache: new Map() });
@@ -100,6 +181,44 @@ describe('fixed NASA planetary imagery proxy', () => {
 
     expect(sink.statusCode).toBe(502);
     expect(sink.body.error).toEqual(expect.any(String));
+  });
+
+  it('rejects an oversized declared Content-Length before reading the body', async () => {
+    const cancel = vi.fn();
+    const fetchImpl = vi.fn().mockResolvedValue(upstreamResponse(Buffer.alloc(0), {
+      contentLength: 4 * 1024 * 1024 + 1,
+      body: byteStream([], { onCancel: cancel })
+    }));
+    const handler = createPlanetaryImageryHandler({ fetchImpl, cache: new Map() });
+    const sink = responseSink();
+
+    await handler({ params: { assetId: 'nasa-lroc-color-2025' } }, sink.res);
+
+    expect(sink.statusCode).toBe(502);
+    expect(sink.body.error).toContain('byte limit');
+    expect(cancel).toHaveBeenCalled();
+  });
+
+  it('cancels a chunked response as soon as the streamed bytes exceed the asset limit', async () => {
+    const cancel = vi.fn();
+    const body = byteStream([
+      Buffer.alloc(3 * 1024 * 1024, 0x01),
+      Buffer.alloc(2 * 1024 * 1024, 0x02),
+      jpegHeader(2048, 1024)
+    ], { onCancel: cancel });
+    const fetchImpl = vi.fn().mockResolvedValue(upstreamResponse(Buffer.alloc(0), {
+      contentLength: null,
+      body
+    }));
+    const handler = createPlanetaryImageryHandler({ fetchImpl, cache: new Map() });
+    const sink = responseSink();
+
+    await handler({ params: { assetId: 'nasa-lroc-color-2025' } }, sink.res);
+
+    expect(sink.statusCode).toBe(502);
+    expect(sink.body.error).toContain('byte limit');
+    expect(cancel).toHaveBeenCalled();
+    expect(sink.headers['X-Imagery-Cache']).toBeUndefined();
   });
 
   it('returns HTTP 504 when the NASA origin exceeds the configured timeout', async () => {
@@ -113,6 +232,26 @@ describe('fixed NASA planetary imagery proxy', () => {
       }, { once: true });
     }));
     const handler = createPlanetaryImageryHandler({ fetchImpl, cache: new Map(), timeoutMs: 1 });
+    const sink = responseSink();
+
+    await handler({ params: { assetId: 'nasa-noaa-cpc-clouds-2014-06-02' } }, sink.res);
+
+    expect(sink.statusCode).toBe(504);
+    expect(sink.body.error).toContain('timed out');
+  });
+
+  it('keeps the timeout active while the streamed body is being read', async () => {
+    const fetchImpl = vi.fn((_url, { signal }) => Promise.resolve(upstreamResponse(Buffer.alloc(0), {
+      contentLength: null,
+      body: new ReadableStream({
+        start(controller) {
+          signal.addEventListener('abort', () => {
+            controller.error(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+          }, { once: true });
+        }
+      })
+    })));
+    const handler = createPlanetaryImageryHandler({ fetchImpl, cache: new Map(), timeoutMs: 5 });
     const sink = responseSink();
 
     await handler({ params: { assetId: 'nasa-noaa-cpc-clouds-2014-06-02' } }, sink.res);
