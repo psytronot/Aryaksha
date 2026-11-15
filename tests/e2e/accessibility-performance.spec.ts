@@ -14,6 +14,7 @@ test('accessibility audit: critical and serious axe violations are absent in key
     { name: 'Home', open: async () => { await page.goto('/'); } },
     { name: 'Simulation / Earth 3D', open: async () => {
       await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
       await page.getByRole('button', { name: 'Simulation', exact: true }).click();
       await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
     } },
@@ -95,6 +96,7 @@ test('Earth 3D desktop profiling records WebGL draw submission timings and resou
 
   const start = Date.now();
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
   const canvas = page.locator('.earth3d-canvas canvas');
   await expect(canvas).toBeVisible();
@@ -130,6 +132,7 @@ test('Earth 3D desktop profiling records WebGL draw submission timings and resou
 
 test('Spacecraft engineering inputs expose explicit accessible labels', async ({ page }) => {
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await page.getByRole('button', { name: 'Spacecraft', exact: true }).click();
 
   for (const label of ['TX POWER', 'FREQUENCY', 'THRUST', 'THERMAL AREA', 'BATTERY EFFICIENCY', 'BATTERY DoD']) {
