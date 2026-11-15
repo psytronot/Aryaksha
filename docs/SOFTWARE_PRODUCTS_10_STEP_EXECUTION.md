@@ -6,8 +6,8 @@ Scope: Arakshya only. This workstream is separate from GENSER.
 
 | # | Step | Status | Evidence / remaining gate |
 |---|---|---|---|
-| 1 | Recheck branch, PR and CI | Complete | PR #124 remains open, draft and unmerged. Latest observed branch head: `a205ff2451faff0594976d0ac58d19c7ec0fd086`. |
-| 2 | Resolve failing or stalled tests | Blocked on verification | Latest observed web build, TypeScript and unit tests passed on the earlier CI head. Browser smoke job remains in progress on an earlier snapshot. The completed browser run failed on two strict-mode heading assertions: the Finder heading also matched the report-preview heading. The status and Finder heading locators are now exact-scoped. Newer feature commits have not yet been covered by a fresh completed workflow run. |
+| 1 | Recheck branch, PR and CI | Complete | PR #124 remains open, draft and unmerged. Latest observed branch head: `2704bb1a571c32ccf5e2746a25f97cd54bea6270`. |
+| 2 | Resolve failing or stalled tests | Blocked on verification | Latest observed web build, TypeScript and unit tests passed on the earlier CI head. Browser smoke job remains in progress on an earlier snapshot. The completed browser run failed on two strict-mode heading assertions: the Finder heading also matched the report-preview heading. The status and Finder heading locators are now exact-scoped. Fresh CodeQL, Aryaksha CI and AppDeploy acceptance workflows are now queued for the current head; browser smoke will follow the build jobs. |
 | 3 | Audit product-hub UI | In progress | Reviewed product hub component and responsive CSS; fixed the status-selector collision and corrected Finder form typography. Existing desktop/mobile navigation tests remain; fresh browser/accessibility verification against current head is outstanding; mobile tests now assert both Finder controls are visible. |
 | 4 | Build Finder intake | Implemented, verification pending | Required offer, customer and geography fields; trim-aware validation; no-live-search disclosure; brief preview. |
 | 5 | Add input validation and safe defaults | Implemented, verification pending | Required-field validation, bounded input lengths, explicit no-live-search state. |
@@ -15,7 +15,7 @@ Scope: Arakshya only. This workstream is separate from GENSER.
 | 7 | Add report export | Implemented, verification pending | Downloadable Markdown research brief with live-research limitations and launch prerequisites; object URL lifetime extended to protect browser downloads. |
 | 8 | Build user-supplied CSV alternative | Implemented, verification pending | Browser-local CSV parsing, UTF-8 BOM handling, supported name columns, optional website/city, duplicate removal, 2 MB cap, formula-injection neutralization and cleaned CSV export. No server upload or Maps scraping. |
 | 9 | Security, privacy and compliance checks | In progress | Added local-only handling and formula-injection neutralization. Added provider due-diligence matrix: Tavily is conditional pending written approval; Exa and Brave are not approved for persistent output/export under default terms. Legal review and provider confirmation remain open. Google Maps extraction remains blocked. |
-| 10 | Final E2E verification and PR update | Pending | Must run fresh build, unit, E2E and security checks against current head; then update PR evidence. Do not merge or deploy without authorization. |
+| 10 | Final E2E verification and PR update | In progress | Current-head CodeQL, Aryaksha CI and AppDeploy acceptance workflows are queued. Wait for build/unit results, then browser smoke; update PR evidence after the complete run. Do not merge or deploy without authorization. |
 
 ## Release constraints
 
