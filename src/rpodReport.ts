@@ -70,6 +70,15 @@ export type RpodEngineeringReport = {
     velocityKmS?: number[];
     positionDifferenceM?: number | null;
     velocityDifferenceMmS?: number | null;
+    history?: Array<{
+      elapsedSeconds: number;
+      positionKm: number[];
+      velocityKmS: number[];
+      positionDifferenceM: number | null;
+      velocityDifferenceMmS: number | null;
+      positionResidualM: number[] | null;
+      velocityResidualMmS: number[] | null;
+    }>;
   };
   engineeringLimitations: string[];
 };
