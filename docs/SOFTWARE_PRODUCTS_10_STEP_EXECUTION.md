@@ -53,3 +53,18 @@ Created `docs/FIRST_CUSTOMER_FINDER_INFRASTRUCTURE_READINESS.md` after inspectin
 - An isolated local TypeScript transpile and Node harness passed 12 parser cases; a separate local serializer check passed CRLF, escaping and formula-prefix neutralization. These checks do not replace repository Vitest, Playwright, CodeQL or AppDeploy runs.
 - PR #124 remains draft and unmerged. Do not merge or deploy without explicit authorization.
 - Live First Customer Finder remains blocked on provider permission, authentication, tenant isolation, retention/deletion and legal review. Google Maps extraction remains blocked by the source-terms risk.
+
+
+## Hosted-pilot progress update — 2026-11-15
+
+The independent design work has advanced on the same feature branch:
+- `docs/FIRST_CUSTOMER_FINDER_HOSTED_PILOT_BUILD_SPEC.md` — detailed relational schema, individual/workspace ownership model, role boundaries, API contract, transactional outbox, worker lifecycle, abuse controls, retention/deletion requirements and acceptance-test matrix.
+- `docs/FIRST_CUSTOMER_FINDER_INFRASTRUCTURE_READINESS.md` — updated to reflect the design work. The design portions of hosted steps 4, 5 and 9 are documented; implementation still waits for infrastructure and provider decisions.
+- `docs/TAVILY_WRITTEN_APPROVAL_REQUEST_DRAFT.md` — complete written-approval request prepared for owner review. It has NOT been sent.
+- Recommended rollout: individual accounts first; preserve nullable workspace support for institution-managed accounts later. This is a recommendation pending owner confirmation.
+- Queue recommendation for evaluation: PostgreSQL-backed pg-boss. No queue vendor has been selected or deployed.
+- No authentication, database, worker, provider key, payments, live endpoint or pilot cohort has been provisioned.
+
+### Current CI snapshot
+
+The latest feature-branch commit at the time of this update is `de6aaeb8`. Aryaksha CI, CodeQL and AppDeploy acceptance runs were queued for earlier recent commits; fresh current-head runs must be checked before claiming release verification. PR #124 remains draft and unmerged.
