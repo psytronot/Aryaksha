@@ -239,3 +239,93 @@ html.aryaksha-app-active pwa-install {
 
 .app-footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 22px;padding:18px 30px;border-top:1px solid var(--line);color:var(--muted);font:8px ui-monospace,monospace;letter-spacing:.35px;background:rgba(5,8,12,.72)}
 @media(max-width:640px){.app-footer{padding:16px 18px;flex-direction:column;gap:7px}}
+
+
+/* Unslop pass: retain the aerospace-lab identity, quiet the chrome and improve legibility. */
+:root{
+  --bg:#080b10;
+  --panel:#10151c;
+  --panel2:#171e27;
+  --line:rgba(226,235,242,.12);
+  --muted:#a0acb8;
+  --cyan:#8bbdcc;
+  --blue:#355e72;
+  --green:#79b394;
+  --amber:#c6a16a;
+  --red:#d9878e;
+}
+body{background:var(--bg)}
+.topbar{background:rgba(8,11,16,.96);backdrop-filter:none}
+.engine-status span,.dot{box-shadow:none}
+.brand-mark{border-color:var(--line);background:var(--panel2)}
+.brand strong{font-weight:600;letter-spacing:.04em}
+.brand small{font-size:10px;letter-spacing:.02em}
+.engine-status,.top-meta{font-size:10px;letter-spacing:0}
+.side-title{font-size:11px;letter-spacing:.04em;color:var(--muted)}
+.nav-group>small{font-size:10px;letter-spacing:.04em;color:var(--muted)}
+.nav-item{height:36px;font-size:12px;border-radius:7px}
+.nav-item.active{background:rgba(139,189,204,.10);box-shadow:inset 2px 0 var(--cyan)}
+.nav-item.active svg{color:var(--cyan)}
+.side-health{font-size:10px;background:var(--panel);border-radius:9px}
+.side-health small{font-size:10px;letter-spacing:.04em;color:var(--muted)}
+.main{padding-left:clamp(16px,2.2vw,30px);padding-right:clamp(16px,2.2vw,30px)}
+.mission-strip{background:var(--panel);border-radius:9px}
+.mission-strip small,.page-header small,.panel-title,.model-box small,.state-sheet small,.maneuver-result small{font-size:10px;letter-spacing:.04em;color:var(--muted)}
+.mission-strip b{font-weight:500}
+.mission-strip span{font-size:11px}
+.mission-strip button,.primary{font-size:10px}
+.page-header h1{font-size:clamp(28px,3vw,36px);font-weight:500;letter-spacing:-.025em}
+.page-header p{font-size:14px;line-height:1.65}
+.card{background:var(--panel);box-shadow:none;border-radius:12px}
+.card-head span,.callout svg{color:var(--muted)}
+.card-head b{font-size:13px;font-weight:500}
+.field>span{font-size:11px;letter-spacing:0}
+.field input,.field select{font-size:12px}
+.field-grid{gap:8px 16px}
+.callout{background:rgba(139,189,204,.045);border-left-color:var(--cyan);font-size:12px;line-height:1.6}
+.callout b{font-weight:600}
+.flow span{font-size:10px;color:var(--muted)}
+.flow b{font-size:12px;font-weight:500}
+.metric-big b,.maneuver-result>b{font-weight:500}
+.metric-big span,.metric-big small{font-size:10px}
+.stat-row,.report-row{font-size:12px}
+.stat-row b,.report-row b{font-size:11px;font-weight:500}
+.state-card>div{padding:12px}
+.state-card small{font-size:10px}
+.state-card b{font-size:11px;font-weight:500}
+.preset-list{gap:8px}
+.preset{border-radius:8px}
+.preset span{font-size:11px}
+.preset small{font-size:10px}
+.bottom-bar{font-size:10px;background:var(--panel)}
+.bottom-bar b{font-weight:500}
+.telemetry small,.telemetry b{font-size:10px}
+.model-box{border-color:var(--line);background:var(--panel2)}
+.model-box b{font-size:12px;font-weight:500}
+.model-box span{font-size:11px}
+.timeline button,.timeline select,.timeline span{font-size:10px}
+.state-sheet>div{background:var(--panel);border-radius:8px}
+.state-sheet b{font-size:11px;font-weight:500}
+.software-demo{background:var(--panel);box-shadow:none}
+.software-demo-heading h2{font-weight:500}
+.software-demo-heading p,.software-demo-row,.software-demo-note{font-size:11px}
+.software-demo-tag{border-radius:5px;font-size:10px;letter-spacing:0}
+.software-demo-header,.finder-csv-preview-head{font-size:10px;letter-spacing:0}
+.software-demo-row b,.software-demo-row strong{font-size:11px;font-weight:500}
+.finder-intake{border-color:var(--line);background:var(--panel)}
+.finder-intake-form label,.finder-csv-controls label{font-size:12px;font-weight:500}
+.finder-intake-form input,.finder-intake-form textarea{font-size:12px}
+.finder-intake-form input:focus,.finder-intake-form textarea:focus{outline-color:var(--cyan)}
+.finder-intake-error{font-size:12px}
+.finder-brief-result{border-color:var(--line);background:var(--panel2)}
+.finder-brief-result h3{font-weight:500}
+.finder-brief-result p,.finder-csv-controls small{font-size:11px}
+.finder-csv-stats b{font-size:11px;font-weight:500}
+.finder-csv-preview-row{font-size:11px}
+.software-evidence-grid b{font-size:10px;letter-spacing:0;color:var(--muted)}
+.software-evidence-grid span{font-size:11px}
+.finder-template-button{font-size:11px;font-weight:500}
+.app-footer{font-size:10px;letter-spacing:0;background:var(--bg)}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
