@@ -9,6 +9,12 @@ on:
 permissions:
   contents: read
 
+# Keep only the newest PR validation active; stale browser runs can otherwise
+# occupy runners and delay verification of the current branch head.
+concurrency:
+  group: aryaksha-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   web-build-and-tests:
     name: Web build and unit tests
