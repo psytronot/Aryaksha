@@ -136,8 +136,9 @@ export function createPlanetaryImageryHandler({
       return sendImage(res, bytes, 'MISS');
     } catch (error) {
       const timedOut = controller.signal.aborted;
-      return res.status(timedOut ? 504 : 503).json({
-        error: timedOut ? 'NASA imagery request timed out.' : 'NASA imagery is temporarily unavailable.'
+      const oversized = error?.message?.includes('byte limit');
+      return res.status(timedOut ? 504 : oversized ? 502 : 503).json({
+        error: timedOut ? 'NASA imagery request timed out.' : oversized ? 'NASA imagery source exceeded the configured byte limit.' : 'NASA imagery is temporarily unavailable.'
       });
     } finally {
       clearTimeout(timeout);
