@@ -67,6 +67,7 @@ export default function RpodView() {
     const file = inputElement.files?.[0];
     if (!file) return;
     try {
+      if (file.size > 64 * 1024) throw new Error('Mission-state file exceeds the 64 KiB limit.');
       const parsed = parseRpodMissionState(await file.text());
       setImportedMissionState(parsed);
       setInput(current => ({ ...current, epochTai: parsed.epochTai }));
