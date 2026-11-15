@@ -264,7 +264,12 @@ function App() {
           {coachEnabled && <ContextCoach view={view} />}
         </main>
       </div>
-      {notice && <div className="toast"><Check size={15} /> {notice}</div>}
+      <footer className="app-footer">
+        <span>ARYAKSHA · SPACE EXPLORATION LAB</span>
+        <span>Educational engineering tools · Not flight-certified</span>
+        <span>© {new Date().getFullYear()} Aryaksha Space Exploration Lab</span>
+      </footer>
+      {notice && <div className="toast" role="status" aria-live="polite"><Check size={15} /> {notice}</div>}
     </div>
   );
 }
