@@ -49,6 +49,7 @@ These models support preliminary engineering and education, not operational flig
 
 Analytical tests cover:
 - Inertial-to-LVLH conversion and rotating-frame velocity correction.
+- Independent two-body inertial RK4 propagation, circular-orbit period closure, uniform endpoint-inclusive sampling and invalid-input rejection.
 - Zero-state invariance and closed-form CW reference behaviour.
 - Independent RK4 integration cross-check of the analytical CW propagator.
 - Single-impulse terminal position closure.
@@ -70,7 +71,7 @@ Orekit controller tests cover:
 ## Remaining engineering work
 
 1. Extend mission-state import to additional validated frames with real Orekit frame transformations. The current JSON importer accepts EME2000 only; non-EME2000 conversion remains outstanding.
-2. Extend target/chaser inertial trajectory histories and time-series visualisation with Orekit-vs-HCW residual plots; current visible history is sampled relative LVLH state only.
+2. Add Orekit-vs-HCW residual time-series plots; imported EME2000 target/chaser inertial histories are now independently sampled with a local RK4 two-body propagator (41 samples each, maximum 10 s integration step). This history is a separate Newtonian point-mass visualization and is not a substitute for Orekit results.
 3. Add maneuver-aware Orekit propagation so the numerical comparison can evaluate departure and arrival impulses, rather than only the unburned initial state.
 4. Add multi-impulse and finite-burn sequencing with thrust, mass, attitude and actuator constraints; the current maneuver sequence is analytical and impulsive only.
 5. Upgrade the sampled pre-terminal keep-out sphere indicator to continuous-time approach-corridor and collision screening; extend the current diagonal-only uncertainty model to correlated covariance, measurement updates and maneuver uncertainty.
@@ -85,3 +86,8 @@ Do not describe the current implementation as a complete RPOD simulator or fligh
 The RPOD results panel exports a versioned JSON engineering record (`aryaksha.rpod-engineering-report/v1`) using `src/rpodReport.ts`. The report includes the TAI mission epoch, manual LVLH input state, chief-orbit/HCW assumptions, both ideal instantaneous maneuver vectors and magnitudes, total delta-v, all 41 sampled relative trajectory states, sampled pre-terminal keep-out result, diagonal-covariance terminal 3-sigma position bounds, and any Orekit cross-check result available at export time. The schema and serializer are covered by `tests/rpodReport.test.ts`.
 
 The report explicitly records that it is not safe-approach or docking guidance, that terminal velocity matching is an instantaneous burn at the position-coincidence epoch, that keep-out screening is sampled rather than continuous-time, and that the diagonal uncertainty model does not calculate collision probability. Imported EME2000 mission states are used for the Orekit cross-check only; the current two-impulse design solution remains based on the manually entered LVLH state. The export identifies that distinction rather than implying the imported state was used by the HCW solver.
+
+
+## Inertial trajectory history
+
+`src/rpodInertial.ts` provides a separate Newtonian two-body Cartesian propagator using fixed-step RK4 (maximum integration step 10 s) and endpoint-inclusive uniform sampling. When an EME2000 mission file is imported, the RPOD workspace independently propagates the target and chaser from the imported TAI epoch and displays five checkpoints from each 41-sample history, including inertial orbital radii and mutual separation. This is a visualization/history layer only: it does not apply the planned HCW impulses, does not perform frame transformations, and does not replace the Orekit numerical cross-check. Its point-mass assumptions exclude J2, drag, SRP and third-body perturbations.
