@@ -42,6 +42,30 @@ function jpegDimensions(bytes) {
   return null;
 }
 
+async function readLimitedBuffer(response, maxBytes) {
+  if (!response.body) throw new Error('NASA imagery response body is missing.');
+  const declaredLength = Number(response.headers.get('content-length') || 0);
+  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) throw new Error('NASA imagery exceeded the configured byte limit.');
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel();
+        throw new Error('NASA imagery exceeded the configured byte limit.');
+      }
+      chunks.push(Buffer.from(value));
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return Buffer.concat(chunks, total);
+}
+
 function sendImage(res, bytes, cacheState) {
   return res.status(200).set({
     'Content-Type': 'image/jpeg',
@@ -99,7 +123,7 @@ export function createPlanetaryImageryHandler({
         return res.status(502).json({ error: 'NASA imagery source exceeded the configured byte limit.' });
       }
 
-      const bytes = Buffer.from(await upstream.arrayBuffer());
+      const bytes = await readLimitedBuffer(upstream, asset.maxBytes);
       if (bytes.length === 0 || bytes.length > asset.maxBytes) {
         return res.status(502).json({ error: 'NASA imagery source returned an empty or oversized image.' });
       }
