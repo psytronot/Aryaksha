@@ -117,3 +117,8 @@ The current branch includes a local-first preview of the First Customer Finder:
 - Neither flow performs live web research, uploads the user's CSV, scrapes Google Maps, enriches private contact details or sends outreach.
 
 This preview is suitable for demonstrating the intended workflow, not for claiming the hosted First Customer Finder is live. Live research remains gated on written provider approval, authentication, tenant isolation, durable job controls and a lawful retention/export policy.
+
+
+## CSV template and bounded local processing
+
+The First Customer Finder data utility now includes a blank downloadable `Company,Website,City` CSV template. Upload guidance states the local processing limits: 2 MB per file, 10,000 data rows, 50 columns and 4,096 characters per cell. The parser is isolated in `src/businessCsv.ts` for focused unit testing, rejects ambiguous quote/row structures, and never sends uploaded data to a server. The file input resets after selection so users can retry the same file after correcting an error.
