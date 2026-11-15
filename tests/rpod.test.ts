@@ -3,6 +3,7 @@ import {
   inertialToLvlh,
   propagateCw,
   solveRendezvousImpulse,
+  solveTwoImpulseRendezvous,
   type RelativeState,
 } from '../src/rpod';
 
@@ -73,6 +74,23 @@ describe('RPOD relative-motion foundation', () => {
     expect(solution.deltaVKmS).toHaveLength(3);
     expect(solution.deltaVMagnitudeMps).toBeGreaterThan(0);
     expect(solution.deltaVMagnitudeMps).toBeLessThan(100);
+  });
+
+  it('matches terminal relative velocity with a second ideal impulse at rendezvous', () => {
+    const initial: RelativeState = {
+      positionKm: [0.1, -0.2, 0.05],
+      velocityKmS: [0.0001, 0.0002, -0.00005],
+    };
+    const n = Math.sqrt(398600.4418 / 7000 ** 3);
+    const solution = solveTwoImpulseRendezvous(initial, n, 1800);
+
+    closeToVector(solution.preArrivalBurnState.positionKm, [0, 0, 0], 7);
+    expect(solution.arrivalDeltaVMagnitudeMps).toBeGreaterThanOrEqual(0);
+    expect(solution.totalDeltaVMagnitudeMps).toBeCloseTo(
+      solution.departureDeltaVMagnitudeMps + solution.arrivalDeltaVMagnitudeMps,
+      10,
+    );
+    closeToVector(solution.postArrivalBurnState.velocityKmS, [0, 0, 0]);
   });
 
   it('rejects non-physical mean motion and singular rendezvous times', () => {
