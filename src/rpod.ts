@@ -242,3 +242,57 @@ export function solveRendezvousImpulse(
     rendezvousTimeSeconds,
   };
 }
+
+
+export type TwoImpulseRendezvousSolution = {
+  /** Initial departure impulse, km/s. */
+  departureDeltaVKmS: Vector3;
+  /** Instantaneous terminal velocity-matching impulse at rendezvous, km/s. */
+  arrivalDeltaVKmS: Vector3;
+  /** Magnitudes of the departure and arrival impulses, m/s. */
+  departureDeltaVMagnitudeMps: number;
+  arrivalDeltaVMagnitudeMps: number;
+  /** Total ideal impulsive delta-v, m/s. */
+  totalDeltaVMagnitudeMps: number;
+  /** Relative state immediately before the terminal impulse. */
+  preArrivalBurnState: RelativeState;
+  /** Relative state immediately after the terminal impulse. */
+  postArrivalBurnState: RelativeState;
+  rendezvousTimeSeconds: number;
+};
+
+/**
+ * Two-impulse CW rendezvous: departure burn selects a trajectory that reaches
+ * zero relative position at T; a second instantaneous burn at T cancels the
+ * residual relative velocity. This is an idealized terminal velocity match,
+ * not a safe approach, docking, or collision-avoidance guidance solution.
+ */
+export function solveTwoImpulseRendezvous(
+  initial: RelativeState,
+  meanMotionRadS: number,
+  rendezvousTimeSeconds: number,
+): TwoImpulseRendezvousSolution {
+  const departure = solveRendezvousImpulse(initial, meanMotionRadS, rendezvousTimeSeconds);
+  const preArrivalBurnState = propagateCw(
+    { positionKm: initial.positionKm, velocityKmS: departure.postBurnVelocityKmS },
+    meanMotionRadS,
+    rendezvousTimeSeconds,
+  );
+  const arrivalDeltaVKmS = scale(preArrivalBurnState.velocityKmS, -1);
+  const arrivalMagnitude = magnitude(arrivalDeltaVKmS) * 1000;
+  const postArrivalBurnState: RelativeState = {
+    positionKm: preArrivalBurnState.positionKm,
+    velocityKmS: [0, 0, 0],
+  };
+
+  return {
+    departureDeltaVKmS: departure.deltaVKmS,
+    arrivalDeltaVKmS,
+    departureDeltaVMagnitudeMps: departure.deltaVMagnitudeMps,
+    arrivalDeltaVMagnitudeMps: arrivalMagnitude,
+    totalDeltaVMagnitudeMps: departure.deltaVMagnitudeMps + arrivalMagnitude,
+    preArrivalBurnState,
+    postArrivalBurnState,
+    rendezvousTimeSeconds,
+  };
+}
