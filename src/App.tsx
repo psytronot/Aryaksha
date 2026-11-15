@@ -370,7 +370,7 @@ function SoftwareProductsView() {
       '- Confirm source permissions, account controls, retention and deletion policies.',
       '- Review all evidence and prospect hypotheses before acting.',
       ''
-    ].join('\\n');
+    ].join('\n');
     const url = URL.createObjectURL(new Blob([markdown], { type: 'text/markdown;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = url;
@@ -382,14 +382,14 @@ function SoftwareProductsView() {
   const downloadCleanCsv = () => {
     if (!csvResult) return;
     const quote = (value: string) => {
-      const safeValue = /^[\\s]*[=+\\-@]/.test(value) ? "'" + value : value;
+      const safeValue = /^[\s]*[=+\-@]/.test(value) ? "'" + value : value;
       return '"' + safeValue.replace(/"/g, '""') + '"';
     };
     const lines = [
       ['Company', 'Website', 'City'].map(quote).join(','),
       ...csvResult.records.map(record => [record.company, record.website, record.city].map(quote).join(','))
     ];
-    const url = URL.createObjectURL(new Blob([lines.join('\\r\\n')], { type: 'text/csv;charset=utf-8' }));
+    const url = URL.createObjectURL(new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = url;
     link.download = 'cleaned-business-list.csv';
