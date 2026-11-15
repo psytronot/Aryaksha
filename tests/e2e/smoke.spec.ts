@@ -49,6 +49,7 @@ test('RPOD workspace solves HCW and cross-checks relative propagation with Oreki
     target: { positionKm: number[]; velocityKmS: number[] };
     chaser: { positionKm: number[]; velocityKmS: number[] };
     elapsedSeconds: number;
+    epochTai: string;
   };
   expect(sent.target.positionKm).toEqual([6928.137, 0, 0]);
   expect(sent.target.velocityKmS[1]).toBeCloseTo(7.585088535, 8);
@@ -56,6 +57,7 @@ test('RPOD workspace solves HCW and cross-checks relative propagation with Oreki
   expect(sent.chaser.velocityKmS[0]).toBeCloseTo(0.0003189647, 9);
   expect(sent.chaser.velocityKmS[1]).toBeCloseTo(7.585398018, 8);
   expect(sent.elapsedSeconds).toBe(1800);
+  expect(sent.epochTai).toBe('2000-01-01T12:00:00');
 });
 
 test('mobile navigation opens, changes section and closes after selection', async ({ page }) => {
