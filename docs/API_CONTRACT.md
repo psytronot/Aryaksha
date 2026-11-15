@@ -28,7 +28,8 @@ Example:
   "altitudeKm": 550,
   "inclinationDeg": 97.6,
   "eccentricity": 0.001,
-  "elapsedSeconds": 600
+  "elapsedSeconds": 600,
+  "epochTai": "2026-11-15T12:00:00"
 }
 ```
 
@@ -36,7 +37,7 @@ The service rejects orbits whose periapsis intersects Earth.
 
 ## RPOD relative-state request
 
-The endpoint accepts two independent inertial Cartesian states in EME2000 at the J2000 TAI epoch. Position is in km and velocity is in km/s. Both spacecraft are numerically propagated independently to the requested epoch before the relative state is formed.
+The endpoint accepts two independent inertial Cartesian states in EME2000 at a shared TAI mission epoch. Position is in km and velocity is in km/s. `epochTai` is an optional ISO-8601 date-time interpreted explicitly in TAI; when omitted, it defaults to J2000 TAI for backwards compatibility. Both spacecraft are numerically propagated independently from that epoch by `elapsedSeconds` before the relative state is formed.
 
 ```json
 {
@@ -57,7 +58,8 @@ Constraints:
 - Both initial position vectors must be above the WGS-84 equatorial Earth radius.
 - The target state must define a non-degenerate orbital plane.
 - `elapsedSeconds` must be between 0 and 604,800 seconds.
-- Input states are interpreted in EME2000 at J2000 TAI. No arbitrary input epoch or frame conversion is currently accepted.
+- `epochTai`, when supplied, must be a valid ISO-8601 date-time interpreted in TAI.
+- Input states are interpreted in EME2000 at the supplied TAI epoch (or J2000 TAI when omitted). Frame conversion is not currently supported; inputs in other frames must not be relabelled as EME2000.
 
 The response includes independently propagated target and chaser Cartesian states and `relativeLvlh`. The LVLH axes are +R radial outward, +T along-track, +N orbit-normal. Relative velocity includes the rotating-frame transport correction:
 
