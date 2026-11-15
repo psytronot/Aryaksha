@@ -1,7 +1,7 @@
 import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import { AlertTriangle, Orbit, Play, Satellite } from 'lucide-react';
 import { EARTH_RADIUS, MU } from './orbit';
-import { propagateCw, sampleCwTrajectory, solveTwoImpulseRendezvous, screenCwKeepOut, propagateCwCovariance, type RelativeState } from './rpod';
+import { propagateCw, sampleCwTrajectory, solveTwoImpulseRendezvous, screenCwKeepOutContinuous, propagateCwCovariance, type RelativeState } from './rpod';
 import { parseRpodMissionState, type RpodMissionState } from './rpodMissionState';
 import { serializeRpodEngineeringReport, type RpodEngineeringReport } from './rpodReport';
 import { sampleTwoBodyTrajectory } from './rpodInertial';
@@ -56,7 +56,7 @@ export default function RpodView() {
     totalDeltaVMagnitudeMps: number;
     terminal: RelativeState;
     trajectory: ReturnType<typeof sampleCwTrajectory>;
-    keepOutScreen: ReturnType<typeof screenCwKeepOut>;
+    keepOutScreen: ReturnType<typeof screenCwKeepOutContinuous>;
     terminalCovariance: number[][];
     maximumSampledSeparationRatio: number;
   } | null>(null);
@@ -291,8 +291,10 @@ export default function RpodView() {
         rendezvousTimeSeconds,
         40,
       );
-      const keepOutScreen = screenCwKeepOut(
-        trajectory,
+      const keepOutScreen = screenCwKeepOutContinuous(
+        postDepartureState,
+        meanMotionRadS,
+        rendezvousTimeSeconds,
         numberValue(input.keepOutRadiusKm, 'Keep-out radius'),
       );
       const chiefRadiusKm = EARTH_RADIUS + altitude;
@@ -388,12 +390,14 @@ export default function RpodView() {
         velocityKmS: sample.state.velocityKmS,
       })),
       keepOutScreen: {
-        method: 'sampled-pre-terminal-spherical-range',
+        method: 'hcw-stationary-point-root-search',
         keepOutRadiusKm: result.keepOutScreen.keepOutRadiusKm,
         minimumPreTerminalRangeKm: result.keepOutScreen.minimumPreTerminalRangeKm,
         closestElapsedSeconds: result.keepOutScreen.closestElapsedSeconds,
         enteredKeepOut: result.keepOutScreen.enteredKeepOut,
         terminalCoincidenceExcluded: true,
+        stationaryPointCount: result.keepOutScreen.stationaryPointCount,
+        resolutionLimited: result.keepOutScreen.resolutionLimited,
       },
       uncertainty: {
         initialPositionSigmaM: numberValue(input.positionSigmaM, 'Position 1-sigma uncertainty'),
