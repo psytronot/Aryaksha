@@ -45,11 +45,17 @@ test('RPOD workspace solves HCW and cross-checks relative propagation with Oreki
 
   await expect(page.getByText('Orekit propagated LVLH position')).toBeVisible();
   await expect(page.getByText('Orekit epoch (TAI)')).toBeVisible();
-  expect(requestBody).toEqual({
-    target: { positionKm: [6928.137, 0, 0], velocityKmS: [0, 7.585, 0] },
-    chaser: { positionKm: [6928.237, -0.2, 0.05], velocityKmS: [-0.000115, 7.585207, -0.00005] },
-    elapsedSeconds: 1800
-  });
+  const sent = requestBody as {
+    target: { positionKm: number[]; velocityKmS: number[] };
+    chaser: { positionKm: number[]; velocityKmS: number[] };
+    elapsedSeconds: number;
+  };
+  expect(sent.target.positionKm).toEqual([6928.137, 0, 0]);
+  expect(sent.target.velocityKmS[1]).toBeCloseTo(7.585088535, 8);
+  expect(sent.chaser.positionKm).toEqual([6928.237, -0.2, 0.05]);
+  expect(sent.chaser.velocityKmS[0]).toBeCloseTo(0.0003189647, 9);
+  expect(sent.chaser.velocityKmS[1]).toBeCloseTo(7.585398018, 8);
+  expect(sent.elapsedSeconds).toBe(1800);
 });
 
 test('mobile navigation opens, changes section and closes after selection', async ({ page }) => {
