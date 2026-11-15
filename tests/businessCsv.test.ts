@@ -69,7 +69,7 @@ describe('parseBusinessCsv', () => {
       { company: '=HYPERLINK("https://bad.example")', website: '@external', city: ' +Bengaluru' },
       { company: 'Acme, "Robotics"', website: 'https://acme.example', city: 'Pune' }
     ]);
-    expect(output.startsWith('"Company","Website","City"\\r\\n')).toBe(true);
+    expect(output.startsWith('"Company","Website","City"\r\n')).toBe(true);
     expect(output).toContain("'=HYPERLINK(\"\"https://bad.example\"\")");
     expect(output).toContain("'@external");
     expect(output).toContain("' +Bengaluru");
