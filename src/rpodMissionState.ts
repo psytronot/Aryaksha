@@ -74,10 +74,12 @@ export function parseRpodMissionState(source: string): RpodMissionState {
   if (typeof epochTai !== 'string') {
     throw new Error('epochTai must be a valid ISO-8601 date-time interpreted in TAI.');
   }
+  // Java LocalDateTime (used by the Orekit API) supports at most nanosecond
+  // precision. Reject longer fractions here rather than accepting an epoch
+  // in the browser that the service will later reject.
+  const epochPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?$/;
   const epochBase = epochTai.slice(0, 19);
-  const parsedEpoch = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(epochTai)
-    ? new Date(`${epochBase}Z`)
-    : null;
+  const parsedEpoch = epochPattern.test(epochTai) ? new Date(`${epochBase}Z`) : null;
   if (!parsedEpoch || !Number.isFinite(parsedEpoch.getTime())
       || parsedEpoch.toISOString().slice(0, 19) !== epochBase) {
     throw new Error('epochTai must be a valid ISO-8601 date-time interpreted in TAI.');
