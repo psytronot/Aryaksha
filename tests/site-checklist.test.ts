@@ -6,6 +6,8 @@ const styles = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8'
 const textureGuide = readFileSync(new URL('../docs/design/BACKGROUND-TEXTURE-SYSTEM.md', import.meta.url), 'utf8');
 const geoSkill = readFileSync(new URL('../.agents/skills/geo-seo/SKILL.md', import.meta.url), 'utf8');
 const geoChecklist = readFileSync(new URL('../.agents/skills/geo-seo/references/checklist.md', import.meta.url), 'utf8');
+const seoSkill = readFileSync(new URL('../.agents/skills/seo/SKILL.md', import.meta.url), 'utf8');
+const seoChecklist = readFileSync(new URL('../.agents/skills/seo/references/checklist.md', import.meta.url), 'utf8');
 const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
 const notFound = readFileSync(new URL('../public/404.html', import.meta.url), 'utf8');
@@ -57,6 +59,13 @@ describe('website quality checklist', () => {
     expect(geoSkill).toContain('llms.txt');
     expect(geoSkill).toContain('never promise rankings');
     expect(geoChecklist).toContain('Structured data is valid and matches visible facts');
+  });
+
+  it('ships a distinct conventional SEO skill coordinated with GEO', () => {
+    expect(seoSkill).toContain('Conventional search SEO');
+    expect(seoSkill).toContain('not a certified or flight-critical system');
+    expect(seoChecklist).toContain('Sitemap contains only canonical');
+    expect(seoSkill).toContain('geo-seo');
   });
 
 });
