@@ -1,46 +1,46 @@
 {
-  "name": "genser-aerospace-website",
-  "version": "1.0.0",
+  "name": "aryaksha-space-exploration-lab",
   "private": true,
+  "version": "0.1.0",
+  "type": "module",
   "scripts": {
-    "dev": "npm run assets:optimize && next dev",
-    "build": "npm run typecheck && npm run lint && npm run assets:optimize && npm run assets:check && npm test && npm run build:info && next build && npm run verify:export",
-    "start": "next start",
-    "lint": "eslint .",
+    "dev": "vite",
+    "start": "node backend/server.mjs",
+    "build": "vite build",
     "typecheck": "tsc --noEmit",
+    "preview": "vite preview",
     "test": "vitest run",
-    "assets:optimize": "node scripts/optimize-assets.mjs",
-    "assets:check": "node scripts/verify-assets.mjs",
-    "verify:export": "node scripts/verify-export.mjs && node scripts/verify-links.mjs",
-    "build:info": "node scripts/write-build-info.mjs",
-    "design:check": "node scripts/verify-design-system.mjs"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
-    "gsap": "3.15.1",
-    "lenis": "1.3.27",
-    "next": "^16.4.6",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "three": "0.134.0",
-    "vanta": "0.5.24",
-    "lucide-react": "^0.468.0"
+    "@photostructure/tz-lookup": "^11.6.1",
+    "express": "^4.21.2",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.469.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "satellite.js": "^6.0.1",
+    "three": "^0.177.0"
   },
   "devDependencies": {
-    "@types/node": "^22.15.0",
-    "@types/react": "^19.1.0",
-    "@types/react-dom": "^19.1.0",
-    "eslint": "^9.28.0",
-    "eslint-config-next": "^16.4.6",
-    "sharp": "^0.35.5",
-    "typescript": "^5.8.3",
-    "vitest": "^5.1.0"
-  },
-  "overrides": {
-    "@typescript-eslint/typescript-estree": {
-      "minimatch": "^11.0.1"
-    }
+    "@types/leaflet": "^1.9.20",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/three": "^0.177.0",
+    "@types/node": "^22.19.0",
+    "ajv": "^8.17.1",
+    "@playwright/test": "^1.64.1",
+    "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.4.5",
+    "vitest": "^5.0.5"
   },
   "engines": {
-    "node": ">=22 <23"
-  }
+    "node": ">=22.12.0 <23"
+  },
+  "packageManager": "npm@10.9.0"
 }
