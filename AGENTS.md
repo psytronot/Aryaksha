@@ -61,3 +61,7 @@ This method is complementary to the existing project design system and Ponytail 
 ## Background texture system
 
 Before adding or changing decorative backgrounds, read `docs/design/BACKGROUND-TEXTURE-SYSTEM.md`. Treat its 22 treatments as an opt-in library, not a checklist to apply wholesale. Use only textures that reinforce the product-derived visual direction; keep patterns subtle, performant, responsive and subordinate to content. Preserve contrast, keyboard focus, reduced motion and scientific/content accuracy. Prefer CSS patterns for simple grids/dots; use licensed/approved assets for photographic or painterly treatments. Never add an external image asset or generated image as a background without checking rights, purpose, loading cost and user approval where required.
+
+## GEO + SEO workflow
+
+Before changing search visibility, metadata, robots, sitemap, structured data or search-facing content, read `.agents/skills/geo-seo/SKILL.md` and its checklist. GEO means Generative Engine Optimization. Follow deployment-specific indexing protections, preserve preview noindex/disallow behavior, use verified canonical origins only, and never promise rankings or AI citations. Structured data must match visible facts. `llms.txt` is optional and must not be added as a ranking hack. Follow the project-specific scientific, content, privacy and production boundaries in the skill.
