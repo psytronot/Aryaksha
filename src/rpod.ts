@@ -179,8 +179,8 @@ export function propagateCwCovariance(
     throw new Error('State covariance entries must be finite.');
   }
 
-  const scaleValue = Math.max(1, ...covariance.flat().map(Math.abs));
-  const tolerance = 1e-10 * scaleValue;
+  const scaleValue = Math.max(...covariance.flat().map(Math.abs));
+  const tolerance = 1e-10 * (scaleValue || 1);
   for (let row = 0; row < 6; row += 1) {
     for (let column = row + 1; column < 6; column += 1) {
       if (Math.abs(covariance[row][column] - covariance[column][row]) > tolerance) {
