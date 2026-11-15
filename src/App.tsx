@@ -11,7 +11,7 @@ const SatelliteTrackingView = lazy(() => import('./SatelliteTrackingView'));
 const MissionAnalysisView = lazy(() => import('./MissionAnalysisView'));
 import { EARTH_RADIUS, orbitalSummary, propagateState, sampleOrbit, stateToLla } from './orbit';
 import { getGlossaryEntries, getGlossaryEntry, GlossaryEntry } from './glossary';
-import { parseBusinessCsv } from './businessCsv';
+import { parseBusinessCsv, serializeBusinessCsv } from './businessCsv';
 import { generateContinuousGroundTrack, SubPoint } from './tracking';
 import { computeDayNightBoundary, solarSubpoint } from './daynight';
 import {
@@ -330,15 +330,7 @@ function SoftwareProductsView() {
 
   const downloadCleanCsv = () => {
     if (!csvResult) return;
-    const quote = (value: string) => {
-      const safeValue = /^[\s]*[=+\-@]/.test(value) ? "'" + value : value;
-      return '"' + safeValue.replace(/"/g, '""') + '"';
-    };
-    const lines = [
-      ['Company', 'Website', 'City'].map(quote).join(','),
-      ...csvResult.records.map(record => [record.company, record.website, record.city].map(quote).join(','))
-    ];
-    const url = URL.createObjectURL(new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8' }));
+    const url = URL.createObjectURL(new Blob([serializeBusinessCsv(csvResult.records)], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = url;
     link.download = 'cleaned-business-list.csv';
