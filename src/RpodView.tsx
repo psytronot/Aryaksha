@@ -58,6 +58,7 @@ export default function RpodView() {
     trajectory: ReturnType<typeof sampleCwTrajectory>;
     keepOutScreen: ReturnType<typeof screenCwKeepOut>;
     terminalCovariance: number[][];
+    maximumSampledSeparationRatio: number;
   } | null>(null);
   const [error, setError] = useState('');
   const [importedMissionState, setImportedMissionState] = useState<RpodMissionState | null>(null);
@@ -294,6 +295,10 @@ export default function RpodView() {
         trajectory,
         numberValue(input.keepOutRadiusKm, 'Keep-out radius'),
       );
+      const chiefRadiusKm = EARTH_RADIUS + altitude;
+      const maximumSampledSeparationRatio = Math.max(
+        ...trajectory.map(sample => Math.hypot(...sample.state.positionKm)),
+      ) / chiefRadiusKm;
       const positionSigmaKm = numberValue(input.positionSigmaM, 'Position 1-sigma uncertainty') / 1000;
       const velocitySigmaKmS = numberValue(input.velocitySigmaMmS, 'Velocity 1-sigma uncertainty') / 1_000_000;
       if (positionSigmaKm < 0 || velocitySigmaKmS < 0) {
@@ -322,6 +327,7 @@ export default function RpodView() {
         trajectory,
         keepOutScreen,
         terminalCovariance,
+        maximumSampledSeparationRatio,
       });
       setError('');
     } catch (cause) {
@@ -351,6 +357,7 @@ export default function RpodView() {
         chiefAltitudeKm: numberValue(input.chiefAltitudeKm, 'Chief altitude'),
         meanMotionRadS: result.meanMotionRadS,
         rendezvousTimeSeconds: result.rendezvousTimeSeconds,
+        maximumSampledSeparationRatio: result.maximumSampledSeparationRatio,
         assumptions: [
           'Circular chief orbit with constant mean motion.',
           'Linearized relative motion with small separation.',
@@ -547,6 +554,8 @@ export default function RpodView() {
                 <div className="stat-row"><span className="result-label">Arrival velocity match</span><b>{fixed(result.arrivalDeltaVMagnitudeMps, 4)} m/s</b></div>
                 <div className="stat-row"><span className="result-label">Chief mean motion</span><b>{fixed(result.meanMotionRadS, 9)} rad/s</b></div>
                 <div className="stat-row"><span className="result-label">Rendezvous time</span><b>{fixed(result.rendezvousTimeSeconds, 2)} s</b></div>
+                <div className="stat-row"><span className="result-label">Maximum sampled separation / chief radius</span><b>{fixed(result.maximumSampledSeparationRatio * 100, 5)}%</b></div>
+                <div className="callout"><AlertTriangle size={15} /><span>{result.maximumSampledSeparationRatio >= 0.01 ? 'Linearization review trigger reached: sampled relative separation is at least 1% of chief radius.' : 'Sampled separation is below the 1% linearization review trigger.'} The 1% value is an engineering screening heuristic, not a validated HCW accuracy boundary or safety criterion.</span></div>
                 <div className="stat-row"><span className="result-label">Terminal radial position</span><b>{fixed(result.terminal.positionKm[0], 9)} km</b></div>
                 <div className="stat-row"><span className="result-label">Terminal along-track position</span><b>{fixed(result.terminal.positionKm[1], 9)} km</b></div>
                 <div className="stat-row"><span className="result-label">Terminal cross-track position</span><b>{fixed(result.terminal.positionKm[2], 9)} km</b></div>
