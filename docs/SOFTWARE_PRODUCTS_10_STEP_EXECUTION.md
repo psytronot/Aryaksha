@@ -68,3 +68,15 @@ The independent design work has advanced on the same feature branch:
 ### Current CI snapshot
 
 The latest feature-branch commit at the time of this update is `de6aaeb8`. Aryaksha CI, CodeQL and AppDeploy acceptance runs were queued for earlier recent commits; fresh current-head runs must be checked before claiming release verification. PR #124 remains draft and unmerged.
+
+
+## CI failure investigation and parser correction — 2026-11-15
+
+A completed Aryaksha CI run on merge commit `659bfa816928b0bbd11a3ac5db8d730ca238c857` (PR head `9b26695018b98fdfc18371d5774864538411be0f`) found a real defect in `src/businessCsv.ts`:
+- The parser compared row separators against escaped backslash sequences instead of actual newline characters.
+- This caused valid multi-row CSV input to be accumulated as a single field and cascaded into 9 failures in `tests/businessCsv.test.ts`; the other 75 tests in that run passed.
+- TypeScript typecheck passed; the failing job was `npm test`. Browser smoke was skipped because the web build/unit job failed.
+- Corrected the row-separator checks and CRLF lookahead in commits `becdcb6` and `7c17bb8`.
+- Fresh Aryaksha CI, CodeQL and AppDeploy acceptance workflows are queued for corrected branch head `7c17bb856850693d3707fc2470338e0ad4b6bf41`. The fix is not yet verified by completed CI, so do not mark the test suite green.
+
+The failure was fixed in code, not hidden by relaxing assertions. Next verification must confirm the full Vitest suite passes, then the dependent browser smoke job runs.
