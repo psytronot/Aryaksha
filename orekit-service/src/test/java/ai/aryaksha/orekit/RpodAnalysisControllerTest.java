@@ -99,6 +99,35 @@ class RpodAnalysisControllerTest {
     }
 
     @Test
+    void returnsEndpointInclusiveOrekitRelativeStateHistoryWhenRequested() {
+        var target = new RpodAnalysisController.CartesianState(
+            new double[] {6928.137, 0, 0}, new double[] {0, 7.585, 0});
+        var chaser = new RpodAnalysisController.CartesianState(
+            new double[] {6928.237, -0.2, 0.05}, new double[] {0.0001, 7.585398018, -0.00005});
+        var result = controller.relativeState(new RpodAnalysisController.RpodRequest(
+            target, chaser, 900.0, "2026-11-15T12:00:00", 5));
+
+        assertEquals(5, result.history().size());
+        assertEquals(0.0, result.history().get(0).elapsedSeconds(), 1e-12);
+        assertEquals(225.0, result.history().get(1).elapsedSeconds(), 1e-12);
+        assertEquals(900.0, result.history().get(4).elapsedSeconds(), 1e-12);
+        assertArrayEquals(result.relativeLvlh().positionKm(),
+            result.history().get(4).relativeLvlh().positionKm(), 1e-10);
+        assertArrayEquals(result.relativeLvlh().velocityKmS(),
+            result.history().get(4).relativeLvlh().velocityKmS(), 1e-10);
+    }
+
+    @Test
+    void rejectsInvalidOrekitHistorySampleCount() {
+        var state = new RpodAnalysisController.CartesianState(
+            new double[] {7000, 0, 0}, new double[] {0, 7.54605329, 0});
+        assertThrows(IllegalArgumentException.class, () -> controller.relativeState(
+            new RpodAnalysisController.RpodRequest(state, state, 60.0, null, 1)));
+        assertThrows(IllegalArgumentException.class, () -> controller.relativeState(
+            new RpodAnalysisController.RpodRequest(state, state, 60.0, null, 102)));
+    }
+
+    @Test
     void acceptsExplicitTaiMissionEpoch() {
         var state = new RpodAnalysisController.CartesianState(
             new double[] {7000, 0, 0}, new double[] {0, 7.54605329, 0});
