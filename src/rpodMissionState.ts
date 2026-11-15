@@ -70,8 +70,12 @@ export function parseRpodMissionState(source: string): RpodMissionState {
   if (Object.keys(parsed).some(key => !allowedKeys.includes(key))) {
     throw new Error('Mission-state file contains an unexpected field.');
   }
-  const epochBase = typeof parsed.epochTai === 'string' ? parsed.epochTai.slice(0, 19) : '';
-  const parsedEpoch = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(String(parsed.epochTai))
+  const epochTai = parsed.epochTai;
+  if (typeof epochTai !== 'string') {
+    throw new Error('epochTai must be a valid ISO-8601 date-time interpreted in TAI.');
+  }
+  const epochBase = epochTai.slice(0, 19);
+  const parsedEpoch = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(epochTai)
     ? new Date(`${epochBase}Z`)
     : null;
   if (!parsedEpoch || !Number.isFinite(parsedEpoch.getTime())
@@ -90,7 +94,7 @@ export function parseRpodMissionState(source: string): RpodMissionState {
     throw new Error('Target state must define a non-degenerate orbital plane.');
   }
   return {
-    epochTai: parsed.epochTai,
+    epochTai,
     frame: 'EME2000',
     target,
     chaser,
