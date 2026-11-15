@@ -4,6 +4,7 @@ import {
   propagateCw,
   solveRendezvousImpulse,
   solveTwoImpulseRendezvous,
+  sampleCwTrajectory,
   type RelativeState,
 } from '../src/rpod';
 
@@ -105,6 +106,34 @@ describe('RPOD relative-motion foundation', () => {
 
     closeToVector(analytical.positionKm, numerical.positionKm, 9);
     closeToVector(analytical.velocityKmS, numerical.velocityKmS, 11);
+  });
+
+  it('samples a CW trajectory from the initial epoch through the requested final epoch', () => {
+    const initial: RelativeState = {
+      positionKm: [0.1, -0.2, 0.05],
+      velocityKmS: [0.0001, 0.0002, -0.00005],
+    };
+    const n = Math.sqrt(398600.4418 / 7000 ** 3);
+    const samples = sampleCwTrajectory(initial, n, 900, 5);
+
+    expect(samples).toHaveLength(6);
+    expect(samples[0].elapsedSeconds).toBe(0);
+    expect(samples[5].elapsedSeconds).toBe(900);
+    closeToVector(samples[0].state.positionKm, initial.positionKm);
+    closeToVector(samples[0].state.velocityKmS, initial.velocityKmS);
+    const final = propagateCw(initial, n, 900);
+    closeToVector(samples[5].state.positionKm, final.positionKm);
+    closeToVector(samples[5].state.velocityKmS, final.velocityKmS);
+  });
+
+  it('rejects invalid trajectory sample counts', () => {
+    const initial: RelativeState = {
+      positionKm: [0.1, 0, 0],
+      velocityKmS: [0, 0, 0],
+    };
+    const n = Math.sqrt(398600.4418 / 7000 ** 3);
+    expect(() => sampleCwTrajectory(initial, n, 900, 1)).toThrow();
+    expect(() => sampleCwTrajectory(initial, n, 900, 0)).toThrow();
   });
 
   it('computes an initial impulsive correction that reaches zero relative position at the target time', () => {
