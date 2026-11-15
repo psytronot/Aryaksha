@@ -130,8 +130,8 @@ public class RpodAnalysisController {
         for (double value : state.velocityKmS()) {
             if (!Double.isFinite(value)) throw new IllegalArgumentException(name + " velocity must be finite.");
         }
-        if (vector(state.positionKm()).getNorm() < 1.0) {
-            throw new IllegalArgumentException(name + " position must be outside the Earth centre.");
+        if (vector(state.positionKm()).getNorm() <= 6378.137) {
+            throw new IllegalArgumentException(name + " initial position must be above the WGS-84 equatorial Earth radius.");
         }
     }
 
