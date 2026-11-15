@@ -125,6 +125,17 @@ class RpodAnalysisControllerTest {
     }
 
     @Test
+    void rejectsInitialStateWhoseOsculatingPeriapsisIntersectsEarth() {
+        var earthIntersecting = new RpodAnalysisController.CartesianState(
+            new double[] {7000, 0, 0}, new double[] {0, 6.0, 0});
+        var safeState = new RpodAnalysisController.CartesianState(
+            new double[] {7000, 0, 0}, new double[] {0, 7.54605329, 0});
+        var error = assertThrows(IllegalArgumentException.class, () -> controller.relativeState(
+            new RpodAnalysisController.RpodRequest(earthIntersecting, safeState, 0.0)));
+        assertTrue(error.getMessage().contains("periapsis intersects"));
+    }
+
+    @Test
     void rejectsInvalidElapsedTimeAndMalformedStateVectors() {
         var state = new RpodAnalysisController.CartesianState(
             new double[] {7000, 0, 0}, new double[] {0, 7.5, 0});
