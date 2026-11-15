@@ -43,6 +43,10 @@ The ten engineering tasks below are implemented on this branch. Repository CI is
 | 9 | Add focused automated coverage | Complete (tests authored) | Vitest parser/serializer cases and Playwright coverage for malformed files, limits, formula-safe exports, template content and input reset. |
 | 10 | Update product documentation and PR evidence | Complete | Product plan, execution ledger and PR #124 description updated. |
 
+## Next hosted-pilot workstream
+
+Created `docs/FIRST_CUSTOMER_FINDER_INFRASTRUCTURE_READINESS.md` after inspecting `README.md`, `SECURITY.md`, the route inventory, deployment runbook and current Express host. It confirms the repository has no auth, account-level authorization, database/job store or queue, and that the current in-memory limiter is not a per-user quota. The document lays out the next ten hosted-pilot steps and the decisions/permissions needed before live endpoints. No external provider or infrastructure was connected.
+
 ## Separate release-verification gate
 
 - Current-head Aryaksha CI, CodeQL and AppDeploy acceptance workflows have been created by GitHub but remain queued; no completed current-head result is available yet.
