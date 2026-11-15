@@ -376,8 +376,10 @@ function SoftwareProductsView() {
     const link = document.createElement('a');
     link.href = url;
     link.download = 'first-customer-research-brief.md';
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(url);
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const downloadCleanCsv = () => {
@@ -394,8 +396,10 @@ function SoftwareProductsView() {
     const link = document.createElement('a');
     link.href = url;
     link.download = 'cleaned-business-list.csv';
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(url);
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const prepareBrief = (event: React.FormEvent<HTMLFormElement>) => {
