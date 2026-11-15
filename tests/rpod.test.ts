@@ -5,6 +5,7 @@ import {
   solveRendezvousImpulse,
   solveTwoImpulseRendezvous,
   sampleCwTrajectory,
+  propagateCwWithImpulses,
   type RelativeState,
 } from '../src/rpod';
 
@@ -185,4 +186,74 @@ describe('RPOD relative-motion foundation', () => {
     expect(() => propagateCw(initial, 0.001, -1)).toThrow();
     expect(() => solveRendezvousImpulse(initial, 0.001, 2 * Math.PI / 0.001)).toThrow();
   });
+  it('propagates a piecewise HCW coast with a timed impulsive maneuver', () => {
+    const initial: RelativeState = {
+      positionKm: [0.1, -0.2, 0.05],
+      velocityKmS: [0.0001, 0.0002, -0.00005],
+    };
+    const n = Math.sqrt(398600.4418 / 7000 ** 3);
+    const burnTime = 300;
+    const duration = 900;
+    const deltaV: [number, number, number] = [0.00001, -0.00002, 0.000005];
+    const beforeBurn = propagateCw(initial, n, burnTime);
+    const afterBurn = propagateCw({
+      positionKm: beforeBurn.positionKm,
+      velocityKmS: [
+        beforeBurn.velocityKmS[0] + deltaV[0],
+        beforeBurn.velocityKmS[1] + deltaV[1],
+        beforeBurn.velocityKmS[2] + deltaV[2],
+      ],
+    }, n, duration - burnTime);
+    const result = propagateCwWithImpulses(initial, n, duration, [
+      { elapsedSeconds: burnTime, deltaVKmS: deltaV },
+    ]);
+    closeToVector(result.positionKm, afterBurn.positionKm, 11);
+    closeToVector(result.velocityKmS, afterBurn.velocityKmS, 11);
+  });
+
+  it('leaves the unpowered trajectory unchanged when the impulse list is empty', () => {
+    const initial: RelativeState = {
+      positionKm: [0.1, -0.2, 0.05],
+      velocityKmS: [0.0001, 0.0002, -0.00005],
+    };
+    const n = Math.sqrt(398600.4418 / 7000 ** 3);
+    const result = propagateCwWithImpulses(initial, n, 900, []);
+    const expected = propagateCw(initial, n, 900);
+    closeToVector(result.positionKm, expected.positionKm, 12);
+    closeToVector(result.velocityKmS, expected.velocityKmS, 12);
+  });
+
+  it('applies an impulse at the initial epoch before propagation', () => {
+    const initial: RelativeState = {
+      positionKm: [0.1, -0.2, 0.05],
+      velocityKmS: [0, 0, 0],
+    };
+    const n = Math.sqrt(398600.4418 / 7000 ** 3);
+    const deltaV: [number, number, number] = [0.0001, 0, 0];
+    const result = propagateCwWithImpulses(initial, n, 600, [
+      { elapsedSeconds: 0, deltaVKmS: deltaV },
+    ]);
+    const expected = propagateCw({ positionKm: initial.positionKm, velocityKmS: deltaV }, n, 600);
+    closeToVector(result.positionKm, expected.positionKm, 12);
+    closeToVector(result.velocityKmS, expected.velocityKmS, 12);
+  });
+
+  it('rejects unordered, out-of-window and malformed impulsive maneuvers', () => {
+    const initial: RelativeState = {
+      positionKm: [0.1, 0, 0],
+      velocityKmS: [0, 0, 0],
+    };
+    const n = Math.sqrt(398600.4418 / 7000 ** 3);
+    expect(() => propagateCwWithImpulses(initial, n, 900, [
+      { elapsedSeconds: 500, deltaVKmS: [0, 0, 0] },
+      { elapsedSeconds: 400, deltaVKmS: [0, 0, 0] },
+    ])).toThrow(/ordered/);
+    expect(() => propagateCwWithImpulses(initial, n, 900, [
+      { elapsedSeconds: 901, deltaVKmS: [0, 0, 0] },
+    ])).toThrow(/ordered/);
+    expect(() => propagateCwWithImpulses(initial, n, 900, [
+      { elapsedSeconds: 100, deltaVKmS: [0, Number.NaN, 0] },
+    ])).toThrow(/finite/);
+  });
+
 });
