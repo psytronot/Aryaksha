@@ -39,19 +39,19 @@ const spacecraftDefaults: Spacecraft = {
 
 type View = 'mission' | 'payload' | 'spacecraft' | 'orbit' | 'simulation' | 'tracking' | 'missionAnalysis' | 'analysis' | 'verification' | 'report' | 'instructions' | 'tools' | 'software';
 const nav: { id: View; label: string; icon: React.ReactNode; group: string }[] = [
-  { id: 'mission', label: 'Mission', icon: <Target size={16} />, group: 'DESIGN' },
-  { id: 'payload', label: 'Payload', icon: <Globe2 size={16} />, group: 'DESIGN' },
-  { id: 'spacecraft', label: 'Spacecraft', icon: <Satellite size={16} />, group: 'DESIGN' },
-  { id: 'orbit', label: 'Orbit & Maneuver', icon: <Orbit size={16} />, group: 'DESIGN' },
-  { id: 'simulation', label: 'Simulation', icon: <Gauge size={16} />, group: 'RUN' },
-  { id: 'tracking', label: 'Satellite Tracking', icon: <Radio size={16} />, group: 'RUN' },
-  { id: 'missionAnalysis', label: 'Mission Analysis', icon: <Orbit size={16} />, group: 'RUN' },
-  { id: 'analysis', label: 'Engineering Analysis', icon: <Layers3 size={16} />, group: 'RUN' },
-  { id: 'verification', label: 'Verification', icon: <Check size={16} />, group: 'RUN' },
-  { id: 'report', label: 'Design Report', icon: <Download size={16} />, group: 'OUTPUT' },
-  { id: 'instructions', label: 'Instructions & Glossary', icon: <BookOpen size={16} />, group: 'LEARN' },
-  { id: 'tools', label: 'Calculator & Reference', icon: <Calculator size={16} />, group: 'TOOLS' },
-  { id: 'software', label: 'Software Products', icon: <Search size={16} />, group: 'TOOLS' }
+  { id: 'mission', label: 'Mission', icon: <Target size={16} />, group: 'Design' },
+  { id: 'payload', label: 'Payload', icon: <Globe2 size={16} />, group: 'Design' },
+  { id: 'spacecraft', label: 'Spacecraft', icon: <Satellite size={16} />, group: 'Design' },
+  { id: 'orbit', label: 'Orbit & Maneuver', icon: <Orbit size={16} />, group: 'Design' },
+  { id: 'simulation', label: 'Simulation', icon: <Gauge size={16} />, group: 'Run' },
+  { id: 'tracking', label: 'Satellite Tracking', icon: <Radio size={16} />, group: 'Run' },
+  { id: 'missionAnalysis', label: 'Mission Analysis', icon: <Orbit size={16} />, group: 'Run' },
+  { id: 'analysis', label: 'Engineering Analysis', icon: <Layers3 size={16} />, group: 'Run' },
+  { id: 'verification', label: 'Verification', icon: <Check size={16} />, group: 'Run' },
+  { id: 'report', label: 'Design Report', icon: <Download size={16} />, group: 'Output' },
+  { id: 'instructions', label: 'Instructions & Glossary', icon: <BookOpen size={16} />, group: 'Learn' },
+  { id: 'tools', label: 'Calculator & Reference', icon: <Calculator size={16} />, group: 'Tools' },
+  { id: 'software', label: 'Software Products', icon: <Search size={16} />, group: 'Tools' }
 ];
 
 function App() {
@@ -229,7 +229,7 @@ function App() {
             </div>
           ))}
           <div className="side-health">
-            <small>SYSTEM HEALTH</small>
+            <small>System health</small>
             <div><span className="dot green" /> Physics engine</div>
             <div><span className="dot green" /> Mission model</div>
             <div><span className={verification.failCount ? 'dot amber' : 'dot green'} /> Verification {verification.failCount ? 'needs work' : 'clear'}</div>
@@ -241,8 +241,8 @@ function App() {
           <div className="mission-strip">
             <div><small>ACTIVE MISSION</small><b>{mission.name}</b><span>{mission.type} · {mission.target}</span></div>
             <div className="mission-strip-actions">
-              <button data-context-label="Reset Simulation" onClick={() => { setSeconds(0); setRunning(false); }}><RefreshCw size={14} /> RESET SIM</button>
-              <button data-context-label="Run Mission" className="run-button" onClick={() => { setRunning(true); setView('simulation'); }}><Play size={14} /> RUN MISSION</button>
+              <button data-context-label="Reset Simulation" onClick={() => { setSeconds(0); setRunning(false); }}><RefreshCw size={14} /> Reset simulation</button>
+              <button data-context-label="Run Mission" className="run-button" onClick={() => { setRunning(true); setView('simulation'); }}><Play size={14} /> Run mission</button>
             </div>
           </div>
 
