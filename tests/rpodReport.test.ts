@@ -7,7 +7,8 @@ const report: RpodEngineeringReport = {
   mission: { epochTai: '2000-01-01T12:00:00', stateSource: 'manual-lvlh', importedFrame: null },
   model: {
     name: 'Clohessy-Wiltshire / Hill', chiefAltitudeKm: 550, meanMotionRadS: 0.001,
-    rendezvousTimeSeconds: 1800, assumptions: ['Circular chief orbit', 'Small relative separation'],
+    rendezvousTimeSeconds: 1800, maximumSampledSeparationRatio: 0.0001,
+    assumptions: ['Circular chief orbit', 'Small relative separation'],
   },
   initialRelativeState: { positionKm: [0.1, -0.2, 0.05], velocityKmS: [0.0001, 0.0002, -0.00005] },
   maneuvers: [
