@@ -98,6 +98,8 @@ test('RPOD imports EME2000 mission states and forwards their TAI epoch', async (
     buffer: Buffer.from(JSON.stringify(mission))
   });
   await expect(page.getByText(/Imported target and chaser Cartesian states in EME2000/)).toBeVisible();
+  await page.locator('#rpod-epoch-tai').fill('2026-11-15T12:05:00');
+  await expect(page.getByText(/at 2026-11-15T12:05:00 TAI/)).toBeVisible();
   await page.getByRole('button', { name: 'Solve two-impulse rendezvous', exact: true }).click();
   await page.getByRole('button', { name: 'Cross-check imported mission states against Orekit', exact: true }).click();
 
@@ -106,7 +108,7 @@ test('RPOD imports EME2000 mission states and forwards their TAI epoch', async (
     target: mission.target,
     chaser: mission.chaser,
     elapsedSeconds: 1800,
-    epochTai: mission.epochTai
+    epochTai: '2026-11-15T12:05:00'
   });
   await expect(page.getByText('Orekit vs HCW position difference')).toHaveCount(0);
 });
