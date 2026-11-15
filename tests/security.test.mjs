@@ -60,6 +60,25 @@ describe('API security middleware', () => {
     expect(call('192.0.2.1').continued).toBe(true);
   });
 
+  it('does not evict an active client budget when the client map is full', () => {
+    let currentTime = 5_000;
+    const limiter = createRateLimiter({ windowMs: 1_000, maxRequests: 1, maxClients: 1, now: () => currentTime });
+    const call = (ip) => {
+      const result = fakeResponse();
+      let continued = false;
+      limiter({ ip }, result.response, () => { continued = true; });
+      return { ...result, continued };
+    };
+    expect(call('192.0.2.1').continued).toBe(true);
+    const capacity = call('192.0.2.2');
+    expect(capacity.continued).toBe(false);
+    expect(capacity.statusCode).toBe(503);
+    expect(capacity.body.error).toContain('at capacity');
+    expect(call('192.0.2.1').statusCode).toBe(429);
+    currentTime += 1_000;
+    expect(call('192.0.2.2').continued).toBe(true);
+  });
+
   it('keeps client budgets isolated', () => {
     let currentTime = 5_000;
     const limiter = createRateLimiter({ windowMs: 1_000, maxRequests: 1, now: () => currentTime });
