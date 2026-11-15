@@ -486,7 +486,15 @@ function SoftwareProductsView() {
         <div className="software-demo-row" role="row"><b>Bluepeak Learning (fictional)</b><span>Published STEM-lab expansion plan</span><strong>Medium</strong></div>
         <div className="software-demo-row" role="row"><b>Orbit Grove Systems (fictional)</b><span>General sector fit; no direct demand evidence</span><strong>Low</strong></div>
       </div>
-      <p className="software-demo-note">A real report will show source links, checked dates, evidence quality, uncertainty and a human-review step. A score is a research priority—not a promise of conversion.</p>
+      <div className="software-evidence-grid" aria-label="Evidence fields included in a real report">
+        <div><b>ORIGINAL SOURCE</b><span>Publisher and direct source URL</span></div>
+        <div><b>SOURCE & DATE</b><span>Publication date and last checked time</span></div>
+        <div><b>EVIDENCE QUALITY</b><span>Direct signal, indirect signal or missing proof</span></div>
+        <div><b>CONFIDENCE</b><span>Confidence level with uncertainty explained</span></div>
+        <div><b>FIT RATIONALE</b><span>Why the organisation matches the offer</span></div>
+        <div><b>HUMAN NEXT STEP</b><span>Review, validate and decide before outreach</span></div>
+      </div>
+      <p className="software-demo-note">These are the fields a real report must contain; this fictional sample has no real source records or verified prospects. A score is a research priority—not a promise of conversion.</p>
     </section>
     <div className="software-hub-bottom">
       <div><span className="software-hub-kicker">WHO CAN USE IT?</span><b>Schools · Colleges · Students · Individuals · Startups · Small businesses</b><p>We plan guided demonstrations, simple tutorials and institution-friendly onboarding.</p></div>
