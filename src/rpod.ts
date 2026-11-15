@@ -282,7 +282,11 @@ export function solveTwoImpulseRendezvous(
   const arrivalMagnitude = magnitude(arrivalDeltaVKmS) * 1000;
   const postArrivalBurnState: RelativeState = {
     positionKm: preArrivalBurnState.positionKm,
-    velocityKmS: [0, 0, 0],
+    velocityKmS: [
+      preArrivalBurnState.velocityKmS[0] + arrivalDeltaVKmS[0],
+      preArrivalBurnState.velocityKmS[1] + arrivalDeltaVKmS[1],
+      preArrivalBurnState.velocityKmS[2] + arrivalDeltaVKmS[2],
+    ],
   };
 
   return {
