@@ -16,6 +16,12 @@ describe('parseBusinessCsv', () => {
     expect(result.records[0].company).toBe('Acme\nRobotics');
   });
 
+  test('handles Windows CRLF rows and ignores blank lines', () => {
+    const result = parseBusinessCsv('Company,Website\r\nAcme,https://acme.example\r\n\r\nOrbit,https://orbit.example\r\n');
+    expect(result.total).toBe(2);
+    expect(result.records.map(record => record.company)).toEqual(['Acme', 'Orbit']);
+  });
+
   test('removes duplicate company and website pairs case-insensitively', () => {
     const result = parseBusinessCsv('Company,Website,City\nAcme Robotics,https://acme.example/,Bengaluru\nACME ROBOTICS,https://ACME.EXAMPLE/,Pune');
     expect(result.records).toHaveLength(1);
