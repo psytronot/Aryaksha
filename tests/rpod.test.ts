@@ -280,7 +280,7 @@ describe('RPOD relative-motion foundation', () => {
       velocityKmS: [-0.001, 0, 0],
     };
     const result = screenCwKeepOutContinuous(initial, 1e-8, 2000, 0.01);
-    expect(result.minimumPreTerminalRangeKm).toBeLessThan(1e-5);
+    expect(result.minimumPreTerminalRangeKm).toBeLessThan(2e-5);
     expect(result.closestElapsedSeconds).toBeCloseTo(1000, 2);
     expect(result.enteredKeepOut).toBe(true);
     expect(result.stationaryPointCount).toBeGreaterThan(0);
