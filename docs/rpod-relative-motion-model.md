@@ -53,6 +53,8 @@ Analytical tests cover:
 - Independent RK4 integration cross-check of the analytical CW propagator.
 - Single-impulse terminal position closure.
 - Two-impulse terminal velocity cancellation.
+- Piecewise coast propagation with timed instantaneous LVLH impulses, including event ordering and interval validation.
+- Sampled pre-terminal keep-out-radius screening, with terminal coincidence explicitly excluded.
 - Invalid mean motion, negative time and singular transfer-time rejection.
 
 CI also starts the real Orekit Spring Boot service locally for the RPOD integration smoke test, routes a request through the Express proxy, verifies the returned LVLH state and explicit TAI epoch, and checks malformed-epoch and Earth-intersecting-periapsis rejection. This local test does not depend on or modify the deployed Render services.
@@ -67,10 +69,10 @@ Orekit controller tests cover:
 ## Remaining engineering work
 
 1. Extend mission-state import to additional validated frames with real Orekit frame transformations. The current JSON importer accepts EME2000 only; non-EME2000 conversion remains outstanding.
-2. Add target/chaser trajectory histories and time-series visualisation with comparison residual plots.
-3. Add maneuver-aware propagation so the Orekit comparison can evaluate the departure and arrival impulses, rather than only the unburned initial state.
-4. Add multi-impulse and finite-burn maneuver sequencing with thrust, mass, attitude and actuator constraints.
-5. Add keep-out sphere, approach corridor, collision screening and navigation uncertainty.
+2. Extend target/chaser inertial trajectory histories and time-series visualisation with Orekit-vs-HCW residual plots; current visible history is sampled relative LVLH state only.
+3. Add maneuver-aware Orekit propagation so the numerical comparison can evaluate departure and arrival impulses, rather than only the unburned initial state.
+4. Add multi-impulse and finite-burn sequencing with thrust, mass, attitude and actuator constraints; the current maneuver sequence is analytical and impulsive only.
+5. Upgrade the sampled pre-terminal keep-out sphere indicator to continuous-time approach-corridor and collision screening, then add navigation uncertainty/covariance.
 6. Add capture/docking terminal constraints and report export with assumptions, units, tolerances and model fidelity.
 7. Configure and run a separate staging deployment smoke test; the production-linked live integration job remains skipped on pull requests.
 
