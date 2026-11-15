@@ -339,7 +339,7 @@ export default function RpodView() {
               </div>
               <div className="trajectory-panel">
                 <div className="stat-row"><span className="result-label">Trajectory history · sampled LVLH states</span><b>5 checkpoints</b></div>
-                {result.trajectory.filter((_, index) => index % 10 === 0).map((sample, index) => (
+                {result.trajectory.filter((_, index) => index % 10 === 0).map((sample) => (
                   <div className="stat-row" key={sample.elapsedSeconds}>
                     <span className="result-label">T+{fixed(sample.elapsedSeconds, 1)} s · R {fixed(sample.state.positionKm[0], 5)} km · T {fixed(sample.state.positionKm[1], 5)} km</span>
                     <b>{fixed(Math.hypot(...sample.state.velocityKmS) * 1000, 3)} m/s</b>
