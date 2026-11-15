@@ -269,6 +269,26 @@ function App() {
 }
 
 function SoftwareProductsView() {
+  const [brief, setBrief] = useState<{ offer: string; customer: string; geography: string } | null>(null);
+  const [briefError, setBriefError] = useState('');
+
+  const prepareBrief = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    const nextBrief = {
+      offer: String(values.get('offer') || '').trim(),
+      customer: String(values.get('customer') || '').trim(),
+      geography: String(values.get('geography') || '').trim()
+    };
+    if (!nextBrief.offer || !nextBrief.customer || !nextBrief.geography) {
+      setBriefError('Add your offer, intended customer and geography to continue.');
+      setBrief(null);
+      return;
+    }
+    setBriefError('');
+    setBrief(nextBrief);
+  };
+
   return <div className="page software-hub-page">
     <PageHeader eyebrow="10 · ARAKSHYA SOFTWARE HUB" title="Useful software. Open access. Practical outcomes." text="A separate Arakshya Space Lab initiative bringing accessible research, discovery and productivity tools to students, institutions, founders and individuals." />
     <div className="software-hub-intro">
@@ -293,6 +313,21 @@ function SoftwareProductsView() {
         <a className="software-hub-link" href="https://github.com/Kappaemme-git/codex-first-customer-finder-skill" target="_blank" rel="noreferrer">Review upstream project <ArrowRight size={14}/></a>
       </article>
     </div>
+    <section className="finder-intake" aria-labelledby="finder-intake-title">
+      <div className="software-demo-heading"><div><span className="software-hub-kicker">FIRST CUSTOMER FINDER · STEP 1</span><h2 id="finder-intake-title">Prepare your customer research brief</h2><p>Describe your offer and the people or organisations who may need it. This creates a structured brief only; it does not search the web or invent leads.</p></div><span className="software-demo-tag">LOCAL PREVIEW</span></div>
+      <form className="finder-intake-form" onSubmit={prepareBrief} noValidate>
+        <label>What are you offering?<textarea name="offer" aria-label="What are you offering?" rows={3} maxLength={1200} required placeholder="Describe the product, service or programme and the problem it solves." /></label>
+        <label>Who should benefit?<input name="customer" aria-label="Who should benefit?" maxLength={300} required placeholder="e.g. engineering colleges, clinics, small manufacturers" /></label>
+        <label>Where should we research?<input name="geography" aria-label="Where should we research?" maxLength={160} required placeholder="e.g. India, Bengaluru, or a specific region" /></label>
+        {briefError && <p className="finder-intake-error" role="alert">{briefError}</p>}
+        <button className="primary" type="submit">Prepare research brief <ArrowRight size={15}/></button>
+      </form>
+      {brief && <div className="finder-brief-result" aria-live="polite">
+        <div><span className="software-hub-kicker">BRIEF VALIDATED · NO LIVE SEARCH</span><h3>Research brief ready</h3></div>
+        <p><b>Offer:</b> {brief.offer}</p><p><b>Intended customer:</b> {brief.customer}</p><p><b>Geography:</b> {brief.geography}</p>
+        <p className="software-demo-note">No live research was run and no prospects have been invented. A live research provider, account controls and source-permission checks are still required.</p>
+      </div>}
+    </section>
     <section className="software-demo" aria-labelledby="software-demo-title">
       <div className="software-demo-heading"><div><span className="software-hub-kicker">PRODUCT WALKTHROUGH</span><h2 id="software-demo-title">What a First Customer Finder report could look like</h2><p>Illustrative layout only. These fictional examples are not real companies, researched prospects or endorsements.</p></div><span className="software-demo-tag">SAMPLE DATA</span></div>
       <div className="software-demo-table" role="table" aria-label="Illustrative prospect report">
