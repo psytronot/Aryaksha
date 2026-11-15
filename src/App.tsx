@@ -269,6 +269,7 @@ function App() {
 }
 
 function parseBusinessCsv(raw: string) {
+  raw = raw.replace(/^\\uFEFF/, '');
   const rows: string[][] = [];
   let row: string[] = [];
   let field = '';
