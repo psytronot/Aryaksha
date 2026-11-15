@@ -25,7 +25,7 @@
 | 17 | Trim API responses | Partial | API responses are structured and API cache is disabled. The Orekit proxy now validates required response fields and emits an explicit allowlist; add a regression test against a mock upstream payload containing extra fields before treating this control as fully verified. |
 | 18 | Add security headers | Implemented / partial | Adds nosniff, frame denial, referrer and permissions policy, cross-origin isolation headers, and conditional HSTS. CSP remains Report-Only until all production origins are verified; do not enforce blindly. |
 | 19 | Force HTTPS | Partial / hosting-dependent | The deployment runbook relies on the Render TLS edge. HSTS is emitted for HTTPS requests; verify HTTP-to-HTTPS redirects and custom-domain TLS in the live host configuration. |
-| 20 | Scan dependencies | Partial | Dependabot, CodeQL and CI audit reporting exist. CI currently reports dependency audit findings non-blockingly; production dependency high/critical findings should block release after the current baseline is reviewed. |
+| 20 | Scan dependencies | Partial | Dependabot and CodeQL are enabled; CI reports all dependency audit findings and now blocks on high/critical production dependency vulnerabilities. The audit itself must complete successfully on this branch and findings must be triaged. |
 
 ## Code changes in this branch
 
