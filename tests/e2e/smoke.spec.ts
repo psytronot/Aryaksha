@@ -7,6 +7,7 @@ test('desktop app shell renders and mission analysis navigation works', async ({
   const response = await page.goto('/');
   expect(response?.ok()).toBeTruthy();
   await expect(page.getByRole('heading', { name: /Explore Space/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
 
   await page.getByRole('button', { name: 'Mission Analysis', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Orbital Mission Analysis' })).toBeVisible();
@@ -16,6 +17,7 @@ test('desktop app shell renders and mission analysis navigation works', async ({
 test('mobile navigation opens, changes section and closes after selection', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
 
   const openButton = page.getByRole('button', { name: 'Open navigation' });
   await expect(openButton).toHaveAttribute('aria-expanded', 'false');
@@ -76,6 +78,7 @@ test('mission analysis submits numeric inputs and renders the engine result', as
   });
 
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await page.getByRole('button', { name: 'Mission Analysis', exact: true }).click();
   await page.getByRole('button', { name: 'Run analysis', exact: true }).click();
 
@@ -94,6 +97,7 @@ test('mission analysis displays a structured service error and remains usable', 
   }));
 
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await page.getByRole('button', { name: 'Mission Analysis', exact: true }).click();
   await page.getByRole('button', { name: 'Run analysis', exact: true }).click();
 
@@ -105,6 +109,7 @@ test('mission analysis displays a structured service error and remains usable', 
 test('mobile mission analysis rejects an Earth-intersecting orbit without showing metrics', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
 
   await page.getByRole('button', { name: 'Open navigation' }).click();
   const mobileNavigation = page.getByRole('navigation', { name: 'Mobile navigation' });
@@ -122,6 +127,7 @@ test('mobile mission analysis rejects an Earth-intersecting orbit without showin
 test('invalid engineering orbit inputs produce a visible FAIL in Verification', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await page.getByRole('button', { name: 'Orbit & Maneuver', exact: true }).click();
 
   await page.getByLabel('INCLINATION', { exact: true }).fill('181');
@@ -136,6 +142,7 @@ test('seasonal ground-track overlay matches equinox and solstice calibration', a
   test.setTimeout(60_000);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
 
   const epoch = page.getByLabel('Solar overlay epoch');
