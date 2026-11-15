@@ -55,7 +55,7 @@ The endpoint accepts two independent inertial Cartesian states in EME2000 at a s
 
 Constraints:
 - Each position and velocity vector must contain exactly three finite components.
-- Both initial position vectors must be above the WGS-84 equatorial Earth radius.
+- Both initial position vectors must be above the WGS-84 equatorial Earth radius, and each osculating two-body periapsis must remain above that radius.
 - The target state must define a non-degenerate orbital plane.
 - `elapsedSeconds` must be between 0 and 604,800 seconds.
 - `epochTai`, when supplied, must be a valid ISO-8601 date-time interpreted in TAI.
@@ -71,7 +71,7 @@ The Orekit endpoint uses Dormand–Prince 8(5,3), a 1 m position tolerance and a
 
 ## Browser mission-state import
 
-The RPOD workspace accepts a JSON file using the same EME2000 Cartesian-state contract. The example at `docs/examples/rpod-mission-state.example.json` can be used as a template. The importer requires exactly `epochTai`, `frame`, `target` and `chaser`; each state must contain exactly three finite position and velocity components. The target must define a non-degenerate orbital plane and both initial positions must be above the WGS-84 equatorial radius. Only `frame: "EME2000"` is accepted. Other frames are rejected rather than silently relabelled or incorrectly transformed.
+The RPOD workspace accepts a JSON file using the same EME2000 Cartesian-state contract. The example at `docs/examples/rpod-mission-state.example.json` can be used as a template. The importer requires exactly `epochTai`, `frame`, `target` and `chaser`; each state must contain exactly three finite position and velocity components. The target and chaser must each define a non-degenerate orbital plane; both current radii and osculating two-body periapses must remain above the WGS-84 equatorial radius. Only `frame: "EME2000"` is accepted. Other frames are rejected rather than silently relabelled or incorrectly transformed.
 
 ## Successful response semantics
 
