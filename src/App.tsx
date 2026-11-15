@@ -347,6 +347,17 @@ function SoftwareProductsView() {
     link.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
+  const downloadCsvTemplate = () => {
+    const url = URL.createObjectURL(new Blob(['Company,Website,City\\r\\n'], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'business-list-template.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
 
   const prepareBrief = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -410,6 +421,7 @@ function SoftwareProductsView() {
       <div className="finder-csv-controls">
         <label htmlFor="business-csv-upload">Upload a business CSV</label>
         <input id="business-csv-upload" aria-label="Upload a business CSV" aria-describedby="business-csv-help" type="file" accept=".csv,text/csv" onChange={handleCsvUpload} />
+        <button className="finder-template-button" type="button" onClick={downloadCsvTemplate}>Download blank CSV template <Download size={14}/></button>
         <small id="business-csv-help">Maximum file size: 2 MB · 10,000 data rows · 50 columns · 4,096 characters per cell. Expected header: Company, Business Name or Name. Website and City are optional.</small>
       </div>
       {csvError && <p className="finder-intake-error" role="alert">{csvError}</p>}
