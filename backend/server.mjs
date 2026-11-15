@@ -37,7 +37,12 @@ async function readLimitedText(response, maxBytes) {
 
 app.disable('x-powered-by');
 // Render terminates TLS and forwards requests through one trusted proxy hop.
-app.set('trust proxy', 1);
+// Override only when the deployment topology has been independently verified.
+const trustedProxyHops = Number(process.env.TRUST_PROXY_HOPS ?? 1);
+if (!Number.isInteger(trustedProxyHops) || trustedProxyHops < 0 || trustedProxyHops > 5) {
+  throw new Error('TRUST_PROXY_HOPS must be an integer between 0 and 5.');
+}
+app.set('trust proxy', trustedProxyHops);
 app.use(securityHeaders);
 app.use(express.json({ limit: '64kb', strict: false }));
 // API responses contain live or computed data and should not be cached by shared proxies.
