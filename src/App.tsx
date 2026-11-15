@@ -308,8 +308,13 @@ function parseBusinessCsv(raw: string) {
   row.push(field);
   if (row.some(value => value.trim())) rows.push(row);
   if (rows.length < 2) throw new Error('Add a header row and at least one organisation.');
+  if (rows.length > 10_001) throw new Error('A CSV may contain no more than 10,000 data rows.');
 
   const headers = rows[0].map(value => value.trim().toLowerCase());
+  if (headers.length > 50) throw new Error('A CSV may contain no more than 50 columns.');
+  if (rows.some(values => values.some(value => value.length > 4096))) {
+    throw new Error('A CSV cell cannot exceed 4,096 characters.');
+  }
   if (new Set(headers).size !== headers.length) throw new Error('The CSV contains duplicate column names.');
   if (rows.slice(1).some(values => values.length !== headers.length)) {
     throw new Error('Every CSV row must have the same number of columns as the header.');
