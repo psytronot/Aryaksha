@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const styles = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
 const textureGuide = readFileSync(new URL('../docs/design/BACKGROUND-TEXTURE-SYSTEM.md', import.meta.url), 'utf8');
+const geoSkill = readFileSync(new URL('../.agents/skills/geo-seo/SKILL.md', import.meta.url), 'utf8');
+const geoChecklist = readFileSync(new URL('../.agents/skills/geo-seo/references/checklist.md', import.meta.url), 'utf8');
 const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
 const notFound = readFileSync(new URL('../public/404.html', import.meta.url), 'utf8');
@@ -48,6 +50,13 @@ describe('website quality checklist', () => {
     expect(styles).toContain('.texture-contour');
     expect(textureGuide).toContain('22 directions');
     expect(textureGuide).toContain('Never apply all 22 effects to one page');
+  });
+
+  it('ships GEO guidance with deployment and scientific-accuracy guardrails', () => {
+    expect(geoSkill).toContain('not a flight-critical or certified system');
+    expect(geoSkill).toContain('llms.txt');
+    expect(geoSkill).toContain('never promise rankings');
+    expect(geoChecklist).toContain('Structured data is valid and matches visible facts');
   });
 
 });
