@@ -80,3 +80,34 @@ A completed Aryaksha CI run on merge commit `659bfa816928b0bbd11a3ac5db8d730ca23
 - Fresh Aryaksha CI, CodeQL and AppDeploy acceptance workflows are queued for corrected branch head `7c17bb856850693d3707fc2470338e0ad4b6bf41`. The fix is not yet verified by completed CI, so do not mark the test suite green.
 
 The failure was fixed in code, not hidden by relaxing assertions. Next verification must confirm the full Vitest suite passes, then the dependent browser smoke job runs.
+
+
+## Current verification checkpoint — 2026-11-15 13:02 UTC
+
+Current feature branch head: `25bd233d814aeac12bba980146df335fe3f76ad1`.
+
+- Aryaksha CI run [43715667245](https://github.com/psytronot/Aryaksha/actions/runs/43715667245): Web build, TypeScript, unit tests and production Vite build passed; Orekit Maven build/tests passed. Browser smoke has installed Chromium and built the app; `npm run test:e2e` is still in progress. The live Orekit integration job is intentionally skipped for this pull-request event.
+- CodeQL run [43715667208](https://github.com/psytronot/Aryaksha/actions/runs/43715667208): passed.
+- AppDeploy acceptance contract [43715667238](https://github.com/psytronot/Aryaksha/actions/runs/43715667238): passed.
+- Browser job log retrieval currently returns BlobNotFound while the job is running; no test outcome is inferred from that.
+- PR #124 remains open/draft/unmerged. GitHub currently reports it mergeable, but this is not a release approval.
+- The CSV parser/serializer, intake validation, report export, and mobile software hub have implementation and automated test coverage in source. They are not considered release-verified until the current E2E run completes.
+- First Customer Finder live research remains blocked on approved provider terms, authentication, tenant isolation, retention/deletion controls and legal review. The Tavily approval request remains a draft and has not been sent. Google Maps scraping remains disabled pending legal approval.
+- GENSER is tracked separately. Its private-repository hosted-runner allocation diagnostic fails before step 1 on both `ubuntu-slim` and `ubuntu-24.04`; account billing/budget and private-repository Actions eligibility require the account owner's review.
+
+## Next ten execution tasks
+
+| # | Task | Current disposition |
+|---|---|---|
+| 1 | Reconcile exact branch heads and PR states | Complete; both PRs open and unmerged. |
+| 2 | Diagnose GENSER Actions runner allocation | Complete technically; account-owner billing/policy gate remains. |
+| 3 | Run GENSER minimal runner smoke test | Complete; runner assignment still fails before any step. |
+| 4 | Preserve GENSER release safeguards | Complete; no production, DNS, indexing or deployment changes. |
+| 5 | Verify Aryaksha web typecheck, unit tests and build | Passed on current recorded CI head. |
+| 6 | Verify Aryaksha Orekit service tests | Passed on current recorded CI head. |
+| 7 | Verify Aryaksha CodeQL and AppDeploy acceptance | Both passed on current recorded CI head. |
+| 8 | Complete Aryaksha Playwright browser smoke | In progress; do not mark passed until job concludes. |
+| 9 | Inspect browser evidence and resolve any failures | Pending task 8 completion and artifact availability. |
+| 10 | Update PR evidence and decide release readiness | Documentation updated; merge/deploy still withheld pending E2E and owner authorization. |
+
+No local checkout is available in this execution environment; repository changes are made through GitHub's file API and are not represented as locally tested. Do not claim unrun tests or a deployed pilot.
