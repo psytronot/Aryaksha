@@ -31,6 +31,13 @@ test('RPOD workspace solves HCW and cross-checks relative propagation with Oreki
         target: { positionKm: [6928, 0, 0], velocityKmS: [0, 7.5, 0] },
         chaser: { positionKm: [6928.1, 0, 0], velocityKmS: [0, 7.5, 0] },
         relativeLvlh: { positionKm: [0.1, -0.2, 0.05], velocityKmS: [0.0001, 0.0002, -0.00005] },
+        history: Array.from({ length: 21 }, (_, index) => ({
+          elapsedSeconds: index * 90,
+          relativeLvlh: {
+            positionKm: [0.1 + index * 0.00001, -0.2, 0.05],
+            velocityKmS: [0.0001, 0.0002 + index * 0.0000001, -0.00005]
+          }
+        })),
         assumptions: ['Newtonian central gravity only'],
         comparison: { engineAdapter: 'orekit-rpod-http', status: 'connected' }
       })
@@ -45,12 +52,17 @@ test('RPOD workspace solves HCW and cross-checks relative propagation with Oreki
   await page.getByRole('button', { name: 'Cross-check initial propagation (no burns) against Orekit', exact: true }).click();
 
   await expect(page.getByText('Orekit propagated LVLH position')).toBeVisible();
+  await expect(page.getByText('Orekit relative-state history')).toBeVisible();
+  await expect(page.getByText('21 samples')).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Orekit versus HCW position residual time series' })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Orekit versus HCW velocity residual time series' })).toBeVisible();
   await expect(page.getByText('Orekit epoch (TAI)')).toBeVisible();
   const sent = requestBody as {
     target: { positionKm: number[]; velocityKmS: number[] };
     chaser: { positionKm: number[]; velocityKmS: number[] };
     elapsedSeconds: number;
     epochTai: string;
+    historySamples: number;
   };
   expect(sent.target.positionKm).toEqual([6928.137, 0, 0]);
   expect(sent.target.velocityKmS[1]).toBeCloseTo(7.585088535, 8);
@@ -59,6 +71,7 @@ test('RPOD workspace solves HCW and cross-checks relative propagation with Oreki
   expect(sent.chaser.velocityKmS[1]).toBeCloseTo(7.585398018, 8);
   expect(sent.elapsedSeconds).toBe(1800);
   expect(sent.epochTai).toBe('2000-01-01T12:00:00');
+  expect(sent.historySamples).toBe(21);
 });
 
 test('RPOD imports EME2000 mission states and forwards their TAI epoch', async ({ page }) => {
