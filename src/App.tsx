@@ -293,6 +293,16 @@ function SoftwareProductsView() {
         <a className="software-hub-link" href="https://github.com/Kappaemme-git/codex-first-customer-finder-skill" target="_blank" rel="noreferrer">Review upstream project <ArrowRight size={14}/></a>
       </article>
     </div>
+    <section className="software-demo" aria-labelledby="software-demo-title">
+      <div className="software-demo-heading"><div><span className="software-hub-kicker">PRODUCT WALKTHROUGH</span><h2 id="software-demo-title">What a First Customer Finder report could look like</h2><p>Illustrative layout only. These fictional examples are not real companies, researched prospects or endorsements.</p></div><span className="software-demo-tag">SAMPLE DATA</span></div>
+      <div className="software-demo-table" role="table" aria-label="Illustrative prospect report">
+        <div className="software-demo-row software-demo-header" role="row"><span role="columnheader">FICTIONAL ORGANISATION</span><span role="columnheader">RESEARCH SIGNAL</span><span role="columnheader">PRIORITY</span></div>
+        <div className="software-demo-row" role="row"><b>Northstar Robotics (fictional)</b><span>Public pilot-program announcement</span><strong>High</strong></div>
+        <div className="software-demo-row" role="row"><b>Bluepeak Learning (fictional)</b><span>Published STEM-lab expansion plan</span><strong>Medium</strong></div>
+        <div className="software-demo-row" role="row"><b>Orbit Grove Systems (fictional)</b><span>General sector fit; no direct demand evidence</span><strong>Low</strong></div>
+      </div>
+      <p className="software-demo-note">A real report will show source links, checked dates, evidence quality, uncertainty and a human-review step. A score is a research priority—not a promise of conversion.</p>
+    </section>
     <div className="software-hub-bottom">
       <div><span className="software-hub-kicker">WHO CAN USE IT?</span><b>Schools · Colleges · Students · Individuals · Startups · Small businesses</b><p>We plan guided demonstrations, simple tutorials and institution-friendly onboarding.</p></div>
       <div><span className="software-hub-kicker">OUR RELEASE PROMISE</span><b>Useful, transparent and responsible access</b><p>Each tool will show its prerequisites, data handling, limitations and current availability before a user starts.</p></div>
