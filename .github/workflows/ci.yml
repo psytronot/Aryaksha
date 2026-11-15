@@ -98,6 +98,51 @@ jobs:
           cache: maven
       - run: mvn -B -f orekit-service/pom.xml test
 
+  rpod-local-integration-smoke:
+    name: RPOD local Orekit integration smoke
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [web-build-and-tests, orekit-service]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - run: npm ci
+      - name: Start local Orekit service
+        shell: bash
+        run: |
+          SERVER_PORT=8081 mvn -B -f orekit-service/pom.xml spring-boot:run > /tmp/orekit-service.log 2>&1 &
+          echo $! > /tmp/orekit-service.pid
+          for attempt in $(seq 1 24); do
+            if curl --silent --show-error --fail --max-time 5 http://127.0.0.1:8081/api/v1/health -o /tmp/orekit-health.json; then
+              cat /tmp/orekit-health.json
+              exit 0
+            fi
+            echo "Waiting for local Orekit service (attempt $attempt/24)"
+            sleep 5
+          done
+          cat /tmp/orekit-service.log
+          exit 1
+      - name: Exercise the real Express proxy and Orekit RPOD endpoint
+        env:
+          OREKIT_SERVICE_URL: http://127.0.0.1:8081
+        run: node tests/rpod-integration-smoke.mjs
+      - name: Upload local Orekit service log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpod-local-orekit-integration-log-${{ github.run_id }}
+          path: /tmp/orekit-service.log
+          if-no-files-found: ignore
+          retention-days: 7
+
   live-integration-smoke:
     name: Live Orekit integration smoke tests
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
