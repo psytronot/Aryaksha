@@ -155,3 +155,31 @@ html,body{min-width:320px;overflow-x:clip}
 html.aryaksha-app-active pwa-install {
   pointer-events: none !important;
 }
+
+/* Independent Arakshya software products hub */
+.software-hub-page{padding-bottom:34px}
+.software-hub-intro{display:grid;grid-template-columns:1.35fr .65fr;gap:14px;margin:18px 0 16px;padding:18px;border:1px solid rgba(81,221,255,.2);border-radius:13px;background:linear-gradient(120deg,rgba(81,221,255,.075),rgba(66,223,130,.035))}
+.software-hub-kicker,.software-hub-payment>span{display:block;color:var(--cyan);font:8px ui-monospace,monospace;letter-spacing:1px;margin-bottom:9px}
+.software-hub-intro strong{display:block;color:#fff;font-size:17px;letter-spacing:-.3px}
+.software-hub-intro p,.software-hub-bottom p{color:var(--muted);font-size:10px;line-height:1.7;margin:8px 0 0}
+.software-hub-payment{border-left:1px solid var(--line);padding-left:18px;display:flex;flex-direction:column;justify-content:center;gap:6px}
+.software-hub-payment b{font:700 13px ui-monospace,monospace;color:#fff}
+.software-hub-payment small{color:var(--muted);font-size:9px;line-height:1.6}
+.software-hub-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.software-hub-card{min-width:0;border:1px solid var(--line);border-radius:14px;padding:20px;background:linear-gradient(145deg,rgba(14,21,29,.96),rgba(8,12,17,.96));box-shadow:0 18px 50px rgba(0,0,0,.16)}
+.software-hub-card-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:20px}
+.software-hub-icon{width:42px;height:42px;border:1px solid rgba(81,221,255,.24);border-radius:11px;display:grid;place-items:center;color:var(--cyan);background:rgba(81,221,255,.06)}
+.software-hub-status{border:1px solid var(--line);border-radius:999px;padding:6px 9px;font:7px ui-monospace,monospace;letter-spacing:.6px;color:var(--muted)}
+.software-hub-status.review{border-color:rgba(255,191,90,.3);color:var(--amber);background:rgba(255,191,90,.055)}
+.software-hub-status.pilot{border-color:rgba(81,221,255,.28);color:var(--cyan);background:rgba(81,221,255,.05)}
+.software-hub-eyebrow{color:var(--cyan);font:8px ui-monospace,monospace;letter-spacing:.8px;margin:0 0 8px}
+.software-hub-card h2{font-size:23px;letter-spacing:-.8px;margin:0 0 10px;color:#fff}
+.software-hub-card>p:not(.software-hub-eyebrow){font-size:10px;line-height:1.7;color:var(--muted);min-height:68px;margin:0}
+.software-hub-card ul{padding-left:17px;margin:15px 0 19px;color:var(--muted);font-size:9px;line-height:2}
+.software-hub-link{display:inline-flex;align-items:center;gap:7px;color:var(--cyan);font:8px ui-monospace,monospace;text-decoration:none;border-bottom:1px solid rgba(81,221,255,.3);padding-bottom:5px}
+.software-hub-link:hover{color:#fff;border-color:#fff}
+.software-hub-bottom{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.software-hub-bottom>div{border:1px solid var(--line);border-radius:12px;padding:16px;background:rgba(255,255,255,.02)}
+.software-hub-bottom b{display:block;color:#fff;font-size:11px;line-height:1.5}
+.software-hub-disclaimer{margin:15px 0 0;color:rgba(232,242,248,.43);font-size:8px;line-height:1.7}
+@media(max-width:760px){.software-hub-intro,.software-hub-grid,.software-hub-bottom{grid-template-columns:1fr}.software-hub-payment{border-left:0;border-top:1px solid var(--line);padding:14px 0 0}.software-hub-card>p:not(.software-hub-eyebrow){min-height:0}.software-hub-card h2{font-size:20px}}
