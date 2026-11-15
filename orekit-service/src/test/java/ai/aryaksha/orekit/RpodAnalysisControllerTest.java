@@ -69,5 +69,9 @@ class RpodAnalysisControllerTest {
             new double[] {7000, 0}, new double[] {0, 7.5, 0});
         assertThrows(IllegalArgumentException.class, () -> controller.relativeState(
             new RpodAnalysisController.RpodRequest(malformed, state, 0)));
+        var insideEarth = new RpodAnalysisController.CartesianState(
+            new double[] {6378, 0, 0}, new double[] {0, 7.9, 0});
+        assertThrows(IllegalArgumentException.class, () -> controller.relativeState(
+            new RpodAnalysisController.RpodRequest(insideEarth, state, 0)));
     }
 }
