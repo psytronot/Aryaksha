@@ -28,8 +28,7 @@ Example:
   "altitudeKm": 550,
   "inclinationDeg": 97.6,
   "eccentricity": 0.001,
-  "elapsedSeconds": 600,
-  "epochTai": "2026-11-15T12:00:00"
+  "elapsedSeconds": 600
 }
 ```
 
@@ -49,7 +48,8 @@ The endpoint accepts two independent inertial Cartesian states in EME2000 at a s
     "positionKm": [6928.237, 0, 0],
     "velocityKmS": [0, 7.585, 0]
   },
-  "elapsedSeconds": 600
+  "elapsedSeconds": 600,
+  "epochTai": "2026-11-15T12:00:00"
 }
 ```
 
