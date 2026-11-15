@@ -20,6 +20,8 @@ test('software products hub is reachable and presents honest product availabilit
   await expect(page.getByRole('heading', { name: 'What a First Customer Finder report could look like' })).toBeVisible();
   await expect(page.getByText('Illustrative layout only. These fictional examples are not real companies, researched prospects or endorsements.')).toBeVisible();
   await expect(page.getByText('Northstar Robotics (fictional)')).toBeVisible();
+  await expect(page.getByText('ORIGINAL SOURCE')).toBeVisible();
+  await expect(page.getByText('EVIDENCE QUALITY')).toBeVisible();
   await expect(pageErrors).toEqual([]);
 });
 
