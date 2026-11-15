@@ -1,7 +1,7 @@
 import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import { AlertTriangle, Orbit, Play, Satellite } from 'lucide-react';
 import { EARTH_RADIUS, MU } from './orbit';
-import { propagateCw, sampleCwTrajectory, solveTwoImpulseRendezvous, type RelativeState } from './rpod';
+import { propagateCw, sampleCwTrajectory, solveTwoImpulseRendezvous, screenCwKeepOut, type RelativeState } from './rpod';
 import { parseRpodMissionState, type RpodMissionState } from './rpodMissionState';
 
 type ScenarioInput = {
@@ -14,6 +14,7 @@ type ScenarioInput = {
   vyKmS: string;
   vzKmS: string;
   rendezvousMinutes: string;
+  keepOutRadiusKm: string;
 };
 
 const initialScenario: ScenarioInput = {
@@ -26,6 +27,7 @@ const initialScenario: ScenarioInput = {
   vyKmS: '0.0002',
   vzKmS: '-0.00005',
   rendezvousMinutes: '30',
+  keepOutRadiusKm: '0.05',
 };
 
 const numberValue = (value: string, label: string): number => {
@@ -48,6 +50,7 @@ export default function RpodView() {
     totalDeltaVMagnitudeMps: number;
     terminal: RelativeState;
     trajectory: ReturnType<typeof sampleCwTrajectory>;
+    keepOutScreen: ReturnType<typeof screenCwKeepOut>;
   } | null>(null);
   const [error, setError] = useState('');
   const [importedMissionState, setImportedMissionState] = useState<RpodMissionState | null>(null);
@@ -240,6 +243,10 @@ export default function RpodView() {
         rendezvousTimeSeconds,
         40,
       );
+      const keepOutScreen = screenCwKeepOut(
+        trajectory,
+        numberValue(input.keepOutRadiusKm, 'Keep-out radius'),
+      );
 
       setResult({
         meanMotionRadS,
@@ -251,6 +258,7 @@ export default function RpodView() {
         totalDeltaVMagnitudeMps: solution.totalDeltaVMagnitudeMps,
         terminal,
         trajectory,
+        keepOutScreen,
       });
       setError('');
     } catch (cause) {
@@ -280,6 +288,7 @@ export default function RpodView() {
             <div className="field-grid">
               <div className="field"><span><label htmlFor="rpod-chief-altitude"><span className="field-label">CHIEF ORBIT ALTITUDE</span></label><em>km</em></span><input id="rpod-chief-altitude" aria-label="Chief orbit altitude" type="number" min="1" step="any" required value={input.chiefAltitudeKm} onChange={event => update('chiefAltitudeKm', event.target.value)} /></div>
               <div className="field"><span><label htmlFor="rpod-rendezvous-time"><span className="field-label">RENDEZVOUS TIME</span></label><em>min</em></span><input id="rpod-rendezvous-time" aria-label="Rendezvous time" type="number" min="0.001" step="any" required value={input.rendezvousMinutes} onChange={event => update('rendezvousMinutes', event.target.value)} /></div>
+              <div className="field"><span><label htmlFor="rpod-keepout-radius"><span className="field-label">PRE-TERMINAL KEEP-OUT RADIUS</span></label><em>km</em></span><input id="rpod-keepout-radius" aria-label="Pre-terminal keep-out radius" type="number" min="0.000001" step="any" required value={input.keepOutRadiusKm} onChange={event => update('keepOutRadiusKm', event.target.value)} /></div>
               <div className="field"><span><label htmlFor="rpod-x"><span className="field-label">RADIAL SEPARATION</span></label><em>km</em></span><input id="rpod-x" aria-label="Radial separation" type="number" step="any" required value={input.xKm} onChange={event => update('xKm', event.target.value)} /></div>
               <div className="field"><span><label htmlFor="rpod-y"><span className="field-label">ALONG-TRACK SEPARATION</span></label><em>km</em></span><input id="rpod-y" aria-label="Along-track separation" type="number" step="any" required value={input.yKm} onChange={event => update('yKm', event.target.value)} /></div>
               <div className="field"><span><label htmlFor="rpod-z"><span className="field-label">CROSS-TRACK SEPARATION</span></label><em>km</em></span><input id="rpod-z" aria-label="Cross-track separation" type="number" step="any" required value={input.zKm} onChange={event => update('zKm', event.target.value)} /></div>
@@ -323,6 +332,7 @@ export default function RpodView() {
                 </svg>
                 <div className="stat-row"><span className="result-label">Green: post-departure state · amber: target rendezvous point</span><b>km</b></div>
               </div>
+              <div className="callout"><AlertTriangle size={15} /><span>{result.keepOutScreen.enteredKeepOut ? 'PRE-TERMINAL KEEP-OUT BREACH: ' : 'Pre-terminal keep-out screen clear: '}minimum sampled range {fixed(result.keepOutScreen.minimumPreTerminalRangeKm, 5)} km at T+{fixed(result.keepOutScreen.closestElapsedSeconds, 1)} s against {fixed(result.keepOutScreen.keepOutRadiusKm, 5)} km radius. Terminal coincidence is excluded. This is sampled geometry, not continuous-time or collision-probability certification.</span></div>
               <div className="result-list">
                 <div className="stat-row"><span className="result-label">Maneuver event · departure</span><b>T+00:00 · {fixed(result.departureDeltaVMagnitudeMps, 4)} m/s</b></div>
                 <div className="stat-row"><span className="result-label">Maneuver event · terminal velocity match</span><b>T+{fixed(result.rendezvousTimeSeconds, 1)} s · {fixed(result.arrivalDeltaVMagnitudeMps, 4)} m/s</b></div>
