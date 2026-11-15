@@ -284,8 +284,8 @@ function parseBusinessCsv(raw: string) {
     } else if (char === ',' && !quoted) {
       row.push(field);
       field = '';
-    } else if ((char === '\\n' || char === '\\r') && !quoted) {
-      if (char === '\\r' && raw[i + 1] === '\\n') i += 1;
+    } else if ((char === '\n' || char === '\r') && !quoted) {
+      if (char === '\r' && raw[i + 1] === '\n') i += 1;
       row.push(field);
       if (row.some(value => value.trim())) rows.push(row);
       row = [];
@@ -313,7 +313,7 @@ function parseBusinessCsv(raw: string) {
     if (!company) continue;
     const website = websiteIndex >= 0 ? (values[websiteIndex] || '').trim() : '';
     const city = cityIndex >= 0 ? (values[cityIndex] || '').trim() : '';
-    const key = company.toLocaleLowerCase().replace(/\\s+/g, ' ') + '|' + website.toLocaleLowerCase().replace(/\\/$/, '');
+    const key = company.toLocaleLowerCase().replace(/\s+/g, ' ') + '|' + website.toLocaleLowerCase().replace(/\/$/, '');
     if (seen.has(key)) {
       duplicates += 1;
       continue;
