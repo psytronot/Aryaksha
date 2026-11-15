@@ -56,9 +56,11 @@ export function createRateLimiter({
         if (currentTime - entry.windowStartedAt >= windowMs) clients.delete(clientKey);
         if (clients.size < maxClients) break;
       }
+      // Never evict an active client's budget: attackers could churn source IPs
+      // to erase another client's rate-limit state.
       if (clients.size >= maxClients) {
-        const oldestKey = clients.keys().next().value;
-        if (oldestKey !== undefined) clients.delete(oldestKey);
+        res.setHeader('Retry-After', String(Math.max(1, Math.ceil(windowMs / 1000))));
+        return res.status(503).json({ error: 'Rate limiter is at capacity. Retry after the current window.' });
       }
     }
 
