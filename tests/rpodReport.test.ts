@@ -47,6 +47,25 @@ describe('RPOD engineering report', () => {
     expect(serialized.endsWith('\n')).toBe(true);
   });
 
+  it('preserves imported EME2000 states without mislabelling the manual LVLH design inputs', () => {
+    const imported = {
+      ...report,
+      mission: {
+        ...report.mission,
+        stateSource: 'manual-lvlh' as const,
+        importedFrame: 'EME2000' as const,
+        importedMissionState: {
+          target: { positionKm: [7000, 0, 0] as [number, number, number], velocityKmS: [0, 7.5, 0] as [number, number, number] },
+          chaser: { positionKm: [7000.1, -0.2, 0.05] as [number, number, number], velocityKmS: [0.0001, 7.5001, 0] as [number, number, number] },
+        },
+      },
+    };
+    const parsed = JSON.parse(serializeRpodEngineeringReport(imported));
+    expect(parsed.mission.stateSource).toBe('manual-lvlh');
+    expect(parsed.mission.importedFrame).toBe('EME2000');
+    expect(parsed.mission.importedMissionState.target.positionKm).toEqual([7000, 0, 0]);
+  });
+
   it('rejects missing provenance, model limitations, or trajectory history', () => {
     expect(() => serializeRpodEngineeringReport({ ...report, mission: { ...report.mission, epochTai: '' } })).toThrow(/provenance/);
     expect(() => serializeRpodEngineeringReport({ ...report, engineeringLimitations: [] })).toThrow(/provenance/);
