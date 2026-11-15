@@ -1,0 +1,43 @@
+# Aryaksha repository working instructions
+
+## Default engineering mode: Ponytail Full
+
+Use the Ponytail engineering method for every change: understand the whole path, then make the smallest complete change. "Smallest" never means removing required validation, scientific correctness, security, accessibility or error handling.
+
+1. **Map before editing.** Read the relevant source, tests, callers, fixtures, schemas, configuration and deployment path. Start with `README.md`, `SECURITY.md`, and the relevant documents in `docs/`. Trace inputs through the frontend, API adapter/host and Orekit service as applicable.
+2. **Choose the smallest complete solution.** Reuse the existing React/TypeScript, Express, Orekit/Spring Boot, schema and test patterns. Prefer existing platform APIs and installed dependencies. Do not add packages, layers, wrappers, configuration or speculative options for a small task.
+3. **Preserve the safety floor.** Keep trust-boundary validation, authentication/authorization, bounded requests and responses, replay protection, useful error handling, data integrity, security headers and accessibility. Never trade them away to reduce code.
+4. **Protect engineering fidelity.** For orbital, attitude, coordinate, time, telemetry or spacecraft calculations, state units, reference frames, epochs, assumptions and model limits. Test known vectors, invariants, boundary/degenerate inputs and failure cases. Do not silently replace a failed authoritative numerical service with a lower-fidelity fallback or describe a simplified model as flight-grade.
+5. **Test risky logic.** Branches, loops, parsers, calculations, security rules, data writes and new scripts need focused tests. Update the matching API/schema/browser tests when contracts or user journeys change.
+6. **Review the connected change.** Inspect the actual diff plus callers, tests, schemas, API contracts, workflows and deployment configuration. Check correctness, security, data loss, races, unbounded work, expected load, performance and unnecessary code. Every finding must include a concrete scenario, evidence, fix and consequence.
+7. **Mark deliberate shortcuts.** Use a code comment in this form: `shortcut: <known limit>, <condition that triggers an upgrade>`. Include a real ceiling and a revisit trigger. A shortcut never excuses missing safety controls or misleading engineering claims.
+8. **Report evidence.** State what changed, exact commands/workflows run and their results, what was not checked, assumptions and remaining risks. Do not equate a passing build with scientific validation, deployment verification or release approval.
+
+## Project-specific boundaries
+
+- Aryaksha is an educational aerospace engineering workstation, not a flight-critical system. Preserve that limitation in user-facing claims and documentation.
+- Keep the GitHub repository, Render services and separate AppDeploy instance distinct. A Git commit or source upload does not prove that every deployment has updated.
+- Read `docs/DEPLOYMENT_RUNBOOK.md`, `docs/ROUTE_INVENTORY.md` and `docs/API_CONTRACT.md` before deployment, route or contract changes.
+- Do not deploy, migrate production services, change hosting/service settings, connect new external data sources, rotate or expose credentials, or alter release configuration without explicit authorization.
+- Never commit secrets, tokens, private keys, production environment files or personal data. Follow `SECURITY.md`; revoke exposed credentials rather than merely deleting them from the latest commit.
+- Keep external data provenance, timestamps, source limits and licensing visible. Do not claim live telemetry, continuous ephemeris, high-fidelity force models or verified spacecraft integrations unless the implementation and evidence actually support those claims.
+
+## Verification commands
+
+Run the narrowest relevant checks first, then the complete required checks for the affected subsystem:
+
+- Frontend/API TypeScript: `npm run typecheck`
+- Unit/API/schema/security tests: `npm test`
+- Production frontend bundle: `npm run build`
+- Browser acceptance: `npm run test:e2e` after installing the pinned Playwright browser where needed
+- Orekit service: `cd orekit-service && mvn test`
+
+For UI changes, verify relevant desktop and mobile viewports, keyboard/touch behavior, reduced motion and WebGL resource lifecycle as applicable. For scientific calculations, automated tests are necessary but independent reference-vector/error-budget review may still be required. Report any unavailable check rather than implying it passed.
+
+## Review output
+
+Prioritize findings as **Must fix**, **Should fix**, and **Nice to have**. Explain what the code does, the concrete failure scenario, the smallest fix and the consequence of skipping it. Avoid style-only findings and speculative warnings. End with a Ship / fix-first verdict and explicit "Not checked" items.
+
+Default intensity is **Full**. Use **Lite** only when the user explicitly asks for a narrow pass. Use **Ultra** when the user asks to challenge the requirement or architecture before implementation.
+
+This file adapts Ponytail's instruction method for repository-aware agents. It does not install Ponytail CLI commands, plugins, lifecycle hooks or benchmark instrumentation. Do not attribute upstream benchmark results to Aryaksha.
