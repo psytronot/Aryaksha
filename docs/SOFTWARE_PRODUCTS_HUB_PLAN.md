@@ -98,8 +98,11 @@ The current Arakshya engineering application is the Aryaksha repository: https:/
 - [ ] Confirm exact upstream scraper ownership/provenance and inspect all source files.
 - [ ] Complete compliance and privacy review.
 - [x] Implement the Software Tools catalogue UI on the isolated branch.
+- [x] Add dedicated desktop and mobile browser acceptance coverage for the catalogue disclosures and navigation.
 - [ ] Implement controlled First Customer Finder execution.
 - [ ] Decide the compliant replacement/architecture for Google Maps data.
 - [ ] Configure and test payment collection.
-- [x] Opened draft pull request #124 for review; CI/build verification remains pending.
+- [x] Opened draft pull request #124 for review.
+- [x] Latest CI web build, TypeScript check, unit tests, Orekit service tests and CodeQL passed.
+- [ ] Resolve or isolate the unrelated Earth 3D browser-test timeout (43 browser tests passed; one existing timeline-toggle test timed out while clicking an already-visible control).
 - [ ] Pilot with schools, colleges, and individual users.
