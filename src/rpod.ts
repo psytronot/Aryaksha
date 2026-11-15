@@ -49,7 +49,7 @@ const subtract = (a: Vector3, b: Vector3): Vector3 => [
   a[2] - b[2],
 ];
 
-const validateVector = (name: string, value: number[]): asserts value is Vector3 => {
+function validateVector(name: string, value: number[]): asserts value is Vector3 {
   if (
     !Array.isArray(value) ||
     value.length !== 3 ||
@@ -57,7 +57,7 @@ const validateVector = (name: string, value: number[]): asserts value is Vector3
   ) {
     throw new Error(`${name} must contain exactly three finite components.`);
   }
-};
+}
 
 const validateState = (state: RelativeState): void => {
   if (!state || typeof state !== 'object') {
