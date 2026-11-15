@@ -576,7 +576,7 @@ export default function RpodView() {
                   <div className="stat-row"><span className="result-label">Orekit relative-state history</span><b>{orekitCheck.history.length} samples</b></div>
                   {orekitCheck.history.some(sample => sample.positionDifferenceM !== null) ? (
                     <>
-                      <p>HCW residual norm by epoch · position (m) and velocity (mm/s)</p>
+                      <p>Signed HCW residual components by epoch · position (m) and velocity (mm/s)</p><div className="stat-row"><span className="result-label">Blue R · Green T · Amber N</span><b>Component traces</b></div>
                       <svg viewBox="0 0 600 190" role="img" aria-label="Orekit versus HCW position residual time series">
                         <line x1="24" y1="160" x2="576" y2="160" stroke="currentColor" opacity="0.25" />
                         {([0, 1, 2] as const).map((axis, series) => {
