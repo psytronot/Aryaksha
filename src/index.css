@@ -203,7 +203,7 @@ html.aryaksha-app-active pwa-install {
 .finder-intake{margin-top:16px;padding:19px;border:1px solid rgba(81,221,255,.2);border-radius:14px;background:rgba(81,221,255,.025)}
 .finder-intake-form{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px;align-items:end}
 .finder-intake-form label{display:flex;flex-direction:column;gap:7px;color:#fff;font-size:10px;font-weight:600}
-.finder-intake-form input,.finder-intake-form textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;background:rgba(0,0,0,.22);color:#fff;padding:10px;font:10px/1.55 inherit;resize:vertical}
+.finder-intake-form input,.finder-intake-form textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;background:rgba(0,0,0,.22);color:#fff;padding:10px;font:inherit;font-size:10px;line-height:1.55;resize:vertical}
 .finder-intake-form input:focus,.finder-intake-form textarea:focus{outline:2px solid rgba(81,221,255,.4);outline-offset:1px}
 .finder-intake-form input::placeholder,.finder-intake-form textarea::placeholder{color:rgba(232,242,248,.35)}
 .finder-intake-form button{grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;gap:8px}
