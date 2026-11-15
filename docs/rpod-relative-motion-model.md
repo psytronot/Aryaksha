@@ -1,76 +1,73 @@
-# RPOD relative-motion model — Phase 01
+# RPOD relative-motion model — Phase 02
 
-## Scope
+## Implemented layers
 
-Phase 01 provides a standalone, deterministic relative-orbit dynamics foundation for later integration with the Orekit service and the mission-analysis UI.
+### Analytical LVLH / HCW layer
 
 Implemented in:
 - `src/rpod.ts`
+- `src/RpodView.tsx`
 - `tests/rpod.test.ts`
 
-## Coordinate convention
-
-The target (chief) spacecraft defines the instantaneous LVLH frame:
+The target (chief) defines the instantaneous LVLH frame:
 - **R**: radial, outward from Earth's centre through the target.
 - **T**: along-track, in the target's direction of motion.
 - **N**: orbit-normal, along the target's specific angular momentum.
 
-The inertial-to-LVLH state conversion projects the chaser-target position difference onto these axes. Relative velocity is expressed in the rotating frame:
+The inertial-to-LVLH velocity transform includes the rotating-frame transport correction:
 
 ```text
 rho_LVLH = C_LVLH_ECI * (r_chaser - r_target)
 v_rel_LVLH = C_LVLH_ECI * ((v_chaser - v_target) - omega_LVLH x (r_chaser - r_target))
 ```
 
-Inputs use km and km/s. The angular velocity is calculated from the target's instantaneous specific angular momentum and radius.
+`propagateCw(state, n, t)` implements closed-form Clohessy–Wiltshire / Hill propagation for a circular chief orbit and constant mean motion. Units are km, km/s, rad/s and seconds.
 
-## Clohessy–Wiltshire / Hill propagation
+The UI includes single-impulse position targeting and a two-impulse terminal velocity-matching calculation. The second impulse is applied at the same instant as position coincidence. It is a mathematical boundary-condition solver, not a safe approach or docking guidance law.
 
-`propagateCw(state, n, t)` implements the closed-form CW equations for a circular chief orbit with constant mean motion `n`. Inputs use km, km/s, rad/s and seconds.
+### Orekit dual-spacecraft layer
 
-Assumptions:
-- Circular reference orbit.
-- Constant chief mean motion.
-- Relative separation is small compared with orbital radius.
-- Linearized relative dynamics.
-- No perturbing forces, finite-burn effects, actuator limits, navigation errors or environmental constraints.
+Implemented in:
+- `orekit-service/src/main/java/ai/aryaksha/orekit/RpodAnalysisController.java`
+- `orekit-service/src/test/java/ai/aryaksha/orekit/RpodAnalysisControllerTest.java`
 
-The model is appropriate for preliminary analysis and education, not operational flight dynamics or flight safety certification.
+`POST /api/v1/rpod/relative-state` accepts target and chaser inertial Cartesian states at J2000 TAI in EME2000. It independently propagates both spacecraft using Orekit 13.1.9 numerical propagation with Dormand–Prince 8(5,3) and Newtonian central gravity, then computes the target-centred rotating LVLH relative state. The response includes both propagated inertial states, the LVLH relative state, frame/epoch metadata and explicit model assumptions.
 
-## Single-impulse position rendezvous
+The endpoint is a comparison foundation. The browser RPOD workspace is not yet wired to this endpoint, and no automated HCW-versus-Orekit error budget or acceptance threshold is yet established.
 
-`solveRendezvousImpulse(state, n, T)` solves the CW position state-transition relation for the post-burn initial velocity that makes the predicted relative position zero at time `T`.
+## Assumptions and validity
 
-It returns:
-- Initial impulse vector in km/s.
-- Post-burn initial LVLH velocity in km/s.
-- Impulse magnitude in m/s.
-- Requested rendezvous time in seconds.
+- Circular chief orbit and constant mean motion for HCW.
+- Relative separation small compared with orbital radius for the linearized CW model.
+- Orekit endpoint currently uses Newtonian central gravity only.
+- No J2, atmospheric drag, solar radiation pressure, third-body forces, finite-burn effects, actuator limits, navigation covariance or environmental constraints.
+- Input EME2000 states are interpreted at J2000 TAI; arbitrary input epochs and frame conversions are not supported by the new endpoint.
 
-**Important limitation:** this solution constrains terminal relative position only. It does not constrain terminal relative velocity, guarantee a safe approach path, optimize a multi-burn sequence, model finite-duration thrust, or check keep-out zones and collision probability. Singular or ill-conditioned transfer matrices are rejected.
-
-## Two-impulse position and velocity matching
-
-`solveTwoImpulseRendezvous(state, n, T)` extends the position-only solution with an idealized instantaneous terminal impulse at the rendezvous epoch. The first impulse is selected to make relative position zero at `T`; the second cancels the residual relative velocity at that same instant. It reports both impulse vectors, their magnitudes, total ideal impulsive delta-v, and pre-/post-arrival-burn relative states.
-
-This does not define a safe approach trajectory: it has no keep-out geometry, approach corridor, collision probability, navigation uncertainty, finite-burn execution, or docking capture constraints. The second burn occurs at the terminal position coincidence, so this is a mathematical two-impulse rendezvous boundary condition, not a flight-ready RPOD sequence.
+These models support preliminary engineering and education, not operational flight dynamics or flight-safety certification.
 
 ## Verification coverage
 
-The unit tests cover:
-- Inertial-to-LVLH conversion, including rotating-frame velocity correction.
-- Zero-state invariance under CW propagation.
-- A closed-form radial-displacement CW reference case.
+Analytical tests cover:
+- Inertial-to-LVLH conversion and rotating-frame velocity correction.
+- Zero-state invariance and closed-form CW reference behaviour.
+- Independent RK4 integration cross-check of the analytical CW propagator.
 - Single-impulse terminal position closure.
-- Invalid mean motion, negative elapsed time and singular rendezvous time rejection.
+- Two-impulse terminal velocity cancellation.
+- Invalid mean motion, negative time and singular transfer-time rejection.
 
-## Next engineering increments
+Orekit controller tests cover:
+- Coincident target/chaser state producing zero LVLH relative state.
+- Correct rotating-frame velocity transport at the initial epoch.
+- Independent propagation of both spacecraft to a requested epoch.
+- Invalid elapsed time and malformed state vectors.
 
-1. Add target/chaser orbit-state adapters to Orekit, with explicit frame and epoch metadata.
-2. Cross-check CW results against two independently propagated Orekit spacecraft in a circular two-body reference case.
-3. Add finite-burn and multi-impulse maneuver sequencing.
-4. Add terminal relative-velocity constraints and maneuver Δv budgeting.
-5. Add keep-out sphere, approach corridor and collision-screening logic.
-6. Add UI scenario configuration, trajectory visualization and machine-generated design reports.
+## Remaining engineering work
 
-Do not describe the Phase 01 implementation as a complete RPOD simulator.
+1. Wire the RPOD workspace to the Orekit relative-state endpoint with explicit frame and epoch inputs.
+2. Establish a circular two-body comparison harness between HCW and Orekit, with documented tolerances and relative-state error plots.
+3. Add target/chaser trajectory histories and time-series visualisation.
+4. Add multi-impulse and finite-burn manoeuvre sequencing with thrust and attitude constraints.
+5. Add keep-out sphere, approach corridor, collision screening and navigation uncertainty.
+6. Add capture/docking terminal constraints and report export with assumptions, units, tolerances and model fidelity.
+
+Do not describe the current implementation as a complete RPOD simulator or flight-ready rendezvous solution.
