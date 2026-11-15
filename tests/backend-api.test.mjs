@@ -62,6 +62,39 @@ afterAll(() => {
   if (apiProcess && apiProcess.exitCode === null) apiProcess.kill('SIGTERM');
 });
 
+describe('RPOD relative-state proxy contract', () => {
+  it('fails explicitly when the Orekit RPOD service is not configured', async () => {
+    const state = { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] };
+    const response = await fetch(`${baseUrl}/api/rpod/relative-state`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ target: state, chaser: state, elapsedSeconds: 0 })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(payload.error).toContain('Orekit service is not configured');
+  });
+
+  it.each([
+    ['missing target', { chaser: { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] }, elapsedSeconds: 0 }],
+    ['short position vector', { target: { positionKm: [7000, 0], velocityKmS: [0, 7.5, 0] }, chaser: { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] }, elapsedSeconds: 0 }],
+    ['non-finite component', { target: { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] }, chaser: { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, '0'] }, elapsedSeconds: 0 }],
+    ['time beyond seven days', { target: { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] }, chaser: { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] }, elapsedSeconds: 604801 }]
+  ])('rejects %s', async (_label, body) => {
+    const response = await fetch(`${baseUrl}/api/rpod/relative-state`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.error).toEqual(expect.any(String));
+    expect(payload.error.length).toBeGreaterThan(0);
+  });
+});
+
 describe('standalone orbit-analysis HTTP contract', () => {
   it('fails explicitly when Orekit is not configured instead of returning a misleading fallback', async () => {
     const response = await fetch(`${baseUrl}/api/mission-analysis/orbit`, {
