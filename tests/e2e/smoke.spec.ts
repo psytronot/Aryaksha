@@ -91,6 +91,10 @@ test('RPOD imports EME2000 mission states and forwards their TAI epoch', async (
         target: { positionKm: [6928.137, 0, 0], velocityKmS: [0, 7.585, 0] },
         chaser: { positionKm: [6928.237, -0.2, 0.05], velocityKmS: [0.0001, 7.585, 0] },
         relativeLvlh: { positionKm: [0.1, -0.2, 0.05], velocityKmS: [0.0001, 0.0002, -0.00005] },
+        history: Array.from({ length: 21 }, (_, index) => ({
+          elapsedSeconds: index * 90,
+          relativeLvlh: { positionKm: [0.1, -0.2, 0.05], velocityKmS: [0.0001, 0.0002, -0.00005] }
+        })),
         assumptions: ['Newtonian central gravity only'],
         comparison: { engineAdapter: 'orekit-rpod-http', status: 'connected' }
       })
@@ -121,6 +125,9 @@ test('RPOD imports EME2000 mission states and forwards their TAI epoch', async (
   await page.getByRole('button', { name: 'Cross-check imported mission states against Orekit', exact: true }).click();
 
   await expect(page.getByText('Orekit propagated LVLH position')).toBeVisible();
+  await expect(page.getByText('Orekit relative-state history')).toBeVisible();
+  await expect(page.getByText(/Imported mission: Orekit relative-state history is available/)).toBeVisible();
+  await expect(page.getByText('Orekit vs HCW position difference')).toHaveCount(0);
   expect(requestBody).toMatchObject({
     target: mission.target,
     chaser: mission.chaser,
