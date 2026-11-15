@@ -7,7 +7,7 @@
 | # | Control from reference | Status | Evidence / required action |
 |---:|---|---|---|
 | 1 | Hide API keys | Partial | No API key is required by the current web backend; `OREKIT_SERVICE_URL` is environment configuration. Keep credentials in host secrets, never Vite `VITE_*` variables. Verify deployment environment and secret scanning before launch. |
-| 2 | Purge Git secrets | Partial | PR-range Gitleaks scan passed with no leaks in 15 commits. A separate all-fetched-refs history scan is now added to CI and is pending its first run. Host-only deployment secrets remain inaccessible to repository CI and require a hosting-dashboard review. |
+| 2 | Purge Git secrets | Partial | PR-range Gitleaks scan passed with no leaks in 15 commits. The all-fetched-refs Gitleaks run scanned 1,168 commits and reported no leaks. Host-only deployment secrets remain inaccessible to repository CI and require a hosting-dashboard review. |
 | 3 | Use public DB key | Not applicable | No database client or database service is present in the inspected application. If one is added, browser clients may use only publishable/anon keys, never service-role credentials. |
 | 4 | Enable row-level security | Not applicable | No database tables exist in this app. Any future Supabase/Postgres tables must have RLS enabled and tested for anon, authenticated, and cross-user access. |
 | 5 | Encrypt sensitive data | Partial | The current app has no user-data persistence. Production TLS is provided by the hosting edge; HSTS is now emitted only for HTTPS requests. Any future stored personal data needs encryption-at-rest and key-management review. |
@@ -39,7 +39,7 @@
 
 ## Release blockers / manual verification
 
-1. Review the new all-fetched-refs Gitleaks CI result and inspect deployment configuration for exposed credentials; rotate any discovered secret. The scan cannot inspect host-only secrets. Repository rulesets currently return an empty list; branch-protection details could not be read through the connected integration, so configure and verify required pull-request reviews, required CI checks, and force-push restrictions in GitHub settings.
+1. Inspect deployment configuration for exposed credentials and rotate any discovered secret. The all-fetched-refs scan passed (1,168 commits, no leaks) but cannot inspect host-only secrets. Repository rulesets currently return an empty list; branch-protection details could not be read through the connected integration, so configure and verify required pull-request reviews, required CI checks, and force-push restrictions in GitHub settings.
 2. Inspect production host settings for HTTPS redirects, TLS, trusted proxy count, environment secrets, and edge/WAF controls.
 3. Review the deployed CSP report-only violations and then create an enforceable CSP policy based on actual required origins.
 4. Add an integration test proving unexpected upstream Orekit fields are not forwarded.
