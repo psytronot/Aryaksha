@@ -106,7 +106,6 @@ test('AppDeploy PWA install host cannot intercept Earth 3D camera controls', asy
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await page.evaluate(() => {
     const host = document.createElement('pwa-install');
     host.id = 'pwa-install';
