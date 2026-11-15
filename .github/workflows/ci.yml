@@ -46,6 +46,8 @@ jobs:
             }
           }
           NODE
+      - name: Block high and critical production dependency vulnerabilities
+        run: npm audit --omit=dev --audit-level=high
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
