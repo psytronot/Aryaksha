@@ -29,6 +29,13 @@ describe('RPOD mission-state import contract', () => {
       .toThrow(/epochTai/);
   });
 
+  it('rejects calendar dates that JavaScript would otherwise normalize', () => {
+    expect(() => parseRpodMissionState(JSON.stringify({
+      ...validMission,
+      epochTai: '2026-02-30T12:00:00',
+    }))).toThrow(/epochTai/);
+  });
+
   it('rejects vectors that do not contain three finite numeric components', () => {
     const malformed = {
       ...validMission,
