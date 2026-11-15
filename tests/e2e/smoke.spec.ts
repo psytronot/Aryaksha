@@ -60,6 +60,57 @@ test('RPOD workspace solves HCW and cross-checks relative propagation with Oreki
   expect(sent.epochTai).toBe('2000-01-01T12:00:00');
 });
 
+test('RPOD imports EME2000 mission states and forwards their TAI epoch', async ({ page }) => {
+  let requestBody: unknown;
+  await page.route('**/api/rpod/relative-state', async route => {
+    requestBody = route.request().postDataJSON();
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        valid: true,
+        engine: 'Orekit',
+        engineVersion: '13.1.9',
+        frame: 'EME2000 / target LVLH',
+        epoch: '2026-11-15T12:30:00.000',
+        elapsedSeconds: 1800,
+        target: { positionKm: [6928.137, 0, 0], velocityKmS: [0, 7.585, 0] },
+        chaser: { positionKm: [6928.237, -0.2, 0.05], velocityKmS: [0.0001, 7.585, 0] },
+        relativeLvlh: { positionKm: [0.1, -0.2, 0.05], velocityKmS: [0.0001, 0.0002, -0.00005] },
+        assumptions: ['Newtonian central gravity only'],
+        comparison: { engineAdapter: 'orekit-rpod-http', status: 'connected' }
+      })
+    });
+  });
+
+  const mission = {
+    epochTai: '2026-11-15T12:00:00',
+    frame: 'EME2000',
+    target: { positionKm: [6928.137, 0, 0], velocityKmS: [0, 7.585, 0] },
+    chaser: { positionKm: [6928.237, -0.2, 0.05], velocityKmS: [0.0001, 7.585, 0] }
+  };
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'RPOD Design', exact: true }).click();
+  await page.locator('#rpod-mission-file').setInputFiles({
+    name: 'mission-state.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(mission))
+  });
+  await expect(page.getByText(/Imported target and chaser Cartesian states in EME2000/)).toBeVisible();
+  await page.getByRole('button', { name: 'Solve two-impulse rendezvous', exact: true }).click();
+  await page.getByRole('button', { name: 'Cross-check imported mission states against Orekit', exact: true }).click();
+
+  await expect(page.getByText('Orekit propagated LVLH position')).toBeVisible();
+  expect(requestBody).toMatchObject({
+    target: mission.target,
+    chaser: mission.chaser,
+    elapsedSeconds: 1800,
+    epochTai: mission.epochTai
+  });
+  await expect(page.getByText('Orekit vs HCW position difference')).toHaveCount(0);
+});
+
 test('mobile navigation opens, changes section and closes after selection', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
