@@ -348,9 +348,43 @@ function SoftwareProductsView() {
     }
   };
 
+  const downloadResearchBrief = () => {
+    if (!brief) return;
+    const markdown = [
+      '# First Customer Finder — Research Brief',
+      '',
+      '## Offer',
+      brief.offer,
+      '',
+      '## Intended customer',
+      brief.customer,
+      '',
+      '## Geography',
+      brief.geography,
+      '',
+      '## Execution status',
+      'This is a user-prepared brief only. No live research was run and no prospects were identified or verified.',
+      '',
+      '## Required before live research',
+      '- Approve an authorized research provider and its commercial-use terms.',
+      '- Confirm source permissions, account controls, retention and deletion policies.',
+      '- Review all evidence and prospect hypotheses before acting.',
+      ''
+    ].join('\\n');
+    const url = URL.createObjectURL(new Blob([markdown], { type: 'text/markdown;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'first-customer-research-brief.md';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const downloadCleanCsv = () => {
     if (!csvResult) return;
-    const quote = (value: string) => '"' + value.replace(/"/g, '""') + '"';
+    const quote = (value: string) => {
+      const safeValue = /^[\\s]*[=+\\-@]/.test(value) ? "'" + value : value;
+      return '"' + safeValue.replace(/"/g, '""') + '"';
+    };
     const lines = [
       ['Company', 'Website', 'City'].map(quote).join(','),
       ...csvResult.records.map(record => [record.company, record.website, record.city].map(quote).join(','))
@@ -417,6 +451,7 @@ function SoftwareProductsView() {
         <div><span className="software-hub-kicker">BRIEF VALIDATED · NO LIVE SEARCH</span><h3>Research brief ready</h3></div>
         <p><b>Offer:</b> {brief.offer}</p><p><b>Intended customer:</b> {brief.customer}</p><p><b>Geography:</b> {brief.geography}</p>
         <p className="software-demo-note">No live research was run and no prospects have been invented. A live research provider, account controls and source-permission checks are still required.</p>
+        <button className="primary" type="button" onClick={downloadResearchBrief}>Download research brief <Download size={15}/></button>
       </div>}
     </section>
     <section className="finder-intake" aria-labelledby="csv-cleanup-title">
