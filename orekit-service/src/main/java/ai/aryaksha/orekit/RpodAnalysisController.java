@@ -145,8 +145,23 @@ public class RpodAnalysisController {
         for (double value : state.velocityKmS()) {
             if (!Double.isFinite(value)) throw new IllegalArgumentException(name + " velocity must be finite.");
         }
-        if (vector(state.positionKm()).getNorm() <= 6378.137) {
+        Vector3D position = vector(state.positionKm()).scalarMultiply(1000.0);
+        Vector3D velocity = vector(state.velocityKmS()).scalarMultiply(1000.0);
+        if (position.getNorm() <= 6_378_137.0) {
             throw new IllegalArgumentException(name + " initial position must be above the WGS-84 equatorial Earth radius.");
+        }
+        Vector3D angularMomentum = position.crossProduct(velocity);
+        double angularMomentumNorm = angularMomentum.getNorm();
+        if (angularMomentumNorm < 1e-6) {
+            throw new IllegalArgumentException(name + " state must define a non-degenerate orbital plane.");
+        }
+        Vector3D eccentricityVector = velocity.crossProduct(angularMomentum)
+            .scalarMultiply(1.0 / Constants.WGS84_EARTH_MU)
+            .subtract(position.normalize());
+        double semiLatusRectum = angularMomentumNorm * angularMomentumNorm / Constants.WGS84_EARTH_MU;
+        double periapsisMetres = semiLatusRectum / (1.0 + eccentricityVector.getNorm());
+        if (!Double.isFinite(periapsisMetres) || periapsisMetres <= 6_378_137.0) {
+            throw new IllegalArgumentException(name + " osculating periapsis intersects the WGS-84 Earth model.");
         }
     }
 
