@@ -34,6 +34,8 @@ test('software products hub remains reachable through mobile navigation', async 
 
   await expect(page.getByRole('heading', { name: 'Useful software. Open access. Practical outcomes.' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'First Customer Finder' })).toBeVisible();
+  await expect(page.getByLabel('What are you offering?')).toBeVisible();
+  await expect(page.getByLabel('Upload a business CSV')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Open navigation' })).toHaveAttribute('aria-expanded', 'false');
 });
 
