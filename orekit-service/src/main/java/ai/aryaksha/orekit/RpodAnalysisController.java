@@ -1,5 +1,6 @@
 package ai.aryaksha.orekit;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -89,6 +90,7 @@ public class RpodAnalysisController {
 
     private AbsoluteDate parseTaiEpoch(String value) {
         try {
+            LocalDateTime.parse(value);
             return new AbsoluteDate(value, org.orekit.time.TimeScalesFactory.getTAI());
         } catch (RuntimeException exception) {
             throw new IllegalArgumentException("epochTai must be a valid ISO-8601 date-time interpreted in TAI.");
