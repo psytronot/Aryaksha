@@ -90,6 +90,10 @@ describe('RPOD relative-motion foundation', () => {
       solution.departureDeltaVMagnitudeMps + solution.arrivalDeltaVMagnitudeMps,
       10,
     );
+    closeToVector(
+      solution.preArrivalBurnState.velocityKmS.map((component, index) => component + solution.arrivalDeltaVKmS[index]),
+      [0, 0, 0],
+    );
     closeToVector(solution.postArrivalBurnState.velocityKmS, [0, 0, 0]);
   });
 
