@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { AlertTriangle, Orbit, Play, Satellite } from 'lucide-react';
 import { EARTH_RADIUS, MU } from './orbit';
-import { propagateCw, solveTwoImpulseRendezvous, type RelativeState } from './rpod';
+import { propagateCw, sampleCwTrajectory, solveTwoImpulseRendezvous, type RelativeState } from './rpod';
 
 type ScenarioInput = {
   chiefAltitudeKm: string;
@@ -44,6 +44,7 @@ export default function RpodView() {
     arrivalDeltaVMagnitudeMps: number;
     totalDeltaVMagnitudeMps: number;
     terminal: RelativeState;
+    trajectory: ReturnType<typeof sampleCwTrajectory>;
   } | null>(null);
   const [error, setError] = useState('');
   const [orekitLoading, setOrekitLoading] = useState(false);
@@ -68,6 +69,23 @@ export default function RpodView() {
     if (!Number.isFinite(altitude) || altitude <= -EARTH_RADIUS) return null;
     return Math.sqrt(MU / (EARTH_RADIUS + altitude) ** 3);
   }, [input.chiefAltitudeKm]);
+
+  const trajectoryPlot = useMemo(() => {
+    if (!result) return null;
+    const extent = Math.max(
+      ...result.trajectory.map(sample => Math.max(
+        Math.abs(sample.state.positionKm[0]),
+        Math.abs(sample.state.positionKm[1]),
+      )),
+      0.001,
+    );
+    const scale = 85 / extent;
+    return result.trajectory.map(sample => {
+      const x = 300 + sample.state.positionKm[0] * scale;
+      const y = 110 - sample.state.positionKm[1] * scale;
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
+    }).join(' ');
+  }, [result]);
 
   const crossCheckWithOrekit = async () => {
     setOrekitLoading(true);
@@ -156,6 +174,20 @@ export default function RpodView() {
 
       const solution = solveTwoImpulseRendezvous(initial, meanMotionRadS, rendezvousTimeSeconds);
       const terminal = solution.postArrivalBurnState;
+      const postDepartureState: RelativeState = {
+        positionKm: initial.positionKm,
+        velocityKmS: [
+          initial.velocityKmS[0] + solution.departureDeltaVKmS[0],
+          initial.velocityKmS[1] + solution.departureDeltaVKmS[1],
+          initial.velocityKmS[2] + solution.departureDeltaVKmS[2],
+        ],
+      };
+      const trajectory = sampleCwTrajectory(
+        postDepartureState,
+        meanMotionRadS,
+        rendezvousTimeSeconds,
+        40,
+      );
 
       setResult({
         meanMotionRadS,
@@ -166,6 +198,7 @@ export default function RpodView() {
         arrivalDeltaVMagnitudeMps: solution.arrivalDeltaVMagnitudeMps,
         totalDeltaVMagnitudeMps: solution.totalDeltaVMagnitudeMps,
         terminal,
+        trajectory,
       });
       setError('');
     } catch (cause) {
@@ -220,6 +253,19 @@ export default function RpodView() {
                 <div><small>ARRIVAL ΔV RADIAL</small><b>{fixed(result.arrivalDeltaVKmS[0], 8)} km/s</b></div>
                 <div><small>ARRIVAL ΔV ALONG-TRACK</small><b>{fixed(result.arrivalDeltaVKmS[1], 8)} km/s</b></div>
                 <div><small>ARRIVAL ΔV CROSS-TRACK</small><b>{fixed(result.arrivalDeltaVKmS[2], 8)} km/s</b></div>
+              </div>
+              <div className="trajectory-panel">
+                <div className="stat-row"><span className="result-label">LVLH transfer path · radial vs along-track</span><b>40 intervals</b></div>
+                <svg viewBox="0 0 600 220" role="img" aria-label="Predicted chaser trajectory in radial and along-track LVLH coordinates">
+                  <line x1="20" y1="110" x2="580" y2="110" stroke="currentColor" opacity="0.25" />
+                  <line x1="300" y1="15" x2="300" y2="205" stroke="currentColor" opacity="0.25" />
+                  <polyline points={trajectoryPlot ?? ''} fill="none" stroke="#65a9ff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx={300 + result.trajectory[0].state.positionKm[0] * (85 / Math.max(...result.trajectory.map(sample => Math.max(Math.abs(sample.state.positionKm[0]), Math.abs(sample.state.positionKm[1]))), 0.001))} cy={110 - result.trajectory[0].state.positionKm[1] * (85 / Math.max(...result.trajectory.map(sample => Math.max(Math.abs(sample.state.positionKm[0]), Math.abs(sample.state.positionKm[1]))), 0.001))} r="5" fill="#22c55e" />
+                  <circle cx="300" cy="110" r="5" fill="#f59e0b" />
+                  <text x="580" y="102" textAnchor="end" fill="currentColor" fontSize="11">+R</text>
+                  <text x="310" y="20" fill="currentColor" fontSize="11">+T</text>
+                </svg>
+                <div className="stat-row"><span className="result-label">Green: initial state · amber: target rendezvous point</span><b>km</b></div>
               </div>
               <div className="result-list">
                 <div className="stat-row"><span className="result-label">Departure impulse</span><b>{fixed(result.departureDeltaVMagnitudeMps, 4)} m/s</b></div>
