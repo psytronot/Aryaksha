@@ -23,7 +23,7 @@ describe('RPOD relative-motion foundation', () => {
 
     closeToVector(result.positionKm, [1, 2, 3]);
     // LVLH angular velocity is n about +Z; subtract omega x rho.
-    closeToVector(result.velocityKmS, [-0.002 - 2 * Math.sqrt(398600.4418 / 7000 ** 3), 0.001, 0.004]);
+    closeToVector(result.velocityKmS, [-0.002 + 2 * Math.sqrt(398600.4418 / 7000 ** 3), 0.001 - Math.sqrt(398600.4418 / 7000 ** 3), 0.004]);
   });
 
   it('propagates a zero relative state as zero for any positive duration', () => {
