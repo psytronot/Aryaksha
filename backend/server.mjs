@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'node:path';
 import * as satellite from 'satellite.js';
 import { createRateLimiter, securityHeaders } from './security.mjs';
+import { normalizeOrekitResponse } from './orekitResponse.mjs';
 import { createPlanetaryImageryHandler } from './planetaryImagery.mjs';
 
 const app = express();
@@ -9,6 +10,30 @@ const port = Number(process.env.PORT || 3000);
 const EARTH_RADIUS = 6378.137;
 const MAX_PROPAGATION_SECONDS = 604_800;
 const TLE_LINE_PATTERN = /^[12] [\x20-\x7e]{67}$/;
+const MAX_OREKIT_RESPONSE_BYTES = 64 * 1024;
+const MAX_ISS_TLE_BYTES = 16 * 1024;
+
+async function readLimitedText(response, maxBytes) {
+  if (!response.body) throw new Error('Upstream response body is missing.');
+  const declaredLength = Number(response.headers.get('content-length') || 0);
+  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) throw new Error('Upstream response exceeds the configured size limit.');
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) { await reader.cancel(); throw new Error('Upstream response exceeds the configured size limit.'); }
+      chunks.push(value);
+    }
+  } finally { reader.releaseLock(); }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  return new TextDecoder().decode(bytes);
+}
 
 app.disable('x-powered-by');
 // Render terminates TLS and forwards requests through one trusted proxy hop.
@@ -58,67 +83,56 @@ app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
   }
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 90000);
-    let upstream;
+    const timer = setTimeout(() => controller.abort(), 90_000);
     try {
-      upstream = await fetch(`${serviceUrl}/api/v1/orbit/analysis`, {
+      const upstream = await fetch(`${serviceUrl}/api/v1/orbit/analysis`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', accept: 'application/json' },
         body: JSON.stringify({ altitudeKm, inclinationDeg, eccentricity, elapsedSeconds }),
         signal: controller.signal
       });
-    } finally { clearTimeout(timer); }
-    if (!upstream.ok) return res.status(502).json({ error: `Orekit service returned HTTP ${upstream.status}.` });
-    const payload = await upstream.json();
-    const orbitFields = ['altitudeKm', 'semiMajorAxisKm', 'eccentricity', 'inclinationDeg', 'periodSeconds', 'periodMinutes', 'periapsisAltitudeKm', 'apoapsisAltitudeKm', 'circularVelocityKmS', 'specificOrbitalEnergyKm2S2'];
-    const stateFields = ['elapsedSeconds', 'epoch', 'timeScale', 'frame', 'positionKm', 'velocityKmS'];
-    const finiteFields = (object, fields) => fields.every(field => typeof object?.[field] === 'number' && Number.isFinite(object[field]));
-    const validPayload = payload && typeof payload === 'object' && !Array.isArray(payload) &&
-      payload.valid === true && payload.engine === 'Orekit' &&
-      typeof payload.engineVersion === 'string' && /^\d+\.\d+\.\d+$/.test(payload.engineVersion) &&
-      payload.fidelity === 'Orekit numerical propagation (two-body)' &&
-      Array.isArray(payload.assumptions) && payload.assumptions.length > 0 &&
-      payload.assumptions.every(item => typeof item === 'string' && item.length > 0) &&
-      payload.orbit && typeof payload.orbit === 'object' && finiteFields(payload.orbit, orbitFields) &&
-      payload.state && typeof payload.state === 'object' &&
-      typeof payload.state.elapsedSeconds === 'number' && Number.isFinite(payload.state.elapsedSeconds) &&
-      payload.state.elapsedSeconds >= 0 && payload.state.elapsedSeconds <= MAX_PROPAGATION_SECONDS &&
-      typeof payload.state.epoch === 'string' && payload.state.timeScale === 'TAI' && payload.state.frame === 'EME2000' &&
-      Array.isArray(payload.state.positionKm) && payload.state.positionKm.length === 3 && payload.state.positionKm.every(Number.isFinite) &&
-      Array.isArray(payload.state.velocityKmS) && payload.state.velocityKmS.length === 3 && payload.state.velocityKmS.every(Number.isFinite) &&
-      payload.comparison?.engineAdapter === 'orekit-http';
-    if (!validPayload) return res.status(502).json({ error: 'Orekit service returned an invalid analysis response.' });
-
-    // Build an explicit response allowlist; never forward arbitrary upstream fields.
-    const orbit = Object.fromEntries(orbitFields.map(field => [field, payload.orbit[field]]));
-    const state = Object.fromEntries(stateFields.map(field => [field, payload.state[field]]));
-    return res.json({
-      valid: true,
-      engine: 'Orekit',
-      engineVersion: payload.engineVersion,
-      fidelity: 'Orekit numerical propagation (two-body)',
-      assumptions: payload.assumptions,
-      orbit,
-      state,
-      comparison: { engineAdapter: 'orekit-http', status: 'connected', note: 'Results returned by the independently hosted Orekit service.' }
-    });
+      if (!upstream.ok) return res.status(502).json({ error: `Orekit service returned HTTP ${upstream.status}.` });
+      const contentType = (upstream.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+      if (contentType !== 'application/json') return res.status(502).json({ error: 'Orekit service returned an unexpected content type.' });
+      const raw = await readLimitedText(upstream, MAX_OREKIT_RESPONSE_BYTES);
+      let payload;
+      try { payload = JSON.parse(raw); } catch { return res.status(502).json({ error: 'Orekit service returned invalid JSON.' }); }
+      const normalized = normalizeOrekitResponse(payload, MAX_PROPAGATION_SECONDS);
+      if (!normalized) return res.status(502).json({ error: 'Orekit service returned an invalid analysis response.' });
+      return res.json(normalized);
+    } finally {
+      clearTimeout(timer);
+    }
   } catch (err) {
     return res.status(502).json({ error: err?.name === 'AbortError' ? 'Orekit service timed out after 90 seconds.' : 'Orekit service is configured but unavailable. Check its deployment and logs.' });
   }
 });
 
 app.get('/api/live/iss', apiRateLimit, async (_req, res) => {
+  const url = 'https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE';
   try {
-    const upstream = await fetch('https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE', { headers: { accept: 'text/plain' } });
-    if (!upstream.ok) return res.status(502).json({ error: `CelesTrak returned HTTP ${upstream.status}.` });
-    const lines = (await upstream.text()).split(/\r?\n/).map(x => x.trim()).filter(Boolean);
-    const line1 = lines.find(x => x.startsWith('1 '));
-    const line2 = lines.find(x => x.startsWith('2 '));
-    const name = lines.find(x => !x.startsWith('1 ') && !x.startsWith('2 ')) || 'ISS (LIVE)';
-    if (!line1 || !line2) return res.status(502).json({ error: 'CelesTrak returned an unexpected ISS TLE payload.' });
-    return res.json({ name, line1, line2, fetchedAt: Date.now(), cached: false, source: 'CelesTrak GP' });
-  } catch {
-    return res.status(502).json({ error: 'Live ISS feed is unavailable.' });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10_000);
+    try {
+      const upstream = await fetch(url, { headers: { accept: 'text/plain' }, signal: controller.signal });
+      if (!upstream.ok) return res.status(502).json({ error: `CelesTrak returned HTTP ${upstream.status}.` });
+      const finalUrl = new URL(upstream.url || url);
+      if (finalUrl.protocol !== 'https:' || finalUrl.hostname !== 'celestrak.org') return res.status(502).json({ error: 'CelesTrak returned an unexpected redirect destination.' });
+      const contentType = (upstream.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+      if (contentType !== 'text/plain') return res.status(502).json({ error: 'CelesTrak returned an unexpected content type.' });
+      const lines = (await readLimitedText(upstream, MAX_ISS_TLE_BYTES)).split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+      const line1 = lines.find(x => x.startsWith('1 '));
+      const line2 = lines.find(x => x.startsWith('2 '));
+      const name = lines.find(x => !x.startsWith('1 ') && !x.startsWith('2 ')) || 'ISS (LIVE)';
+      if (!line1 || !line2 || line1.length !== 69 || line2.length !== 69 || !TLE_LINE_PATTERN.test(line1) || !TLE_LINE_PATTERN.test(line2)) return res.status(502).json({ error: 'CelesTrak returned an unexpected ISS TLE payload.' });
+      const satrec = satellite.twoline2satrec(line1, line2);
+      if (satrec.error) return res.status(502).json({ error: 'CelesTrak returned an invalid ISS TLE.' });
+      return res.json({ name: name.replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 80), line1, line2, fetchedAt: Date.now(), cached: false, source: 'CelesTrak GP' });
+    } finally {
+      clearTimeout(timer);
+    }
+  } catch (error) {
+    return res.status(error?.name === 'AbortError' ? 504 : 502).json({ error: error?.name === 'AbortError' ? 'CelesTrak request timed out.' : 'Live ISS feed is unavailable.' });
   }
 });
 
