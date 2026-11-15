@@ -125,7 +125,7 @@ test('RPOD imports EME2000 mission states and forwards their TAI epoch', async (
     epochTai: '2026-11-15T12:05:00',
     stateSource: 'manual-lvlh',
     importedFrame: 'EME2000',
-    importedMissionState: mission
+    importedMissionState: { target: mission.target, chaser: mission.chaser }
   });
   expect(report.engineeringLimitations).toContain(
     'HCW rendezvous design uses the manually entered LVLH state; imported EME2000 target/chaser states are retained as provenance and used only for the Orekit cross-check.'
