@@ -54,3 +54,21 @@ test('First Customer Finder validates and prepares a research brief without inve
   await expect(page.getByText('No live research was run and no prospects have been invented.')).toBeVisible();
   await expect(page.getByText('A low-cost satellite imagery analysis workshop')).toBeVisible();
 });
+
+
+test('user-supplied business CSV is processed locally and duplicate rows are reported', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+
+  await page.getByLabel('Upload a business CSV').setInputFiles({
+    name: 'prospects.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Company,Website,City\\nAcme Robotics,https://acme.example,Bengaluru\\nAcme Robotics,https://acme.example,Bengaluru\\nOrbit Learning,https://orbit.example,Pune')
+  });
+
+  await expect(page.getByText('3 data rows found')).toBeVisible();
+  await expect(page.getByText('2 unique organisations')).toBeVisible();
+  await expect(page.getByText('1 duplicate row excluded')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Download cleaned CSV' })).toBeVisible();
+  await expect(page.getByText('Your file is processed in this browser only; it is not uploaded.')).toBeVisible();
+});
