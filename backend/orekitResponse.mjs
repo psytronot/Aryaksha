@@ -13,7 +13,7 @@ const finiteFields = (object, fields) =>
 export function normalizeOrekitResponse(payload, maxPropagationSeconds = 604_800) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
   if (payload.valid !== true || payload.engine !== 'Orekit') return null;
-  if (typeof payload.engineVersion !== 'string' || !/^\\d+\\.\\d+\\.\\d+$/.test(payload.engineVersion)) return null;
+  if (typeof payload.engineVersion !== 'string' || !/^\d+\.\d+\.\d+$/.test(payload.engineVersion)) return null;
   if (payload.fidelity !== 'Orekit numerical propagation (two-body)') return null;
   if (!Array.isArray(payload.assumptions) || payload.assumptions.length === 0 ||
       payload.assumptions.length > 20 ||
