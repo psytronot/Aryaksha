@@ -300,3 +300,36 @@ export function solveTwoImpulseRendezvous(
     rendezvousTimeSeconds,
   };
 }
+
+export type CwTrajectorySample = {
+  /** Time from the initial state epoch, seconds. */
+  elapsedSeconds: number;
+  /** Relative state in the rotating target LVLH frame. */
+  state: RelativeState;
+};
+
+/**
+ * Sample a CW trajectory at uniformly spaced epochs, including both t=0
+ * and the requested final time. intervalCount is the number of intervals,
+ * so the returned array contains intervalCount + 1 samples.
+ */
+export function sampleCwTrajectory(
+  initial: RelativeState,
+  meanMotionRadS: number,
+  durationSeconds: number,
+  intervalCount: number,
+): CwTrajectorySample[] {
+  validateState(initial);
+  validateMeanMotionAndTime(meanMotionRadS, durationSeconds);
+  if (!Number.isInteger(intervalCount) || intervalCount < 2) {
+    throw new Error('Trajectory interval count must be an integer of at least two.');
+  }
+
+  return Array.from({ length: intervalCount + 1 }, (_, index) => {
+    const elapsedSeconds = durationSeconds * index / intervalCount;
+    return {
+      elapsedSeconds,
+      state: propagateCw(initial, meanMotionRadS, elapsedSeconds),
+    };
+  });
+}
