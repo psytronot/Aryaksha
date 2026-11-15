@@ -69,6 +69,10 @@ v_rel_LVLH = C_LVLH_ECI * ((v_chaser - v_target) - omega_LVLH x (r_chaser - r_ta
 
 The Orekit endpoint uses Dormand–Prince 8(5,3), a 1 m position tolerance and a 60 s maximum integration step. The configured force model is Newtonian central gravity only; no J2, drag, solar radiation pressure or third-body forces are included.
 
+## Browser mission-state import
+
+The RPOD workspace accepts a JSON file using the same EME2000 Cartesian-state contract. The example at `docs/examples/rpod-mission-state.example.json` can be used as a template. The importer requires exactly `epochTai`, `frame`, `target` and `chaser`; each state must contain exactly three finite position and velocity components. The target must define a non-degenerate orbital plane and both initial positions must be above the WGS-84 equatorial radius. Only `frame: "EME2000"` is accepted. Other frames are rejected rather than silently relabelled or incorrectly transformed.
+
 ## Successful response semantics
 
 - `engine` / `engineVersion`: Orekit 13.1.9.
