@@ -84,6 +84,9 @@ export default function RpodView() {
 
   const update = (key: keyof ScenarioInput, value: string) => {
     setInput(current => ({ ...current, [key]: value }));
+    if (key === 'epochTai') {
+      setImportedMissionState(current => current ? { ...current, epochTai: value } : current);
+    }
     setResult(null);
     setOrekitCheck(null);
     setOrekitError('');
