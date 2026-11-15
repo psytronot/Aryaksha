@@ -29,6 +29,13 @@ describe('RPOD mission-state import contract', () => {
       .toThrow(/epochTai/);
   });
 
+  it('rejects non-string mission epochs', () => {
+    expect(() => parseRpodMissionState(JSON.stringify({
+      ...validMission,
+      epochTai: 20261115120000,
+    }))).toThrow(/epochTai/);
+  });
+
   it('rejects calendar dates that JavaScript would otherwise normalize', () => {
     expect(() => parseRpodMissionState(JSON.stringify({
       ...validMission,
