@@ -6,6 +6,7 @@ import {
   solveTwoImpulseRendezvous,
   sampleCwTrajectory,
   propagateCwWithImpulses,
+  screenCwKeepOut,
   type RelativeState,
 } from '../src/rpod';
 
@@ -254,6 +255,21 @@ describe('RPOD relative-motion foundation', () => {
     expect(() => propagateCwWithImpulses(initial, n, 900, [
       { elapsedSeconds: 100, deltaVKmS: [0, Number.NaN, 0] },
     ])).toThrow(/finite/);
+  });
+
+  it('screens pre-terminal sampled trajectory against a spherical keep-out radius', () => {
+    const trajectory = [
+      { elapsedSeconds: 0, state: { positionKm: [1, 0, 0] as [number, number, number], velocityKmS: [0, 0, 0] as [number, number, number] } },
+      { elapsedSeconds: 10, state: { positionKm: [0.02, 0, 0] as [number, number, number], velocityKmS: [0, 0, 0] as [number, number, number] } },
+      // The terminal coincidence is intentionally excluded from pre-terminal screening.
+      { elapsedSeconds: 20, state: { positionKm: [0, 0, 0] as [number, number, number], velocityKmS: [0, 0, 0] as [number, number, number] } },
+    ];
+    const result = screenCwKeepOut(trajectory, 0.05);
+    expect(result.minimumPreTerminalRangeKm).toBeCloseTo(0.02);
+    expect(result.closestElapsedSeconds).toBe(10);
+    expect(result.enteredKeepOut).toBe(true);
+    expect(() => screenCwKeepOut(trajectory, 0)).toThrow(/positive/);
+    expect(() => screenCwKeepOut([], 0.05)).toThrow(/two trajectory/);
   });
 
 });
