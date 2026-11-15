@@ -99,7 +99,7 @@ The current Arakshya engineering application is the Aryaksha repository: https:/
 - [ ] Complete compliance and privacy review.
 - [x] Implement the Software Tools catalogue UI on the isolated branch.
 - [x] Add dedicated desktop and mobile browser acceptance coverage for the catalogue disclosures and navigation.
-- [ ] Implement controlled First Customer Finder execution.
+- [ ] Implement controlled First Customer Finder execution (architecture proposal: [FIRST_CUSTOMER_FINDER_HOSTED_PILOT.md](./FIRST_CUSTOMER_FINDER_HOSTED_PILOT.md)); provider, authentication and storage decisions remain open.
 - [ ] Decide the compliant replacement/architecture for Google Maps data.
 - [ ] Configure and test payment collection.
 - [x] Opened draft pull request #124 for review.
