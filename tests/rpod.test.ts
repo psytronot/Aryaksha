@@ -274,7 +274,7 @@ describe('RPOD relative-motion foundation', () => {
   });
 
   it('propagates a symmetric LVLH state covariance through the HCW state transition', () => {
-    const covariance = Array.from({ length: 6 }, (_, row) =>
+    const covariance: number[][] = Array.from({ length: 6 }, (_, row) =>
       Array.from({ length: 6 }, (_, column) => row === column ? (row < 3 ? 1e-4 : 1e-8) : 0),
     );
     const propagated = propagateCwCovariance(covariance, 0.001, 120);
