@@ -18,6 +18,11 @@ test('accessibility audit: critical and serious axe violations are absent in key
       await page.getByRole('button', { name: 'Simulation', exact: true }).click();
       await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
     } },
+    { name: 'Software Products', open: async () => {
+      await page.goto('/');
+      await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+      await expect(page.getByRole('heading', { name: 'Useful software. Open access. Practical outcomes.', exact: true })).toBeVisible();
+    } },
     { name: 'Satellite Tracking', open: async () => {
       await page.getByRole('button', { name: 'Satellite Tracking', exact: true }).click();
       await expect(page.getByRole('heading', { name: 'Satellite tracking & pass planning' })).toBeVisible();

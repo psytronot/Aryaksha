@@ -218,9 +218,9 @@ function App() {
         {mobileNavOpen && <div className="mobile-nav-backdrop" onClick={() => setMobileNavOpen(false)} />}
         <aside className={mobileNavOpen ? 'sidebar mobile-open' : 'sidebar'}>
           <div className="side-title">SPACECRAFT DESIGN</div>
-          {['DESIGN','RUN','OUTPUT','LEARN','TOOLS'].map(group => (
+          {['Design','Run','Output','Learn','Tools'].map(group => (
             <div key={group} className="nav-group">
-              <small>{group}</small>
+              <small>{group.toUpperCase()}</small>
               {nav.filter(item => item.group === group).map(item => (
                 <button key={item.id} data-context-label={item.label} className={view === item.id ? 'nav-item active' : 'nav-item'} onClick={() => { setView(item.id); setMobileNavOpen(false); }}>
                   {item.icon}<span>{item.label}</span>

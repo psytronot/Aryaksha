@@ -251,3 +251,15 @@ test('CSV utility provides a blank header template download', async ({ page }) =
   expect(path).toBeTruthy();
   expect(await readFile(path!, 'utf8')).toBe('Company,Website,City\r\n');
 });
+
+
+test('desktop sidebar exposes workspace navigation including Software Products', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
+  const sidebar = page.locator('aside.sidebar');
+  await expect(sidebar.getByRole('button', { name: 'Simulation', exact: true })).toBeVisible();
+  const softwareProducts = sidebar.getByRole('button', { name: 'Software Products', exact: true });
+  await expect(softwareProducts).toBeVisible();
+  await softwareProducts.click();
+  await expect(page.getByRole('heading', { name: 'Useful software. Open access. Practical outcomes.', exact: true })).toBeVisible();
+});
