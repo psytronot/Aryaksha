@@ -41,3 +41,19 @@ Prioritize findings as **Must fix**, **Should fix**, and **Nice to have**. Expla
 Default intensity is **Full**. Use **Lite** only when the user explicitly asks for a narrow pass. Use **Ultra** when the user asks to challenge the requirement or architecture before implementation.
 
 This file adapts Ponytail's instruction method for repository-aware agents. It does not install Ponytail CLI commands, plugins, lifecycle hooks or benchmark instrumentation. Do not attribute upstream benchmark results to Aryaksha.
+
+
+## Unslop design-craft method — required for UI work
+
+Use the project-local adaptation at `.agents/skills/unslop/SKILL.md` and its references when auditing or changing user interfaces. The upstream source is https://github.com/heydamir/unslop by Damir Sokolovsky, licensed CC BY 4.0; preserve the attribution in `.agents/skills/unslop/ATTRIBUTION.md`.
+
+1. **Audit before styling.** Inspect the rendered screen at real viewports where possible, then list concrete defects with component/file locations. Distinguish genuine generic UI patterns from intentional brand elements.
+2. **Write a product-derived direction.** State product/audience, character, visual world, one or two content-rich moments and one signature detail. Derive this from the actual product, never from trends.
+3. **Run the passes in order:** spacing, color, icons, copy, type, layout, details, visuals, motion. Keep section order and product behavior; change presentation only where evidence supports it.
+4. **Keep the brand.** Preserve approved identity, semantic tokens, information architecture and useful visual language. Do not replace a distinctive design with a generic monochrome template. Remove decorative gradients/glows, arbitrary spacing, emoji decoration, shouty labels and unnecessary pills only where they harm clarity or consistency.
+5. **Keep the content honest.** Never invent product capability, customer proof, technical performance, scientific accuracy, live status, certification or contact information. Use plausible demo data only when clearly identified as illustrative.
+6. **Use visuals with purpose.** Prefer the real product, engineering object, diagram or data visualization over generic AI imagery. Do not generate or add paid assets without explicit approval. Optimize image dimensions/formats, alt text, loading priority and layout stability.
+7. **Respect accessibility and performance.** Check WCAG AA contrast, focus visibility, keyboard/touch, reduced motion, responsive reading order, image loading, and avoid expensive continuous effects.
+8. **Check the result.** Render again, compare with the audit list, run focused tests and inspect the final diff. If a screen is already strong, make no change just to prove activity.
+
+This method is complementary to the existing project design system and Ponytail Full-mode engineering method. Project-specific design and engineering rules take precedence where an upstream generic recommendation conflicts with brand, accuracy, accessibility, performance or safety.
