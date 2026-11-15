@@ -30,7 +30,8 @@ app.post('/api/rpod/relative-state', apiRateLimit, async (req, res) => {
       || typeof body.elapsedSeconds !== 'number' || !Number.isFinite(body.elapsedSeconds)
       || body.elapsedSeconds < 0 || body.elapsedSeconds > 604800
       || (body.epochTai !== undefined && (typeof body.epochTai !== 'string' || body.epochTai.length > 64))
-      || Object.keys(body).some(key => !['target', 'chaser', 'elapsedSeconds', 'epochTai'].includes(key))) {
+      || (body.historySamples !== undefined && (!Number.isInteger(body.historySamples) || body.historySamples < 2 || body.historySamples > 101))
+      || Object.keys(body).some(key => !['target', 'chaser', 'elapsedSeconds', 'epochTai', 'historySamples'].includes(key))) {
     return res.status(400).json({ error: 'Request requires finite target/chaser Cartesian states and elapsedSeconds between 0 and 604,800.' });
   }
   const serviceUrl = process.env.OREKIT_SERVICE_URL?.trim().replace(/\/$/, '');
@@ -51,7 +52,9 @@ app.post('/api/rpod/relative-state', apiRateLimit, async (req, res) => {
     const payload = await upstream.json();
     if (payload.valid !== true || payload.engine !== 'Orekit'
         || payload.comparison?.engineAdapter !== 'orekit-rpod-http'
-        || !payload.relativeLvlh || !payload.target || !payload.chaser) {
+        || !payload.relativeLvlh || !payload.target || !payload.chaser
+        || (body.historySamples !== undefined &&
+          (!Array.isArray(payload.history) || payload.history.length !== body.historySamples))) {
       return res.status(502).json({ error: 'Orekit RPOD service returned an invalid relative-state response.' });
     }
     return res.json(payload);
