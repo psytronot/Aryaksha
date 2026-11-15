@@ -50,12 +50,14 @@ export type RpodEngineeringReport = {
     velocityKmS: [number, number, number];
   }>;
   keepOutScreen: {
-    method: 'sampled-pre-terminal-spherical-range';
+    method: 'hcw-stationary-point-root-search';
     keepOutRadiusKm: number;
     minimumPreTerminalRangeKm: number;
     closestElapsedSeconds: number;
     enteredKeepOut: boolean;
     terminalCoincidenceExcluded: true;
+    stationaryPointCount: number;
+    resolutionLimited: boolean;
   };
   uncertainty: {
     initialPositionSigmaM: number;
