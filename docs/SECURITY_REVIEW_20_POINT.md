@@ -22,7 +22,7 @@
 | 14 | Validate all input | Implemented / strengthened | JSON body size is capped at 64 KiB; orbit inputs are strict; simulation input now validates shape, fields, numbers, time bounds, TLE line lengths and optional display name. Continue validating new endpoints at their boundary. |
 | 15 | Escape user content | Partial | React's standard text rendering escapes interpolated text; API output is JSON. Do not introduce `dangerouslySetInnerHTML` without a reviewed sanitizer. Verify all future rich-text/report rendering paths. |
 | 16 | Restrict file uploads | Not applicable | No file-upload endpoint or upload UI exists. If added, enforce MIME/content inspection, size limits, random object names, private storage, malware scanning where appropriate, and authorization. |
-| 17 | Trim API responses | Partial | API responses are structured and API cache is disabled. The Orekit proxy still forwards upstream response fields; add an explicit response allowlist/schema validation before treating this control as complete. |
+| 17 | Trim API responses | Partial | API responses are structured and API cache is disabled. The Orekit proxy now validates required response fields and emits an explicit allowlist; add a regression test against a mock upstream payload containing extra fields before treating this control as fully verified. |
 | 18 | Add security headers | Implemented / partial | Adds nosniff, frame denial, referrer and permissions policy, cross-origin isolation headers, and conditional HSTS. CSP remains Report-Only until all production origins are verified; do not enforce blindly. |
 | 19 | Force HTTPS | Partial / hosting-dependent | The deployment runbook relies on the Render TLS edge. HSTS is emitted for HTTPS requests; verify HTTP-to-HTTPS redirects and custom-domain TLS in the live host configuration. |
 | 20 | Scan dependencies | Partial | Dependabot, CodeQL and CI audit reporting exist. CI currently reports dependency audit findings non-blockingly; production dependency high/critical findings should block release after the current baseline is reviewed. |
@@ -42,7 +42,7 @@
 1. Scan all Git history and deployment configuration for exposed credentials; rotate any discovered secret.
 2. Inspect production host settings for HTTPS redirects, TLS, trusted proxy count, environment secrets, and edge/WAF controls.
 3. Review the deployed CSP report-only violations and then create an enforceable CSP policy based on actual required origins.
-4. Review the Orekit response schema and replace the proxy's broad object spread with an explicit response allowlist.
+4. Add an integration test proving unexpected upstream Orekit fields are not forwarded.
 5. Decide whether authentication, database/RLS, sessions, uploads, and user-record isolation are needed for any new product feature; do not add them to the current public orbital learning app without a real requirement.
 6. Run npm audit and the full CI workflow on this branch; resolve critical/high production vulnerabilities before release.
 
