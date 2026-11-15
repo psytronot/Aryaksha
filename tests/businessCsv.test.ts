@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { parseBusinessCsv } from '../src/businessCsv';
+import { parseBusinessCsv, serializeBusinessCsv } from '../src/businessCsv';
 
 describe('parseBusinessCsv', () => {
   test('handles a UTF-8 BOM, quoted commas and escaped quotes', () => {
@@ -63,5 +63,16 @@ describe('parseBusinessCsv', () => {
 
     expect(() => parseBusinessCsv('Company\n' + 'A'.repeat(4_097)))
       .toThrow('cell cannot exceed 4,096 characters');
+  });
+  test('serializes CSV with CRLF, escaping and formula-prefix neutralization', () => {
+    const output = serializeBusinessCsv([
+      { company: '=HYPERLINK("https://bad.example")', website: '@external', city: ' +Bengaluru' },
+      { company: 'Acme, "Robotics"', website: 'https://acme.example', city: 'Pune' }
+    ]);
+    expect(output.startsWith('"Company","Website","City"\\r\\n')).toBe(true);
+    expect(output).toContain("'=HYPERLINK(\"\"https://bad.example\"\")");
+    expect(output).toContain("'@external");
+    expect(output).toContain("' +Bengaluru");
+    expect(output).toContain('Acme, ""Robotics""');
   });
 });
