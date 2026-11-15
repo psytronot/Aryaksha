@@ -27,7 +27,7 @@ public class RpodAnalysisController {
 
     public record CartesianState(double[] positionKm, double[] velocityKmS) {}
     public record RelativeState(double[] positionKm, double[] velocityKmS) {}
-    public record RpodRequest(CartesianState target, CartesianState chaser, double elapsedSeconds) {}
+    public record RpodRequest(CartesianState target, CartesianState chaser, double elapsedSeconds, String epochTai) {}
     public record StateVector(double[] positionKm, double[] velocityKmS) {}
     public record RpodResponse(
         boolean valid, String engine, String engineVersion, String frame, String epoch,
@@ -38,7 +38,9 @@ public class RpodAnalysisController {
     @PostMapping("/relative-state")
     public RpodResponse relativeState(@RequestBody RpodRequest request) {
         validate(request);
-        AbsoluteDate epoch = AbsoluteDate.J2000_EPOCH;
+        AbsoluteDate epoch = request.epochTai() == null || request.epochTai().isBlank()
+            ? AbsoluteDate.J2000_EPOCH
+            : parseTaiEpoch(request.epochTai());
         AbsoluteDate targetDate = epoch.shiftedBy(request.elapsedSeconds());
         SpacecraftState target = propagate(request.target(), targetDate);
         SpacecraftState chaser = propagate(request.chaser(), targetDate);
@@ -81,6 +83,14 @@ public class RpodAnalysisController {
                    "note", "Relative state computed from two independently propagated Orekit spacecraft."));
     }
 
+    private AbsoluteDate parseTaiEpoch(String value) {
+        try {
+            return new AbsoluteDate(value, org.orekit.time.TimeScalesFactory.getTAI());
+        } catch (RuntimeException exception) {
+            throw new IllegalArgumentException("epochTai must be a valid ISO-8601 date-time interpreted in TAI.");
+        }
+    }
+
     private SpacecraftState propagate(CartesianState input, AbsoluteDate date) {
         Vector3D position = vector(input.positionKm()).scalarMultiply(1000.0);
         Vector3D velocity = vector(input.velocityKmS()).scalarMultiply(1000.0);
@@ -115,6 +125,7 @@ public class RpodAnalysisController {
                 || request.elapsedSeconds() < 0 || request.elapsedSeconds() > MAX_PROPAGATION_SECONDS) {
             throw new IllegalArgumentException("Target, chaser and elapsedSeconds (0–604800 s) are required.");
         }
+        if (request.epochTai() != null && !request.epochTai().isBlank()) parseTaiEpoch(request.epochTai());
         validateState(request.target(), "target");
         validateState(request.chaser(), "chaser");
     }
