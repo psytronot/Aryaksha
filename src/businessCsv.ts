@@ -19,7 +19,7 @@ const MAX_CELL_LENGTH = 4_096;
  * network access and deliberately rejects ambiguous CSV quoting/row shapes.
  */
 export function parseBusinessCsv(raw: string): BusinessCsvResult {
-  raw = raw.replace(/^\\uFEFF/, '');
+  raw = raw.replace(/^\uFEFF/, '');
   const rows: string[][] = [];
   let row: string[] = [];
   let field = '';
@@ -99,7 +99,7 @@ export function parseBusinessCsv(raw: string): BusinessCsvResult {
     if (!company) continue;
     const website = websiteIndex >= 0 ? (values[websiteIndex] || '').trim() : '';
     const city = cityIndex >= 0 ? (values[cityIndex] || '').trim() : '';
-    const key = company.toLocaleLowerCase().replace(/\\s+/g, ' ') + '|' + website.toLocaleLowerCase().replace(/\\/$/, '');
+    const key = company.toLocaleLowerCase() .replace(/\s+/g, ' ') + '|' + website.toLocaleLowerCase().replace(/\/$/, '');
     if (seen.has(key)) {
       duplicates += 1;
       continue;
