@@ -99,7 +99,7 @@ export function parseBusinessCsv(raw: string): BusinessCsvResult {
     if (!company) continue;
     const website = websiteIndex >= 0 ? (values[websiteIndex] || '').trim() : '';
     const city = cityIndex >= 0 ? (values[cityIndex] || '').trim() : '';
-    const key = company.toLocaleLowerCase() .replace(/\s+/g, ' ') + '|' + website.toLocaleLowerCase().replace(/\/$/, '');
+    const key = company.toLocaleLowerCase().replace(/\s+/g, ' ') + '|' + website.toLocaleLowerCase().replace(/\/$/, '');
     if (seen.has(key)) {
       duplicates += 1;
       continue;
