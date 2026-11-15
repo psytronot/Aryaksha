@@ -36,3 +36,21 @@ test('software products hub remains reachable through mobile navigation', async 
   await expect(page.getByRole('heading', { name: 'First Customer Finder' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Open navigation' })).toHaveAttribute('aria-expanded', 'false');
 });
+
+
+test('First Customer Finder validates and prepares a research brief without inventing prospects', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+
+  await page.getByRole('button', { name: 'Prepare research brief' }).click();
+  await expect(page.getByText('Add your offer, intended customer and geography to continue.')).toBeVisible();
+
+  await page.getByLabel('What are you offering?').fill('A low-cost satellite imagery analysis workshop');
+  await page.getByLabel('Who should benefit?').fill('Engineering colleges and student space clubs');
+  await page.getByLabel('Where should we research?').fill('India');
+  await page.getByRole('button', { name: 'Prepare research brief' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Research brief ready' })).toBeVisible();
+  await expect(page.getByText('No live research was run and no prospects have been invented.')).toBeVisible();
+  await expect(page.getByText('A low-cost satellite imagery analysis workshop')).toBeVisible();
+});
