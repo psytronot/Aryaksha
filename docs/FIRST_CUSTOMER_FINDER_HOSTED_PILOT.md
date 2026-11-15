@@ -81,3 +81,8 @@ Tenant ownership must be checked on every read, write, export and delete. Use da
 3. Set a pilot cohort and retention window.
 4. Approve privacy notice, acceptable-use policy, and support contact.
 5. Define an operating cost budget before deciding whether the ₹1 transaction target is viable.
+
+
+## Current provider decision (2026-11-15)
+
+A preliminary vendor screen is recorded in `docs/FIRST_CUSTOMER_FINDER_PROVIDER_DUE_DILIGENCE.md`. Tavily is the conditional first candidate because its current help centre describes commercial customer-facing use and broad output-retention rights, but its Platform Terms contain language that requires written clarification for this multi-tenant SaaS model. Do not integrate it until that clarification and the required data-processing terms are obtained. Exa and Brave are not approved for the persistent evidence/export workflow under their presently published default restrictions.
