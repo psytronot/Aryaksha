@@ -19,6 +19,48 @@ app.get('/api/_healthcheck', (_req, res) => res.json({ message: 'Success', servi
 app.get('/api/v1/health', (_req, res) => res.json({ status: 'ok', service: 'aryaksha-api' }));
 app.get('/api/imagery/:assetId', apiRateLimit, planetaryImageryHandler);
 
+app.post('/api/rpod/relative-state', apiRateLimit, async (req, res) => {
+  const body = req.body;
+  const isState = state => state && typeof state === 'object' && !Array.isArray(state)
+    && Array.isArray(state.positionKm) && state.positionKm.length === 3
+    && Array.isArray(state.velocityKmS) && state.velocityKmS.length === 3
+    && [...state.positionKm, ...state.velocityKmS].every(value => typeof value === 'number' && Number.isFinite(value));
+  if (!body || typeof body !== 'object' || Array.isArray(body)
+      || !isState(body.target) || !isState(body.chaser)
+      || typeof body.elapsedSeconds !== 'number' || !Number.isFinite(body.elapsedSeconds)
+      || body.elapsedSeconds < 0 || body.elapsedSeconds > 604800
+      || Object.keys(body).some(key => !['target', 'chaser', 'elapsedSeconds'].includes(key))) {
+    return res.status(400).json({ error: 'Request requires finite target/chaser Cartesian states and elapsedSeconds between 0 and 604,800.' });
+  }
+  const serviceUrl = process.env.OREKIT_SERVICE_URL?.trim().replace(/\/$/, '');
+  if (!serviceUrl) return res.status(503).json({ error: 'Orekit service is not configured. Set OREKIT_SERVICE_URL to enable the RPOD cross-check.' });
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 90000);
+    let upstream;
+    try {
+      upstream = await fetch(`${serviceUrl}/api/v1/rpod/relative-state`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify(body),
+        signal: controller.signal
+      });
+    } finally { clearTimeout(timer); }
+    if (!upstream.ok) return res.status(502).json({ error: `Orekit RPOD service returned HTTP ${upstream.status}.` });
+    const payload = await upstream.json();
+    if (payload.valid !== true || payload.engine !== 'Orekit'
+        || payload.comparison?.engineAdapter !== 'orekit-rpod-http'
+        || !payload.relativeLvlh || !payload.target || !payload.chaser) {
+      return res.status(502).json({ error: 'Orekit RPOD service returned an invalid relative-state response.' });
+    }
+    return res.json(payload);
+  } catch (err) {
+    return res.status(502).json({ error: err?.name === 'AbortError'
+      ? 'Orekit RPOD service timed out after 90 seconds.'
+      : 'Orekit RPOD service is configured but unavailable. Check its deployment and logs.' });
+  }
+});
+
 app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
   const body = req.body;
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
