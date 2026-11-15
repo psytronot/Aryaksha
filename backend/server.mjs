@@ -29,7 +29,8 @@ app.post('/api/rpod/relative-state', apiRateLimit, async (req, res) => {
       || !isState(body.target) || !isState(body.chaser)
       || typeof body.elapsedSeconds !== 'number' || !Number.isFinite(body.elapsedSeconds)
       || body.elapsedSeconds < 0 || body.elapsedSeconds > 604800
-      || Object.keys(body).some(key => !['target', 'chaser', 'elapsedSeconds'].includes(key))) {
+      || (body.epochTai !== undefined && (typeof body.epochTai !== 'string' || body.epochTai.length > 64))
+      || Object.keys(body).some(key => !['target', 'chaser', 'elapsedSeconds', 'epochTai'].includes(key))) {
     return res.status(400).json({ error: 'Request requires finite target/chaser Cartesian states and elapsedSeconds between 0 and 604,800.' });
   }
   const serviceUrl = process.env.OREKIT_SERVICE_URL?.trim().replace(/\/$/, '');
