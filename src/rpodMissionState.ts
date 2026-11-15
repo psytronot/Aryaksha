@@ -51,7 +51,7 @@ export function parseRpodMissionState(source: string): RpodMissionState {
     throw new Error('Mission-state file contains an unexpected field.');
   }
   if (typeof parsed.epochTai !== 'string'
-      || !/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?$/.test(parsed.epochTai)
+      || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(parsed.epochTai)
       || !Number.isFinite(Date.parse(`${parsed.epochTai}Z`))) {
     throw new Error('epochTai must be a valid ISO-8601 date-time interpreted in TAI.');
   }
