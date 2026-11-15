@@ -58,6 +58,55 @@ class RpodAnalysisControllerTest {
     }
 
     @Test
+    void crossChecksOrekitDualPropagationAgainstHcwForSmallCircularOrbitSeparation() {
+        double mu = 398600.4418;
+        double radiusKm = 6378.137 + 550.0;
+        double n = Math.sqrt(mu / Math.pow(radiusKm, 3));
+        double targetSpeed = Math.sqrt(mu / radiusKm);
+        double[] rho = {0.1, -0.2, 0.05};
+        double[] relativeVelocity = {0.0001, 0.0002, -0.00005};
+        var target = new RpodAnalysisController.CartesianState(
+            new double[] {radiusKm, 0, 0}, new double[] {0, targetSpeed, 0});
+        var chaser = new RpodAnalysisController.CartesianState(
+            new double[] {radiusKm + rho[0], rho[1], rho[2]},
+            new double[] {
+                relativeVelocity[0] - n * rho[1],
+                targetSpeed + n * rho[0] + relativeVelocity[1],
+                relativeVelocity[2]
+            });
+
+        var orekit = controller.relativeState(
+            new RpodAnalysisController.RpodRequest(target, chaser, 900.0));
+
+        double nt = n * 900.0;
+        double c = Math.cos(nt);
+        double s = Math.sin(nt);
+        double[] hcwPosition = {
+            (4 - 3*c)*rho[0] + (s/n)*relativeVelocity[0] + (2*(1-c)/n)*relativeVelocity[1],
+            6*(s-nt)*rho[0] + rho[1] - (2*(1-c)/n)*relativeVelocity[0] + ((4*s-3*nt)/n)*relativeVelocity[1],
+            c*rho[2] + (s/n)*relativeVelocity[2]
+        };
+        double[] hcwVelocity = {
+            3*n*s*rho[0] + c*relativeVelocity[0] + 2*s*relativeVelocity[1],
+            -6*n*(1-c)*rho[0] - 2*s*relativeVelocity[0] + (4*c-3)*relativeVelocity[1],
+            -n*s*rho[2] + c*relativeVelocity[2]
+        };
+
+        assertTrue(distance(orekit.relativeLvlh().positionKm(), hcwPosition) < 0.01,
+            "Orekit and HCW relative position should agree within 10 m for this small-separation case");
+        assertTrue(distance(orekit.relativeLvlh().velocityKmS(), hcwVelocity) < 0.00001,
+            "Orekit and HCW relative velocity should agree within 10 mm/s for this small-separation case");
+    }
+
+    private double distance(double[] actual, double[] expected) {
+        double sum = 0;
+        for (int i = 0; i < actual.length; i++) {
+            sum += Math.pow(actual[i] - expected[i], 2);
+        }
+        return Math.sqrt(sum);
+    }
+
+    @Test
     void rejectsInvalidElapsedTimeAndMalformedStateVectors() {
         var state = new RpodAnalysisController.CartesianState(
             new double[] {7000, 0, 0}, new double[] {0, 7.5, 0});
