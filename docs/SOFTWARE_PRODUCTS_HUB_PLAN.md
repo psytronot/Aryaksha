@@ -95,7 +95,7 @@ The current Arakshya engineering application is the Aryaksha repository: https:/
 - [x] Located the upstream repositories and inspected their READMEs and MIT license files.
 - [x] Confirmed the current Aryaksha repository is the space-exploration lab codebase.
 - [x] Created an isolated implementation branch for this initiative.
-- [ ] Confirm exact upstream scraper ownership/provenance and inspect all source files.
+- [x] Confirm upstream ownership/provenance, license notices, core scraper implementation, dependencies and First Customer Finder helper architecture; see [UPSTREAM_TOOL_AUDIT.md](./UPSTREAM_TOOL_AUDIT.md).
 - [ ] Complete compliance and privacy review.
 - [x] Implement the Software Tools catalogue UI on the isolated branch.
 - [x] Add dedicated desktop and mobile browser acceptance coverage for the catalogue disclosures and navigation.
