@@ -100,11 +100,11 @@ export function parseBusinessCsv(raw: string): BusinessCsvResult {
  */
 export function serializeBusinessCsv(records: BusinessCsvRecord[]): string {
   const quote = (value: string) => {
-    const safeValue = /^[\\s]*[=+\\-@]/.test(value) ? "'" + value : value;
+    const safeValue = /^[\s]*[=+\-@]/.test(value) ? "'" + value : value;
     return '"' + safeValue.replace(/"/g, '""') + '"';
   };
   return [
     ['Company', 'Website', 'City'].map(quote).join(','),
     ...records.map(record => [record.company, record.website, record.city].map(quote).join(','))
-  ].join('\\r\\n');
+  ].join('\r\n');
 }
