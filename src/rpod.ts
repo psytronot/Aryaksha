@@ -158,6 +158,86 @@ export function propagateCw(
   };
 };
 
+/**
+ * Propagate a 6x6 LVLH position/velocity covariance through the linear HCW
+ * state transition. State ordering is [x, y, z, vx, vy, vz]; units are km
+ * and km/s, so covariance units follow the corresponding row/column units.
+ * Assumes a valid positive-semidefinite covariance and the same circular-chief
+ * and small-separation limitations as the HCW state model.
+ */
+export function propagateCwCovariance(
+  covariance: number[][],
+  meanMotionRadS: number,
+  elapsedSeconds: number,
+): number[][] {
+  validateMeanMotionAndTime(meanMotionRadS, elapsedSeconds);
+  if (!Array.isArray(covariance) || covariance.length !== 6 ||
+      covariance.some(row => !Array.isArray(row) || row.length !== 6)) {
+    throw new Error('State covariance must be a 6 by 6 matrix.');
+  }
+  if (covariance.some(row => row.some(value => !Number.isFinite(value)))) {
+    throw new Error('State covariance entries must be finite.');
+  }
+
+  const scaleValue = Math.max(1, ...covariance.flat().map(Math.abs));
+  const tolerance = 1e-10 * scaleValue;
+  for (let row = 0; row < 6; row += 1) {
+    for (let column = row + 1; column < 6; column += 1) {
+      if (Math.abs(covariance[row][column] - covariance[column][row]) > tolerance) {
+        throw new Error('State covariance must be symmetric.');
+      }
+    }
+  }
+
+  // Semidefinite Cholesky check. Zero pivots are accepted only when the
+  // corresponding residual cross-covariances are also numerically zero.
+  const lower = Array.from({ length: 6 }, () => Array(6).fill(0));
+  for (let row = 0; row < 6; row += 1) {
+    for (let column = 0; column <= row; column += 1) {
+      let residual = (covariance[row][column] + covariance[column][row]) / 2;
+      for (let k = 0; k < column; k += 1) {
+        residual -= lower[row][k] * lower[column][k];
+      }
+      if (row === column) {
+        if (residual < -tolerance) {
+          throw new Error('State covariance must be positive semidefinite.');
+        }
+        lower[row][column] = residual > tolerance ? Math.sqrt(residual) : 0;
+      } else if (lower[column][column] > 0) {
+        lower[row][column] = residual / lower[column][column];
+      } else if (Math.abs(residual) > tolerance) {
+        throw new Error('State covariance must be positive semidefinite.');
+      }
+    }
+  }
+
+  const transition = Array.from({ length: 6 }, (_, row) =>
+    Array.from({ length: 6 }, (_, column) => {
+      const basisPosition: Vector3 = [0, 0, 0];
+      const basisVelocity: Vector3 = [0, 0, 0];
+      if (column < 3) basisPosition[column] = 1;
+      else basisVelocity[column - 3] = 1;
+      const propagated = propagateCw(
+        { positionKm: basisPosition, velocityKmS: basisVelocity },
+        meanMotionRadS,
+        elapsedSeconds,
+      );
+      return row < 3 ? propagated.positionKm[row] : propagated.velocityKmS[row - 3];
+    }),
+  );
+
+  const left = transition.map(row =>
+    Array.from({ length: 6 }, (_, column) =>
+      row.reduce((sum, value, index) => sum + value * covariance[index][column], 0),
+    ),
+  );
+  return left.map((row, i) =>
+    row.map((_, j) =>
+      row.reduce((sum, value, k) => sum + value * transition[j][k], 0),
+    ),
+  );
+}
+
 /** Solve a 3x3 linear system with partial pivoting. */
 const solve3x3 = (matrix: number[][], rhs: number[]): Vector3 => {
   const augmented = matrix.map((row, index) => [...row, rhs[index]]);
