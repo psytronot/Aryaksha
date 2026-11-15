@@ -301,6 +301,62 @@ export function solveTwoImpulseRendezvous(
   };
 }
 
+export type CwImpulse = {
+  /** Time from the initial state epoch at which the ideal impulse is applied, seconds. */
+  elapsedSeconds: number;
+  /** Instantaneous velocity increment in the rotating LVLH axes, km/s. */
+  deltaVKmS: Vector3;
+};
+
+/**
+ * Propagate an HCW relative state through a sequence of instantaneous LVLH
+ * impulses. Each coast segment uses the same circular-chief HCW model; each
+ * impulse adds directly to rotating-frame relative velocity at its event time.
+ *
+ * This is an analytical impulsive model, not finite-burn execution or guidance.
+ * Maneuvers must be supplied in nondecreasing time order within [0, duration].
+ */
+export function propagateCwWithImpulses(
+  initial: RelativeState,
+  meanMotionRadS: number,
+  durationSeconds: number,
+  impulses: CwImpulse[],
+): RelativeState {
+  validateState(initial);
+  validateMeanMotionAndTime(meanMotionRadS, durationSeconds);
+  if (!Array.isArray(impulses)) {
+    throw new Error('Impulses must be supplied as an array.');
+  }
+
+  let state: RelativeState = {
+    positionKm: [...initial.positionKm],
+    velocityKmS: [...initial.velocityKmS],
+  };
+  let previousTime = 0;
+
+  for (const [index, impulse] of impulses.entries()) {
+    if (!impulse || typeof impulse !== 'object'
+        || !Number.isFinite(impulse.elapsedSeconds)
+        || impulse.elapsedSeconds < previousTime
+        || impulse.elapsedSeconds > durationSeconds) {
+      throw new Error('Impulse times must be finite, ordered and within the propagation interval.');
+    }
+    validateVector(`impulses[${index}].deltaVKmS`, impulse.deltaVKmS);
+    state = propagateCw(state, meanMotionRadS, impulse.elapsedSeconds - previousTime);
+    state = {
+      positionKm: state.positionKm,
+      velocityKmS: [
+        state.velocityKmS[0] + impulse.deltaVKmS[0],
+        state.velocityKmS[1] + impulse.deltaVKmS[1],
+        state.velocityKmS[2] + impulse.deltaVKmS[2],
+      ],
+    };
+    previousTime = impulse.elapsedSeconds;
+  }
+
+  return propagateCw(state, meanMotionRadS, durationSeconds - previousTime);
+}
+
 export type CwTrajectorySample = {
   /** Time from the initial state epoch, seconds. */
   elapsedSeconds: number;
