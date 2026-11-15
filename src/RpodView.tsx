@@ -1,7 +1,7 @@
 import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import { AlertTriangle, Orbit, Play, Satellite } from 'lucide-react';
 import { EARTH_RADIUS, MU } from './orbit';
-import { propagateCw, sampleCwTrajectory, solveTwoImpulseRendezvous, screenCwKeepOut, type RelativeState } from './rpod';
+import { propagateCw, sampleCwTrajectory, solveTwoImpulseRendezvous, screenCwKeepOut, propagateCwCovariance, type RelativeState } from './rpod';
 import { parseRpodMissionState, type RpodMissionState } from './rpodMissionState';
 
 type ScenarioInput = {
@@ -15,6 +15,8 @@ type ScenarioInput = {
   vzKmS: string;
   rendezvousMinutes: string;
   keepOutRadiusKm: string;
+  positionSigmaM: string;
+  velocitySigmaMmS: string;
 };
 
 const initialScenario: ScenarioInput = {
@@ -28,6 +30,8 @@ const initialScenario: ScenarioInput = {
   vzKmS: '-0.00005',
   rendezvousMinutes: '30',
   keepOutRadiusKm: '0.05',
+  positionSigmaM: '10',
+  velocitySigmaMmS: '1',
 };
 
 const numberValue = (value: string, label: string): number => {
@@ -51,6 +55,7 @@ export default function RpodView() {
     terminal: RelativeState;
     trajectory: ReturnType<typeof sampleCwTrajectory>;
     keepOutScreen: ReturnType<typeof screenCwKeepOut>;
+    terminalCovariance: number[][];
   } | null>(null);
   const [error, setError] = useState('');
   const [importedMissionState, setImportedMissionState] = useState<RpodMissionState | null>(null);
@@ -247,6 +252,21 @@ export default function RpodView() {
         trajectory,
         numberValue(input.keepOutRadiusKm, 'Keep-out radius'),
       );
+      const positionSigmaKm = numberValue(input.positionSigmaM, 'Position 1-sigma uncertainty') / 1000;
+      const velocitySigmaKmS = numberValue(input.velocitySigmaMmS, 'Velocity 1-sigma uncertainty') / 1_000_000;
+      if (positionSigmaKm < 0 || velocitySigmaKmS < 0) {
+        throw new Error('Navigation uncertainty values cannot be negative.');
+      }
+      const initialCovariance = Array.from({ length: 6 }, (_, row) =>
+        Array.from({ length: 6 }, (_, column) => row === column
+          ? (row < 3 ? positionSigmaKm ** 2 : velocitySigmaKmS ** 2)
+          : 0),
+      );
+      const terminalCovariance = propagateCwCovariance(
+        initialCovariance,
+        meanMotionRadS,
+        rendezvousTimeSeconds,
+      );
 
       setResult({
         meanMotionRadS,
@@ -259,6 +279,7 @@ export default function RpodView() {
         terminal,
         trajectory,
         keepOutScreen,
+        terminalCovariance,
       });
       setError('');
     } catch (cause) {
@@ -289,6 +310,8 @@ export default function RpodView() {
               <div className="field"><span><label htmlFor="rpod-chief-altitude"><span className="field-label">CHIEF ORBIT ALTITUDE</span></label><em>km</em></span><input id="rpod-chief-altitude" aria-label="Chief orbit altitude" type="number" min="1" step="any" required value={input.chiefAltitudeKm} onChange={event => update('chiefAltitudeKm', event.target.value)} /></div>
               <div className="field"><span><label htmlFor="rpod-rendezvous-time"><span className="field-label">RENDEZVOUS TIME</span></label><em>min</em></span><input id="rpod-rendezvous-time" aria-label="Rendezvous time" type="number" min="0.001" step="any" required value={input.rendezvousMinutes} onChange={event => update('rendezvousMinutes', event.target.value)} /></div>
               <div className="field"><span><label htmlFor="rpod-keepout-radius"><span className="field-label">PRE-TERMINAL KEEP-OUT RADIUS</span></label><em>km</em></span><input id="rpod-keepout-radius" aria-label="Pre-terminal keep-out radius" type="number" min="0.000001" step="any" required value={input.keepOutRadiusKm} onChange={event => update('keepOutRadiusKm', event.target.value)} /></div>
+              <div className="field"><span><label htmlFor="rpod-position-sigma"><span className="field-label">POSITION 1-SIGMA UNCERTAINTY</span></label><em>m</em></span><input id="rpod-position-sigma" aria-label="Position one sigma uncertainty" type="number" min="0" step="any" required value={input.positionSigmaM} onChange={event => update('positionSigmaM', event.target.value)} /></div>
+              <div className="field"><span><label htmlFor="rpod-velocity-sigma"><span className="field-label">VELOCITY 1-SIGMA UNCERTAINTY</span></label><em>mm/s</em></span><input id="rpod-velocity-sigma" aria-label="Velocity one sigma uncertainty" type="number" min="0" step="any" required value={input.velocitySigmaMmS} onChange={event => update('velocitySigmaMmS', event.target.value)} /></div>
               <div className="field"><span><label htmlFor="rpod-x"><span className="field-label">RADIAL SEPARATION</span></label><em>km</em></span><input id="rpod-x" aria-label="Radial separation" type="number" step="any" required value={input.xKm} onChange={event => update('xKm', event.target.value)} /></div>
               <div className="field"><span><label htmlFor="rpod-y"><span className="field-label">ALONG-TRACK SEPARATION</span></label><em>km</em></span><input id="rpod-y" aria-label="Along-track separation" type="number" step="any" required value={input.yKm} onChange={event => update('yKm', event.target.value)} /></div>
               <div className="field"><span><label htmlFor="rpod-z"><span className="field-label">CROSS-TRACK SEPARATION</span></label><em>km</em></span><input id="rpod-z" aria-label="Cross-track separation" type="number" step="any" required value={input.zKm} onChange={event => update('zKm', event.target.value)} /></div>
@@ -332,6 +355,12 @@ export default function RpodView() {
                 </svg>
                 <div className="stat-row"><span className="result-label">Green: post-departure state · amber: target rendezvous point</span><b>km</b></div>
               </div>
+              <div className="result-list">
+                <div className="stat-row"><span className="result-label">Terminal 3σ radial position uncertainty</span><b>{fixed(3 * Math.sqrt(Math.max(0, result.terminalCovariance[0][0])) * 1000, 2)} m</b></div>
+                <div className="stat-row"><span className="result-label">Terminal 3σ along-track position uncertainty</span><b>{fixed(3 * Math.sqrt(Math.max(0, result.terminalCovariance[1][1])) * 1000, 2)} m</b></div>
+                <div className="stat-row"><span className="result-label">Terminal 3σ cross-track position uncertainty</span><b>{fixed(3 * Math.sqrt(Math.max(0, result.terminalCovariance[2][2])) * 1000, 2)} m</b></div>
+              </div>
+              <div className="callout"><AlertTriangle size={15} /><span>Uncertainty is propagated from independent diagonal 1σ LVLH position/velocity inputs through the linear HCW state transition. Correlations, measurement updates and maneuver execution uncertainty are not included. These are not collision probabilities.</span></div>
               <div className="callout"><AlertTriangle size={15} /><span>{result.keepOutScreen.enteredKeepOut ? 'PRE-TERMINAL KEEP-OUT BREACH: ' : 'Pre-terminal keep-out screen clear: '}minimum sampled range {fixed(result.keepOutScreen.minimumPreTerminalRangeKm, 5)} km at T+{fixed(result.keepOutScreen.closestElapsedSeconds, 1)} s against {fixed(result.keepOutScreen.keepOutRadiusKm, 5)} km radius. Terminal coincidence is excluded. This is sampled geometry, not continuous-time or collision-probability certification.</span></div>
               <div className="result-list">
                 <div className="stat-row"><span className="result-label">Maneuver event · departure</span><b>T+00:00 · {fixed(result.departureDeltaVMagnitudeMps, 4)} m/s</b></div>
