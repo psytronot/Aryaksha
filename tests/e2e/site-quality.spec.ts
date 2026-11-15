@@ -13,6 +13,7 @@ test('mobile navigation remains usable without horizontal page overflow', async 
     expect(initialWidth.document, `document overflows at ${width}px`).toBeLessThanOrEqual(initialWidth.viewport);
     expect(initialWidth.body, `body overflows at ${width}px`).toBeLessThanOrEqual(initialWidth.viewport);
 
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
     await page.getByRole('button', { name: 'Open navigation' }).click();
     const mobileNavigation = page.getByRole('navigation', { name: 'Mobile navigation' });
     await expect(mobileNavigation).toBeVisible();
@@ -32,6 +33,7 @@ test('mobile navigation remains usable without horizontal page overflow', async 
 test('desktop software hub remains within the viewport', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await page.getByRole('button', { name: 'Software Products', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'First Customer Finder', exact: true })).toBeVisible();
 
