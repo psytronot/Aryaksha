@@ -70,7 +70,7 @@ export default function RpodView() {
     positionDifferenceM: number | null;
     velocityDifferenceMmS: number | null;
     epoch: string;
-    history: Array<{ elapsedSeconds: number; positionKm: number[]; velocityKmS: number[]; positionDifferenceM: number | null; velocityDifferenceMmS: number | null }>;
+    history: Array<{ elapsedSeconds: number; positionKm: number[]; velocityKmS: number[]; positionDifferenceM: number | null; velocityDifferenceMmS: number | null; positionResidualM: number[] | null; velocityResidualMmS: number[] | null }>;
   } | null>(null);
 
   const importMissionState = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -216,16 +216,20 @@ export default function RpodView() {
         const reference = hcwInitialState && hcwMeanMotion !== null
           ? propagateCw(hcwInitialState, hcwMeanMotion, sample.elapsedSeconds)
           : null;
+        const positionResidualM = reference
+          ? sample.relativeLvlh.positionKm.map((value, index) => (value - reference.positionKm[index]) * 1000)
+          : null;
+        const velocityResidualMmS = reference
+          ? sample.relativeLvlh.velocityKmS.map((value, index) => (value - reference.velocityKmS[index]) * 1_000_000)
+          : null;
         return {
           elapsedSeconds: sample.elapsedSeconds,
           positionKm: sample.relativeLvlh.positionKm,
           velocityKmS: sample.relativeLvlh.velocityKmS,
-          positionDifferenceM: reference
-            ? norm(sample.relativeLvlh.positionKm.map((value, index) => value - reference.positionKm[index])) * 1000
-            : null,
-          velocityDifferenceMmS: reference
-            ? norm(sample.relativeLvlh.velocityKmS.map((value, index) => value - reference.velocityKmS[index])) * 1_000_000
-            : null,
+          positionResidualM,
+          velocityResidualMmS,
+          positionDifferenceM: positionResidualM ? norm(positionResidualM) : null,
+          velocityDifferenceMmS: velocityResidualMmS ? norm(velocityResidualMmS) : null,
         };
       }) : [];
       setOrekitCheck({
@@ -563,21 +567,21 @@ export default function RpodView() {
                       <svg viewBox="0 0 600 190" role="img" aria-label="Orekit versus HCW position residual time series">
                         <line x1="24" y1="160" x2="576" y2="160" stroke="currentColor" opacity="0.25" />
                         {([0, 1, 2] as const).map((axis, series) => {
-                          const values = orekitCheck.history.map(sample => sample.positionDifferenceM === null ? 0 : Math.abs(sample.positionKm[axis] - (sample.positionKm[axis] - (sample.positionDifferenceM / 1000))));
-                          const peak = Math.max(...values, 0.000001);
-                          const points = values.map((value, index) => `${24 + index * 552 / (values.length - 1)},${155 - value / peak * 125}`).join(' ');
+                          const values = orekitCheck.history.map(sample => sample.positionResidualM?.[axis] ?? 0);
+                          const peak = Math.max(...values.map(Math.abs), 0.000001);
+                          const points = values.map((value, index) => `${24 + index * 552 / (values.length - 1)},${95 - value / peak * 65}`).join(' ');
                           return <polyline key={axis} points={points} fill="none" stroke={['#60a5fa', '#34d399', '#f59e0b'][series]} strokeWidth="2" />;
                         })}
                       </svg>
                       <div className="stat-row"><span className="result-label">Position residual norm</span><b>{fixed(orekitCheck.positionDifferenceM ?? 0, 4)} m at final epoch</b></div>
                       <svg viewBox="0 0 600 190" role="img" aria-label="Orekit versus HCW velocity residual time series">
                         <line x1="24" y1="160" x2="576" y2="160" stroke="currentColor" opacity="0.25" />
-                        {orekitCheck.history.some(sample => sample.velocityDifferenceMmS !== null) && (() => {
-                          const values = orekitCheck.history.map(sample => sample.velocityDifferenceMmS ?? 0);
+                        {([0, 1, 2] as const).map((axis, series) => {
+                          const values = orekitCheck.history.map(sample => sample.velocityResidualMmS?.[axis] ?? 0);
                           const peak = Math.max(...values.map(Math.abs), 0.000001);
                           const points = values.map((value, index) => `${24 + index * 552 / (values.length - 1)},${95 - value / peak * 65}`).join(' ');
-                          return <polyline points={points} fill="none" stroke="#a78bfa" strokeWidth="2" />;
-                        })()}
+                          return <polyline key={axis} points={points} fill="none" stroke={['#60a5fa', '#34d399', '#f59e0b'][series]} strokeWidth="2" />;
+                        })}
                       </svg>
                     </>
                   ) : (
