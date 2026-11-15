@@ -8,7 +8,7 @@ const app = express();
 const port = Number(process.env.PORT || 3000);
 const EARTH_RADIUS = 6378.137;
 const MAX_PROPAGATION_SECONDS = 604_800;
-const TLE_LINE_PATTERN = /^[12] [\\x20-\\x7e]{67}$/;
+const TLE_LINE_PATTERN = /^[12] [\x20-\x7e]{67}$/;
 
 app.disable('x-powered-by');
 // Render terminates TLS and forwards requests through one trusted proxy hop.
@@ -75,7 +75,7 @@ app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
     const finiteFields = (object, fields) => fields.every(field => typeof object?.[field] === 'number' && Number.isFinite(object[field]));
     const validPayload = payload && typeof payload === 'object' && !Array.isArray(payload) &&
       payload.valid === true && payload.engine === 'Orekit' &&
-      typeof payload.engineVersion === 'string' && /^\\d+\\.\\d+\\.\\d+$/.test(payload.engineVersion) &&
+      typeof payload.engineVersion === 'string' && /^\d+\.\\d+\\.\\d+$/.test(payload.engineVersion) &&
       payload.fidelity === 'Orekit numerical propagation (two-body)' &&
       Array.isArray(payload.assumptions) && payload.assumptions.length > 0 &&
       payload.assumptions.every(item => typeof item === 'string' && item.length > 0) &&
