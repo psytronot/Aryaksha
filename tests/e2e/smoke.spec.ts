@@ -49,6 +49,7 @@ test('RPOD workspace solves HCW and cross-checks relative propagation with Oreki
   await expect(page.getByRole('heading', { name: 'Design a preliminary rendezvous.' })).toBeVisible();
   await page.getByRole('button', { name: 'Solve two-impulse rendezvous', exact: true }).click();
   await expect(page.getByText(/total ideal impulsive Δv/)).toBeVisible();
+  await expect(page.getByText(/Maximum sampled separation \/ chief radius/)).toBeVisible();
   await page.getByRole('button', { name: 'Cross-check initial propagation (no burns) against Orekit', exact: true }).click();
 
   await expect(page.getByText('Orekit propagated LVLH position')).toBeVisible();
@@ -132,7 +133,8 @@ test('RPOD imports EME2000 mission states and forwards their TAI epoch', async (
     target: mission.target,
     chaser: mission.chaser,
     elapsedSeconds: 1800,
-    epochTai: '2026-11-15T12:05:00'
+    epochTai: '2026-11-15T12:05:00',
+    historySamples: 21
   });
   await expect(page.getByText('Orekit vs HCW position difference')).toHaveCount(0);
 
