@@ -62,6 +62,14 @@ describe('RPOD mission-state import contract', () => {
     expect(() => parseRpodMissionState(' '.repeat(64 * 1024 + 1))).toThrow(/64 KiB/);
   });
 
+  it('rejects an orbit whose current radius is safe but osculating periapsis intersects Earth', () => {
+    const earthIntersecting = {
+      ...validMission,
+      target: { positionKm: [7000, 0, 0], velocityKmS: [0, 6, 0] },
+    };
+    expect(() => parseRpodMissionState(JSON.stringify(earthIntersecting))).toThrow(/periapsis intersects Earth/);
+  });
+
   it('rejects unknown fields to keep the import contract explicit', () => {
     expect(() => parseRpodMissionState(JSON.stringify({ ...validMission, surprise: true })))
       .toThrow(/unexpected/);
