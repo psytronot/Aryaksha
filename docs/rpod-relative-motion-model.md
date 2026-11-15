@@ -23,7 +23,7 @@ v_rel_LVLH = C_LVLH_ECI * ((v_chaser - v_target) - omega_LVLH x (r_chaser - r_ta
 
 `propagateCw(state, n, t)` implements closed-form Clohessy–Wiltshire / Hill propagation for a circular chief orbit and constant mean motion. Units are km, km/s, rad/s and seconds.
 
-The UI includes single-impulse position targeting and a two-impulse terminal velocity-matching calculation. The second impulse is applied at the same instant as position coincidence. It is a mathematical boundary-condition solver, not a safe approach or docking guidance law.
+`sampleCwTrajectory(state, n, duration, intervalCount)` returns uniformly spaced LVLH states including both the initial and final epochs. The RPOD workspace samples the post-departure-burn HCW transfer at 40 intervals and plots radial versus along-track position; the plot is a planar projection, not a 3D approach corridor or safety assessment.\n\nThe UI includes single-impulse position targeting and a two-impulse terminal velocity-matching calculation. The second impulse is applied at the same instant as position coincidence. It is a mathematical boundary-condition solver, not a safe approach or docking guidance law.
 
 ### Orekit dual-spacecraft layer
 
