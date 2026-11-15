@@ -231,7 +231,7 @@ export function propagateCwCovariance(
       row.reduce((sum, value, index) => sum + value * covariance[index][column], 0),
     ),
   );
-  return left.map((row, i) =>
+  return left.map(row =>
     row.map((_, j) =>
       row.reduce((sum, value, k) => sum + value * transition[j][k], 0),
     ),
