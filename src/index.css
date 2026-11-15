@@ -198,3 +198,18 @@ html.aryaksha-app-active pwa-install {
 .software-demo-header{background:rgba(255,255,255,.025);color:rgba(232,242,248,.48);font:7px ui-monospace,monospace;letter-spacing:.5px}
 .software-demo-note{margin:11px 0 0;color:rgba(232,242,248,.48);font-size:8px;line-height:1.65}
 @media(max-width:650px){.software-demo{padding:14px}.software-demo-heading{display:block}.software-demo-tag{display:inline-block;margin-top:10px}.software-demo-row{grid-template-columns:1fr .75fr;gap:7px}.software-demo-row>span:nth-child(2){grid-column:1/-1;grid-row:2}.software-demo-header>span:nth-child(2){grid-column:1/-1;grid-row:2}.software-demo-header>span:nth-child(3){grid-column:2;grid-row:1}}
+
+
+.finder-intake{margin-top:16px;padding:19px;border:1px solid rgba(81,221,255,.2);border-radius:14px;background:rgba(81,221,255,.025)}
+.finder-intake-form{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px;align-items:end}
+.finder-intake-form label{display:flex;flex-direction:column;gap:7px;color:#fff;font-size:10px;font-weight:600}
+.finder-intake-form input,.finder-intake-form textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;background:rgba(0,0,0,.22);color:#fff;padding:10px;font:10px/1.55 inherit;resize:vertical}
+.finder-intake-form input:focus,.finder-intake-form textarea:focus{outline:2px solid rgba(81,221,255,.4);outline-offset:1px}
+.finder-intake-form input::placeholder,.finder-intake-form textarea::placeholder{color:rgba(232,242,248,.35)}
+.finder-intake-form button{grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;gap:8px}
+.finder-intake-error{grid-column:1/-1;margin:0;color:#ffbf5a;font-size:10px}
+.finder-brief-result{margin-top:15px;padding:15px;border:1px solid rgba(66,223,130,.22);border-radius:10px;background:rgba(66,223,130,.035)}
+.finder-brief-result h3{margin:0;color:#fff;font-size:15px}
+.finder-brief-result p{margin:8px 0 0;color:var(--muted);font-size:10px;line-height:1.6;overflow-wrap:anywhere}
+.finder-brief-result p b{color:#fff}
+@media(max-width:760px){.finder-intake{padding:14px}.finder-intake-form{grid-template-columns:1fr}.finder-intake-form button{grid-column:1}}
