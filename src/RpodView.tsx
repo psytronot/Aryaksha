@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { AlertTriangle, Orbit, Play, Satellite } from 'lucide-react';
 import { EARTH_RADIUS, MU } from './orbit';
-import { propagateCw, solveTwoImpulseRendezvous, type RelativeState } from './rpod';
+import { solveTwoImpulseRendezvous, type RelativeState } from './rpod';
 
 type ScenarioInput = {
   chiefAltitudeKm: string;
