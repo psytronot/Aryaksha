@@ -274,33 +274,47 @@ function parseBusinessCsv(raw: string) {
   let row: string[] = [];
   let field = '';
   let quoted = false;
+  let closedQuote = false;
 
   for (let i = 0; i < raw.length; i += 1) {
     const char = raw[i];
     if (char === '"' && quoted && raw[i + 1] === '"') {
       field += '"';
       i += 1;
-    } else if (char === '"') {
-      quoted = !quoted;
+    } else if (char === '"' && quoted) {
+      quoted = false;
+      closedQuote = true;
+    } else if (char === '"' && !quoted && field.length === 0 && !closedQuote) {
+      quoted = true;
     } else if (char === ',' && !quoted) {
       row.push(field);
       field = '';
+      closedQuote = false;
     } else if ((char === '\n' || char === '\r') && !quoted) {
       if (char === '\r' && raw[i + 1] === '\n') i += 1;
       row.push(field);
       if (row.some(value => value.trim())) rows.push(row);
       row = [];
       field = '';
+      closedQuote = false;
     } else {
+      if (closedQuote) throw new Error('Unexpected characters after a closing quote.');
+      if (char === '"' && !quoted) throw new Error('A quoted field must start with a quote at the beginning of the field.');
       field += char;
     }
   }
+
+  if (quoted) throw new Error('The CSV contains an unclosed quoted field.');
   row.push(field);
   if (row.some(value => value.trim())) rows.push(row);
-  if (quoted) throw new Error('The CSV contains an unclosed quoted field.');
   if (rows.length < 2) throw new Error('Add a header row and at least one organisation.');
 
   const headers = rows[0].map(value => value.trim().toLowerCase());
+  if (new Set(headers).size !== headers.length) throw new Error('The CSV contains duplicate column names.');
+  if (rows.slice(1).some(values => values.length !== headers.length)) {
+    throw new Error('Every CSV row must have the same number of columns as the header.');
+  }
+
   const companyIndex = headers.findIndex(value => ['company', 'company name', 'business name', 'organisation', 'organization', 'name'].includes(value));
   const websiteIndex = headers.findIndex(value => ['website', 'site', 'url', 'company website'].includes(value));
   const cityIndex = headers.findIndex(value => ['city', 'location', 'region'].includes(value));
