@@ -57,12 +57,12 @@ describe('website quality checklist', () => {
   it('ships GEO guidance with deployment and scientific-accuracy guardrails', () => {
     expect(geoSkill).toContain('not a flight-critical or certified system');
     expect(geoSkill).toContain('llms.txt');
-    expect(geoSkill).toContain('never promise rankings');
+    expect(geoSkill).toContain('Never promise rankings');
     expect(geoChecklist).toContain('Structured data is valid and matches visible facts');
   });
 
   it('ships a distinct conventional SEO skill coordinated with GEO', () => {
-    expect(seoSkill).toContain('Conventional search SEO');
+    expect(seoSkill).toContain('conventional search SEO');
     expect(seoSkill).toContain('not a certified or flight-critical system');
     expect(seoChecklist).toContain('Sitemap contains only canonical');
     expect(seoSkill).toContain('geo-seo');
