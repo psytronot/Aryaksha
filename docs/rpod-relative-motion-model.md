@@ -74,7 +74,14 @@ Orekit controller tests cover:
 3. Add maneuver-aware Orekit propagation so the numerical comparison can evaluate departure and arrival impulses, rather than only the unburned initial state.
 4. Add multi-impulse and finite-burn sequencing with thrust, mass, attitude and actuator constraints; the current maneuver sequence is analytical and impulsive only.
 5. Upgrade the sampled pre-terminal keep-out sphere indicator to continuous-time approach-corridor and collision screening; extend the current diagonal-only uncertainty model to correlated covariance, measurement updates and maneuver uncertainty.
-6. Add capture/docking terminal constraints and report export with assumptions, units, tolerances and model fidelity.
+6. Add capture/docking terminal constraints and extend the versioned JSON report with review metadata and additional verification provenance.
 7. Configure and run a separate staging deployment smoke test; the production-linked live integration job remains skipped on pull requests.
 
 Do not describe the current implementation as a complete RPOD simulator or flight-ready rendezvous solution.
+
+
+## Engineering report export
+
+The RPOD results panel exports a versioned JSON engineering record (`aryaksha.rpod-engineering-report/v1`) using `src/rpodReport.ts`. The report includes the TAI mission epoch, manual LVLH input state, chief-orbit/HCW assumptions, both ideal instantaneous maneuver vectors and magnitudes, total delta-v, all 41 sampled relative trajectory states, sampled pre-terminal keep-out result, diagonal-covariance terminal 3-sigma position bounds, and any Orekit cross-check result available at export time. The schema and serializer are covered by `tests/rpodReport.test.ts`.
+
+The report explicitly records that it is not safe-approach or docking guidance, that terminal velocity matching is an instantaneous burn at the position-coincidence epoch, that keep-out screening is sampled rather than continuous-time, and that the diagonal uncertainty model does not calculate collision probability. Imported EME2000 mission states are used for the Orekit cross-check only; the current two-impulse design solution remains based on the manually entered LVLH state. The export identifies that distinction rather than implying the imported state was used by the HCW solver.
