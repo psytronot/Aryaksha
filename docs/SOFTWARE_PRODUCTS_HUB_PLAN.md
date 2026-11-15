@@ -106,3 +106,14 @@ The current Arakshya engineering application is the Aryaksha repository: https:/
 - [x] Latest CI web build, TypeScript check, unit tests, Orekit service tests and CodeQL passed.
 - [ ] Resolve or isolate the unrelated Earth 3D browser-test timeout (43 browser tests passed; one existing timeline-toggle test timed out while clicking an already-visible control).
 - [ ] Pilot with schools, colleges, and individual users.
+
+
+## Implemented preview workflow (2026-11-15)
+
+The current branch includes a local-first preview of the First Customer Finder:
+- Intake validates an offer, intended customer and geography, then creates a downloadable Markdown research brief.
+- The report walkthrough identifies the evidence fields required for a genuine result: original source, publication/checked dates, evidence quality, confidence, fit rationale and a human-reviewed next step.
+- A separate user-supplied CSV utility parses and previews business rows locally in the browser, removes duplicates, applies a 2 MB limit, neutralizes spreadsheet formula prefixes on export and downloads a cleaned CSV.
+- Neither flow performs live web research, uploads the user's CSV, scrapes Google Maps, enriches private contact details or sends outreach.
+
+This preview is suitable for demonstrating the intended workflow, not for claiming the hosted First Customer Finder is live. Live research remains gated on written provider approval, authentication, tenant isolation, durable job controls and a lawful retention/export policy.
