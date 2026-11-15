@@ -109,6 +109,14 @@ class RpodAnalysisControllerTest {
     }
 
     @Test
+    void rejectsTimezoneQualifiedEpochInsteadOfTreatingUtcAsTai() {
+        var state = new RpodAnalysisController.CartesianState(
+            new double[] {7000, 0, 0}, new double[] {0, 7.54605329, 0});
+        assertThrows(IllegalArgumentException.class, () -> controller.relativeState(
+            new RpodAnalysisController.RpodRequest(state, state, 0.0, "2026-11-15T12:00:00Z")));
+    }
+
+    @Test
     void rejectsMalformedExplicitTaiMissionEpoch() {
         var state = new RpodAnalysisController.CartesianState(
             new double[] {7000, 0, 0}, new double[] {0, 7.54605329, 0});
