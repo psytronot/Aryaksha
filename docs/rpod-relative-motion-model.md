@@ -77,7 +77,7 @@ Orekit controller tests cover:
 5. Upgrade the sampled pre-terminal keep-out sphere indicator to continuous-time approach-corridor and collision screening; extend the current diagonal-only uncertainty model to correlated covariance, measurement updates and maneuver uncertainty.
 6. Add capture/docking terminal constraints and extend the versioned JSON report with review metadata and additional verification provenance.
 7. Configure and run a separate staging deployment smoke test; the production-linked live integration job remains skipped on pull requests.
-8. Add adaptive continuous-time HCW keep-out screening; the existing configurable sphere test remains sampled-only.
+8. Add maneuver-aware Orekit propagation and finite-burn sequencing; the HCW keep-out feature now brackets stationary points of the analytical range function, but remains a numerical model screen rather than collision certification.
 
 Do not describe the current implementation as a complete RPOD simulator or flight-ready rendezvous solution.
 
@@ -105,3 +105,8 @@ The engineering report optionally retains each Orekit history sample, residual n
 ## HCW separation screening indicator
 
 The RPOD results include the maximum sampled relative separation divided by the chief-orbit radius. A 1% ratio is displayed as a review trigger only. It is a heuristic intended to prompt scrutiny of the small-separation linearization assumption; it is not a universal HCW accuracy boundary, a validated operating envelope or a safety criterion.
+
+
+## Numerical pre-terminal keep-out search
+
+`screenCwKeepOutContinuous` evaluates the analytical HCW state and brackets stationary points of squared range using the sign change of `rho · rhoDot`. It refines each bracket by bisection, checks pre-terminal endpoints, excludes the forced terminal coincidence, and reports the number of stationary minima found plus whether the 50,000-interval search cap limited resolution. The interval spacing is bounded by both a 10-second maximum and 1/32 of the chief orbital angular half-period scale. This is a numerical stationary-point search over the HCW model, not a formal continuous-time collision certificate; missed brackets, model error and unmodelled forces remain possible.
