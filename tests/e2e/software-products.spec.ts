@@ -168,3 +168,42 @@ test('CSV cleanup enforces the 2 MB upload limit', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText('Choose a CSV smaller than 2 MB.');
   await expect(page.getByRole('button', { name: 'Download cleaned CSV' })).toHaveCount(0);
 });
+
+
+test('Finder rejects whitespace-only briefs and keeps intake fields bounded', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+
+  const offer = page.getByLabel('What are you offering?');
+  const customer = page.getByLabel('Who should benefit?');
+  const geography = page.getByLabel('Where should we research?');
+  await expect(offer).toHaveAttribute('maxlength', '1200');
+  await expect(customer).toHaveAttribute('maxlength', '300');
+  await expect(geography).toHaveAttribute('maxlength', '160');
+
+  await offer.fill('   ');
+  await customer.fill('Engineering colleges');
+  await geography.fill('India');
+  await page.getByRole('button', { name: 'Prepare research brief' }).click();
+  await expect(page.getByRole('alert')).toContainText('Add your offer, intended customer and geography');
+  await expect(page.getByRole('heading', { name: 'Research brief ready' })).toHaveCount(0);
+});
+
+test('CSV cleanup rejects duplicate headers and unclosed quoted fields', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+
+  await page.getByLabel('Upload a business CSV').setInputFiles({
+    name: 'duplicate-headers.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Company,company\nAcme,Acme')
+  });
+  await expect(page.getByRole('alert')).toContainText('duplicate column names');
+
+  await page.getByLabel('Upload a business CSV').setInputFiles({
+    name: 'unclosed.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Company,Website\n"Acme Robotics,https://acme.example')
+  });
+  await expect(page.getByRole('alert')).toContainText('unclosed quoted field');
+});
