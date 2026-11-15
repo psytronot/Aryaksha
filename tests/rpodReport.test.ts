@@ -66,6 +66,30 @@ describe('RPOD engineering report', () => {
     expect(parsed.mission.importedMissionState.target.positionKm).toEqual([7000, 0, 0]);
   });
 
+  it('preserves signed Orekit-versus-HCW residual time series and component units', () => {
+    const withResiduals = {
+      ...report,
+      orekitCrossCheck: {
+        performed: true,
+        epochTai: '2026-11-15T12:15:00',
+        positionDifferenceM: 2.5,
+        velocityDifferenceMmS: 0.4,
+        history: [{
+          elapsedSeconds: 0,
+          positionKm: [0.1, -0.2, 0.05],
+          velocityKmS: [0.0001, 0.0002, -0.00005],
+          positionDifferenceM: 2.5,
+          velocityDifferenceMmS: 0.4,
+          positionResidualM: [1.5, -1.2, 1.6],
+          velocityResidualMmS: [0.2, -0.1, 0.34],
+        }],
+      },
+    };
+    const parsed = JSON.parse(serializeRpodEngineeringReport(withResiduals));
+    expect(parsed.orekitCrossCheck.history[0].positionResidualM).toEqual([1.5, -1.2, 1.6]);
+    expect(parsed.orekitCrossCheck.history[0].velocityResidualMmS).toEqual([0.2, -0.1, 0.34]);
+  });
+
   it('rejects missing provenance, model limitations, or trajectory history', () => {
     expect(() => serializeRpodEngineeringReport({ ...report, mission: { ...report.mission, epochTai: '' } })).toThrow(/provenance/);
     expect(() => serializeRpodEngineeringReport({ ...report, engineeringLimitations: [] })).toThrow(/provenance/);
