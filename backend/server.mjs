@@ -75,7 +75,7 @@ app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
     const finiteFields = (object, fields) => fields.every(field => typeof object?.[field] === 'number' && Number.isFinite(object[field]));
     const validPayload = payload && typeof payload === 'object' && !Array.isArray(payload) &&
       payload.valid === true && payload.engine === 'Orekit' &&
-      typeof payload.engineVersion === 'string' && /^\\d+\\.\\d+\\.\\d+$/.test(payload.engineVersion) &&
+      typeof payload.engineVersion === 'string' && /^\d+\.\d+\.\d+$/.test(payload.engineVersion) &&
       payload.fidelity === 'Orekit numerical propagation (two-body)' &&
       Array.isArray(payload.assumptions) && payload.assumptions.length > 0 &&
       payload.assumptions.every(item => typeof item === 'string' && item.length > 0) &&
