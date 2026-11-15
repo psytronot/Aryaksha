@@ -232,3 +232,7 @@ html.aryaksha-app-active pwa-install {
 .software-evidence-grid b{color:var(--cyan);font:7px ui-monospace,monospace;letter-spacing:.55px}
 .software-evidence-grid span{color:var(--muted);font-size:9px;line-height:1.5}
 @media(max-width:650px){.software-evidence-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.finder-template-button{display:inline-flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid var(--line);border-radius:7px;background:rgba(255,255,255,.025);color:var(--text);font:600 9px ui-monospace,monospace;cursor:pointer}
+.finder-template-button:hover{border-color:var(--cyan);color:var(--cyan)}
+.finder-template-button:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
