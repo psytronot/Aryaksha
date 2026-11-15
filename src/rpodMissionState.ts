@@ -39,6 +39,7 @@ const parseCartesianState = (value: unknown, label: string): RpodMissionCartesia
  * referenced to the supplied ISO-8601 epoch interpreted as TAI.
  */
 export function parseRpodMissionState(source: string): RpodMissionState {
+  if (source.length > 64 * 1024) throw new Error('Mission-state file exceeds the 64 KiB limit.');
   let parsed: unknown;
   try {
     parsed = JSON.parse(source);
