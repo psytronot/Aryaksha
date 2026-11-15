@@ -57,8 +57,8 @@ export default function RpodView() {
   const [orekitCheck, setOrekitCheck] = useState<{
     positionKm: number[];
     velocityKmS: number[];
-    positionDifferenceM: number;
-    velocityDifferenceMmS: number;
+    positionDifferenceM: number | null;
+    velocityDifferenceMmS: number | null;
     epoch: string;
   } | null>(null);
 
@@ -123,6 +123,8 @@ export default function RpodView() {
       let targetVelocityKmS: [number, number, number];
       let chaserPositionKm: [number, number, number];
       let chaserVelocityKmS: [number, number, number];
+      let hcwInitialState: RelativeState | null = null;
+      let hcwMeanMotion: number | null = null;
 
       if (importedMissionState) {
         targetPositionKm = importedMissionState.target.positionKm;
@@ -134,6 +136,7 @@ export default function RpodView() {
         if (altitude <= 0) throw new Error('Chief altitude must be positive.');
         const radiusKm = EARTH_RADIUS + altitude;
         const meanMotion = Math.sqrt(MU / radiusKm ** 3);
+        hcwMeanMotion = meanMotion;
         targetPositionKm = [radiusKm, 0, 0];
         targetVelocityKmS = [0, Math.sqrt(MU / radiusKm), 0];
         const relativePosition: [number, number, number] = [
@@ -146,6 +149,7 @@ export default function RpodView() {
           numberValue(input.vyKmS, 'Along-track relative velocity'),
           numberValue(input.vzKmS, 'Cross-track relative velocity'),
         ];
+        hcwInitialState = { positionKm: relativePosition, velocityKmS: relativeVelocity };
         chaserPositionKm = [
           targetPositionKm[0] + relativePosition[0],
           targetPositionKm[1] + relativePosition[1],
@@ -171,13 +175,19 @@ export default function RpodView() {
       if (!response.ok) throw new Error(payload.error || `Orekit request failed (HTTP ${response.status}).`);
       const orekitPosition = payload.relativeLvlh.positionKm as number[];
       const orekitVelocity = payload.relativeLvlh.velocityKmS as number[];
-      const cw = propagateCw({ positionKm: relativePosition, velocityKmS: relativeVelocity }, meanMotion, elapsedSeconds);
+      const cw = hcwInitialState && hcwMeanMotion !== null
+        ? propagateCw(hcwInitialState, hcwMeanMotion, elapsedSeconds)
+        : null;
       const norm = (values: number[]) => Math.hypot(...values);
       setOrekitCheck({
         positionKm: orekitPosition,
         velocityKmS: orekitVelocity,
-        positionDifferenceM: norm(orekitPosition.map((value, index) => value - cw.positionKm[index])) * 1000,
-        velocityDifferenceMmS: norm(orekitVelocity.map((value, index) => value - cw.velocityKmS[index])) * 1_000_000,
+        positionDifferenceM: cw
+          ? norm(orekitPosition.map((value, index) => value - cw.positionKm[index])) * 1000
+          : null,
+        velocityDifferenceMmS: cw
+          ? norm(orekitVelocity.map((value, index) => value - cw.velocityKmS[index])) * 1_000_000
+          : null,
         epoch: payload.epoch,
       });
     } catch (cause) {
@@ -326,8 +336,8 @@ export default function RpodView() {
               </button>
               {orekitError && <div className="callout"><AlertTriangle size={15} /><span>{orekitError}</span></div>}
               {orekitCheck && <div className="result-list">
-                <div className="stat-row"><span className="result-label">Orekit vs HCW position difference</span><b>{fixed(orekitCheck.positionDifferenceM, 4)} m</b></div>
-                <div className="stat-row"><span className="result-label">Orekit vs HCW velocity difference</span><b>{fixed(orekitCheck.velocityDifferenceMmS, 4)} mm/s</b></div>
+                {orekitCheck.positionDifferenceM !== null && <div className="stat-row"><span className="result-label">Orekit vs HCW position difference</span><b>{fixed(orekitCheck.positionDifferenceM, 4)} m</b></div>}
+                {orekitCheck.velocityDifferenceMmS !== null && <div className="stat-row"><span className="result-label">Orekit vs HCW velocity difference</span><b>{fixed(orekitCheck.velocityDifferenceMmS, 4)} mm/s</b></div>}
                 <div className="stat-row"><span className="result-label">Orekit propagated LVLH position</span><b>{orekitCheck.positionKm.map(value => fixed(value, 8)).join(', ')} km</b></div>
                 <div className="stat-row"><span className="result-label">Orekit propagated LVLH velocity</span><b>{orekitCheck.velocityKmS.map(value => fixed(value, 10)).join(', ')} km/s</b></div>
                 <div className="stat-row"><span className="result-label">Orekit epoch (TAI)</span><b>{orekitCheck.epoch}</b></div>
