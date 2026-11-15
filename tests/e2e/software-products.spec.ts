@@ -142,3 +142,29 @@ test('cleaned CSV neutralizes spreadsheet formula prefixes in exported cells', a
   expect(exported).toContain("'+Bengaluru");
   expect(exported).not.toContain(',"+Bengaluru"');
 });
+
+
+test('CSV cleanup handles a UTF-8 BOM, quoted commas and escaped quotes', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+  await page.getByLabel('Upload a business CSV').setInputFiles({
+    name: 'quoted.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('\uFEFFCompany,Website,City\n"Acme, Robotics",https://acme.example,Bengaluru\n"Quote ""Lab""",,Pune')
+  });
+  await expect(page.getByText('2 unique organisations')).toBeVisible();
+  await expect(page.getByText('Acme, Robotics', { exact: true })).toBeVisible();
+  await expect(page.getByText('Quote "Lab"', { exact: true })).toBeVisible();
+});
+
+test('CSV cleanup enforces the 2 MB upload limit', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+  await page.getByLabel('Upload a business CSV').setInputFiles({
+    name: 'oversized.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.alloc(2_000_001, 65)
+  });
+  await expect(page.getByRole('alert')).toContainText('Choose a CSV smaller than 2 MB.');
+  await expect(page.getByRole('button', { name: 'Download cleaned CSV' })).toHaveCount(0);
+});
