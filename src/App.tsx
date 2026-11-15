@@ -276,9 +276,11 @@ function SoftwareProductsView() {
   const [csvError, setCsvError] = useState('');
 
   const handleCsvUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0];
+    const input = event.currentTarget;
+    const file = input.files?.[0];
     setCsvResult(null);
     setCsvError('');
+    input.value = '';
     if (!file) return;
     if (file.size > 2_000_000) {
       setCsvError('Choose a CSV smaller than 2 MB.');
@@ -407,8 +409,8 @@ function SoftwareProductsView() {
       <div className="software-demo-heading"><div><span className="software-hub-kicker">USER-SUPPLIED DATA · LOCAL ONLY</span><h2 id="csv-cleanup-title">Clean an existing business CSV</h2><p>Use data you already have permission to process. This tool does not scrape Google Maps, enrich private contacts or upload your file.</p></div><span className="software-demo-tag">NO SERVER UPLOAD</span></div>
       <div className="finder-csv-controls">
         <label htmlFor="business-csv-upload">Upload a business CSV</label>
-        <input id="business-csv-upload" aria-label="Upload a business CSV" type="file" accept=".csv,text/csv" onChange={handleCsvUpload} />
-        <small>Maximum file size: 2 MB · 10,000 data rows · 50 columns · 4,096 characters per cell. Expected header: Company, Business Name or Name. Website and City are optional.</small>
+        <input id="business-csv-upload" aria-label="Upload a business CSV" aria-describedby="business-csv-help" type="file" accept=".csv,text/csv" onChange={handleCsvUpload} />
+        <small id="business-csv-help">Maximum file size: 2 MB · 10,000 data rows · 50 columns · 4,096 characters per cell. Expected header: Company, Business Name or Name. Website and City are optional.</small>
       </div>
       {csvError && <p className="finder-intake-error" role="alert">{csvError}</p>}
       {csvResult && <div className="finder-brief-result" aria-live="polite">
