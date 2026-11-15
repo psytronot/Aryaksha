@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 
 test('software products hub is reachable and presents honest product availability', async ({ page }) => {
   const pageErrors: string[] = [];
@@ -98,4 +99,46 @@ test('CSV cleanup rejects files without a recognised organisation column', async
   });
   await expect(page.getByRole('alert')).toContainText('Add a Company, Business Name or Name column.');
   await expect(page.getByRole('button', { name: 'Download cleaned CSV' })).toHaveCount(0);
+});
+
+
+test('CSV cleanup rejects malformed quoting and inconsistent row widths', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+
+  await page.getByLabel('Upload a business CSV').setInputFiles({
+    name: 'malformed.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Company,Website\nAcme "Robotics",https://acme.example')
+  });
+  await expect(page.getByRole('alert')).toContainText('A quoted field must start with a quote');
+
+  await page.getByLabel('Upload a business CSV').setInputFiles({
+    name: 'uneven.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Company,Website,City\nAcme Robotics,https://acme.example')
+  });
+  await expect(page.getByRole('alert')).toContainText('Every CSV row must have the same number of columns');
+  await expect(page.getByRole('button', { name: 'Download cleaned CSV' })).toHaveCount(0);
+});
+
+test('cleaned CSV neutralizes spreadsheet formula prefixes in exported cells', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+  await page.getByLabel('Upload a business CSV').setInputFiles({
+    name: 'formula.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Company,Website,City\n=HYPERLINK("https://bad.example"),https://safe.example,+Bengaluru')
+  });
+
+  await expect(page.getByRole('button', { name: 'Download cleaned CSV' })).toBeVisible();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download cleaned CSV' }).click();
+  const download = await downloadPromise;
+  const path = await download.path();
+  expect(path).toBeTruthy();
+  const exported = await readFile(path!, 'utf8');
+  expect(exported).toContain("'=HYPERLINK");
+  expect(exported).toContain("'+Bengaluru");
+  expect(exported).not.toContain(',"+Bengaluru"');
 });
