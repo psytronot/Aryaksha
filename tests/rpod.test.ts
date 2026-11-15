@@ -285,7 +285,7 @@ describe('RPOD relative-motion foundation', () => {
     expect(propagated[0][1]).toBeCloseTo(propagated[1][0], 12);
     expect(propagated[3][3]).toBeGreaterThan(0);
     expect(() => propagateCwCovariance([[1]], 0.001, 120)).toThrow(/6 by 6/);
-    const nonPsd = Array.from({ length: 6 }, (_, row) =>
+    const nonPsd: number[][] = Array.from({ length: 6 }, (_, row) =>
       Array.from({ length: 6 }, (_, column) => row === column ? 1 : 0),
     );
     nonPsd[0][1] = 2;
