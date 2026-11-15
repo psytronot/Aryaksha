@@ -183,3 +183,18 @@ html.aryaksha-app-active pwa-install {
 .software-hub-bottom b{display:block;color:#fff;font-size:11px;line-height:1.5}
 .software-hub-disclaimer{margin:15px 0 0;color:rgba(232,242,248,.43);font-size:8px;line-height:1.7}
 @media(max-width:760px){.software-hub-intro,.software-hub-grid,.software-hub-bottom{grid-template-columns:1fr}.software-hub-payment{border-left:0;border-top:1px solid var(--line);padding:14px 0 0}.software-hub-card>p:not(.software-hub-eyebrow){min-height:0}.software-hub-card h2{font-size:20px}}
+
+
+.software-demo{margin-top:16px;padding:19px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.018)}
+.software-demo-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
+.software-demo-heading h2{margin:0;color:#fff;font-size:17px;letter-spacing:-.35px}
+.software-demo-heading p{margin:7px 0 0;color:var(--muted);font-size:9px;line-height:1.6}
+.software-demo-tag{flex:none;border:1px solid rgba(255,191,90,.28);border-radius:999px;padding:6px 9px;color:var(--amber);font:7px ui-monospace,monospace;letter-spacing:.7px}
+.software-demo-table{border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.software-demo-row{display:grid;grid-template-columns:1fr 1.25fr .55fr;gap:12px;align-items:center;padding:11px 13px;border-top:1px solid var(--line);color:var(--muted);font-size:9px;line-height:1.5}
+.software-demo-row:first-child{border-top:0}
+.software-demo-row b{color:#fff;font-size:9px}
+.software-demo-row strong{color:var(--cyan);font:700 9px ui-monospace,monospace}
+.software-demo-header{background:rgba(255,255,255,.025);color:rgba(232,242,248,.48);font:7px ui-monospace,monospace;letter-spacing:.5px}
+.software-demo-note{margin:11px 0 0;color:rgba(232,242,248,.48);font-size:8px;line-height:1.65}
+@media(max-width:650px){.software-demo{padding:14px}.software-demo-heading{display:block}.software-demo-tag{display:inline-block;margin-top:10px}.software-demo-row{grid-template-columns:1fr .75fr;gap:7px}.software-demo-row>span:nth-child(2){grid-column:1/-1;grid-row:2}.software-demo-header>span:nth-child(2){grid-column:1/-1;grid-row:2}.software-demo-header>span:nth-child(3){grid-column:2;grid-row:1}}
