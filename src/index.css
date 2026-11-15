@@ -236,3 +236,6 @@ html.aryaksha-app-active pwa-install {
 .finder-template-button{display:inline-flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid var(--line);border-radius:7px;background:rgba(255,255,255,.025);color:var(--text);font:600 9px ui-monospace,monospace;cursor:pointer}
 .finder-template-button:hover{border-color:var(--cyan);color:var(--cyan)}
 .finder-template-button:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+
+.app-footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 22px;padding:18px 30px;border-top:1px solid var(--line);color:var(--muted);font:8px ui-monospace,monospace;letter-spacing:.35px;background:rgba(5,8,12,.72)}
+@media(max-width:640px){.app-footer{padding:16px 18px;flex-direction:column;gap:7px}}
