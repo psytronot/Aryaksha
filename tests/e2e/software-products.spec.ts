@@ -76,3 +76,16 @@ test('user-supplied business CSV is processed locally and duplicate rows are rep
   await expect(page.getByRole('button', { name: 'Download cleaned CSV' })).toBeVisible();
   await expect(page.getByText('Your file is processed in this browser only; it is not uploaded.')).toBeVisible();
 });
+
+
+test('CSV cleanup rejects files without a recognised organisation column', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+  await page.getByLabel('Upload a business CSV').setInputFiles({
+    name: 'invalid.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Website,City\\nhttps://example.test,Bengaluru')
+  });
+  await expect(page.getByRole('alert')).toContainText('Add a Company, Business Name or Name column.');
+  await expect(page.getByRole('button', { name: 'Download cleaned CSV' })).toHaveCount(0);
+});
