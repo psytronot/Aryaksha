@@ -297,7 +297,13 @@ export default function RpodView() {
       mission: {
         epochTai: input.epochTai.trim(),
         stateSource: 'manual-lvlh',
-        importedFrame: null,
+        importedFrame: importedMissionState ? 'EME2000' : null,
+        ...(importedMissionState ? {
+          importedMissionState: {
+            target: importedMissionState.target,
+            chaser: importedMissionState.chaser,
+          },
+        } : {}),
       },
       model: {
         name: 'Clohessy-Wiltshire / Hill',
@@ -359,6 +365,7 @@ export default function RpodView() {
         } : {}),
       },
       engineeringLimitations: [
+        'HCW rendezvous design uses the manually entered LVLH state; imported EME2000 target/chaser states are retained as provenance and used only for the Orekit cross-check.',
         'Not safe approach or docking guidance; no validated approach corridor.',
         'The terminal velocity match is an instantaneous impulse at the same epoch as position coincidence.',
         'Keep-out result is a sampled pre-terminal spherical range screen, not continuous-time collision certification.',
