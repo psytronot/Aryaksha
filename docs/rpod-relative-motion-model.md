@@ -31,7 +31,7 @@ Implemented in:
 - `orekit-service/src/main/java/ai/aryaksha/orekit/RpodAnalysisController.java`
 - `orekit-service/src/test/java/ai/aryaksha/orekit/RpodAnalysisControllerTest.java`
 
-`POST /api/v1/rpod/relative-state` accepts target and chaser inertial Cartesian states at J2000 TAI in EME2000. It independently propagates both spacecraft using Orekit 13.1.9 numerical propagation with Dormand–Prince 8(5,3) and Newtonian central gravity, then computes the target-centred rotating LVLH relative state. The response includes both propagated inertial states, the LVLH relative state, frame/epoch metadata and explicit model assumptions.
+`POST /api/v1/rpod/relative-state` accepts target and chaser inertial Cartesian states at a shared TAI mission epoch in EME2000. The `epochTai` request field is an explicit ISO-8601 TAI date-time; omission retains J2000 TAI compatibility. It independently propagates both spacecraft using Orekit 13.1.9 numerical propagation with Dormand–Prince 8(5,3) and Newtonian central gravity, then computes the target-centred rotating LVLH relative state. The response includes both propagated inertial states, the LVLH relative state, frame/epoch metadata and explicit model assumptions.
 
 The browser RPOD workspace is wired through the Express proxy to this endpoint. Its cross-check constructs a synthetic circular equatorial chief orbit in EME2000 at J2000 TAI, converts the entered LVLH state into inertial target/chaser states, and compares the independently propagated Orekit relative state with the analytical HCW prediction. This is an initial unburned propagation comparison; it does not apply the calculated rendezvous impulses. A dedicated Orekit controller test currently checks a small-separation circular two-body case against HCW with 10 m position and 10 mm/s velocity bounds. Those are regression-test bounds for that fixture, not universal accuracy guarantees.
 
@@ -41,7 +41,7 @@ The browser RPOD workspace is wired through the Express proxy to this endpoint. 
 - Relative separation small compared with orbital radius for the linearized CW model.
 - Orekit endpoint currently uses Newtonian central gravity only.
 - No J2, atmospheric drag, solar radiation pressure, third-body forces, finite-burn effects, actuator limits, navigation covariance or environmental constraints.
-- Input EME2000 states are interpreted at J2000 TAI; arbitrary input epochs and frame conversions are not supported by the new endpoint.
+- Input EME2000 states are interpreted at the supplied TAI epoch (or J2000 TAI when omitted). Frame conversion is not yet supported; data in other frames must not be relabelled as EME2000.
 
 These models support preliminary engineering and education, not operational flight dynamics or flight-safety certification.
 
@@ -64,7 +64,7 @@ Orekit controller tests cover:
 
 ## Remaining engineering work
 
-1. Replace the synthetic circular equatorial comparison fixture with importable mission states, explicit source epoch and supported frame transformations.
+1. Replace the synthetic circular equatorial comparison fixture with importable mission states and supported frame transformations. The endpoint and UI now accept an explicit TAI epoch, but mission-state file import and non-EME2000 frame conversion remain outstanding.
 2. Add target/chaser trajectory histories and time-series visualisation with comparison residual plots.
 3. Add maneuver-aware propagation so the Orekit comparison can evaluate the departure and arrival impulses, rather than only the unburned initial state.
 4. Add multi-impulse and finite-burn maneuver sequencing with thrust, mass, attitude and actuator constraints.
