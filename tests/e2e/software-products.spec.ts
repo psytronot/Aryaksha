@@ -74,6 +74,7 @@ test('user-supplied business CSV is processed locally and duplicate rows are rep
     mimeType: 'text/csv',
     buffer: Buffer.from('Company,Website,City\nAcme Robotics,https://acme.example,Bengaluru\nAcme Robotics,https://acme.example,Bengaluru\nOrbit Learning,https://orbit.example,Pune')
   });
+  await expect(page.getByLabel('Upload a business CSV')).toHaveValue('');
 
   await expect(page.getByText('3 data rows found')).toBeVisible();
   await expect(page.getByText('2 unique organisations')).toBeVisible();
