@@ -53,6 +53,10 @@ test('First Customer Finder validates and prepares a research brief without inve
   await expect(page.getByRole('heading', { name: 'Research brief ready' })).toBeVisible();
   await expect(page.getByText('No live research was run and no prospects have been invented.')).toBeVisible();
   await expect(page.getByText('A low-cost satellite imagery analysis workshop')).toBeVisible();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download research brief' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('first-customer-research-brief.md');
 });
 
 
