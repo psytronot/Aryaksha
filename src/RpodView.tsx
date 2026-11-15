@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { AlertTriangle, Orbit, Play, Satellite } from 'lucide-react';
 import { EARTH_RADIUS, MU } from './orbit';
-import { solveTwoImpulseRendezvous, type RelativeState } from './rpod';
+import { propagateCw, solveTwoImpulseRendezvous, type RelativeState } from './rpod';
 
 type ScenarioInput = {
   chiefAltitudeKm: string;
@@ -46,6 +46,15 @@ export default function RpodView() {
     terminal: RelativeState;
   } | null>(null);
   const [error, setError] = useState('');
+  const [orekitLoading, setOrekitLoading] = useState(false);
+  const [orekitError, setOrekitError] = useState('');
+  const [orekitCheck, setOrekitCheck] = useState<{
+    positionKm: number[];
+    velocityKmS: number[];
+    positionDifferenceM: number;
+    velocityDifferenceMmS: number;
+    epoch: string;
+  } | null>(null);
 
   const update = (key: keyof ScenarioInput, value: string) => {
     setInput(current => ({ ...current, [key]: value }));
@@ -56,6 +65,68 @@ export default function RpodView() {
     if (!Number.isFinite(altitude) || altitude <= -EARTH_RADIUS) return null;
     return Math.sqrt(MU / (EARTH_RADIUS + altitude) ** 3);
   }, [input.chiefAltitudeKm]);
+
+  const crossCheckWithOrekit = async () => {
+    setOrekitLoading(true);
+    setOrekitError('');
+    setOrekitCheck(null);
+    try {
+      const altitude = numberValue(input.chiefAltitudeKm, 'Chief altitude');
+      const rendezvousMinutes = numberValue(input.rendezvousMinutes, 'Rendezvous time');
+      if (altitude <= 0 || rendezvousMinutes <= 0) throw new Error('Altitude and rendezvous time must be positive.');
+      const radiusKm = EARTH_RADIUS + altitude;
+      const meanMotion = Math.sqrt(MU / radiusKm ** 3);
+      const targetPositionKm: [number, number, number] = [radiusKm, 0, 0];
+      const targetVelocityKmS: [number, number, number] = [0, Math.sqrt(MU / radiusKm), 0];
+      const relativePosition: [number, number, number] = [
+        numberValue(input.xKm, 'Radial separation'),
+        numberValue(input.yKm, 'Along-track separation'),
+        numberValue(input.zKm, 'Cross-track separation'),
+      ];
+      const relativeVelocity: [number, number, number] = [
+        numberValue(input.vxKmS, 'Radial relative velocity'),
+        numberValue(input.vyKmS, 'Along-track relative velocity'),
+        numberValue(input.vzKmS, 'Cross-track relative velocity'),
+      ];
+      const chaserPositionKm: [number, number, number] = [
+        targetPositionKm[0] + relativePosition[0],
+        targetPositionKm[1] + relativePosition[1],
+        targetPositionKm[2] + relativePosition[2],
+      ];
+      const chaserVelocityKmS: [number, number, number] = [
+        targetVelocityKmS[0] - meanMotion * relativePosition[1] + relativeVelocity[0],
+        targetVelocityKmS[1] + meanMotion * relativePosition[0] + relativeVelocity[1],
+        targetVelocityKmS[2] + relativeVelocity[2],
+      ];
+      const elapsedSeconds = rendezvousMinutes * 60;
+      const response = await fetch('/api/rpod/relative-state', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({
+          target: { positionKm: targetPositionKm, velocityKmS: targetVelocityKmS },
+          chaser: { positionKm: chaserPositionKm, velocityKmS: chaserVelocityKmS },
+          elapsedSeconds,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || `Orekit request failed (HTTP ${response.status}).`);
+      const orekitPosition = payload.relativeLvlh.positionKm as number[];
+      const orekitVelocity = payload.relativeLvlh.velocityKmS as number[];
+      const cw = propagateCw({ positionKm: relativePosition, velocityKmS: relativeVelocity }, meanMotion, elapsedSeconds);
+      const norm = (values: number[]) => Math.hypot(...values);
+      setOrekitCheck({
+        positionKm: orekitPosition,
+        velocityKmS: orekitVelocity,
+        positionDifferenceM: norm(orekitPosition.map((value, index) => value - cw.positionKm[index])) * 1000,
+        velocityDifferenceMmS: norm(orekitVelocity.map((value, index) => value - cw.velocityKmS[index])) * 1_000_000,
+        epoch: payload.epoch,
+      });
+    } catch (cause) {
+      setOrekitError(cause instanceof Error ? cause.message : 'Orekit cross-check failed.');
+    } finally {
+      setOrekitLoading(false);
+    }
+  };
 
   const runScenario = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -158,6 +229,18 @@ export default function RpodView() {
                 <div className="stat-row"><span className="result-label">Terminal relative speed after arrival burn</span><b>{fixed(Math.hypot(...result.terminal.velocityKmS) * 1000, 4)} m/s</b></div>
               </div>
               <div className="callout"><AlertTriangle size={15} /><span>The arrival impulse mathematically cancels terminal relative velocity at the same epoch as position coincidence. This is not a safe approach or docking guidance solution.</span></div>
+              <div className="callout"><Orbit size={15} /><span>Orekit cross-check creates a synthetic circular equatorial chief orbit in EME2000 at J2000 TAI, converts the entered LVLH state to inertial Cartesian states, and independently propagates target and chaser. This is a model comparison case, not an arbitrary mission-orbit import.</span></div>
+              <button className="secondary wide" type="button" onClick={crossCheckWithOrekit} disabled={orekitLoading}>
+                {orekitLoading ? 'Propagating both spacecraft with Orekit…' : 'Cross-check HCW against Orekit'}
+              </button>
+              {orekitError && <div className="callout"><AlertTriangle size={15} /><span>{orekitError}</span></div>}
+              {orekitCheck && <div className="result-list">
+                <div className="stat-row"><span className="result-label">Orekit vs HCW position difference</span><b>{fixed(orekitCheck.positionDifferenceM, 4)} m</b></div>
+                <div className="stat-row"><span className="result-label">Orekit vs HCW velocity difference</span><b>{fixed(orekitCheck.velocityDifferenceMmS, 4)} mm/s</b></div>
+                <div className="stat-row"><span className="result-label">Orekit propagated LVLH position</span><b>{orekitCheck.positionKm.map(value => fixed(value, 8)).join(', ')} km</b></div>
+                <div className="stat-row"><span className="result-label">Orekit propagated LVLH velocity</span><b>{orekitCheck.velocityKmS.map(value => fixed(value, 10)).join(', ')} km/s</b></div>
+                <div className="stat-row"><span className="result-label">Orekit epoch (TAI)</span><b>{orekitCheck.epoch}</b></div>
+              </div>}
             </>
           )}
           <div className="callout"><AlertTriangle size={15} /><span>HCW assumes a circular chief orbit, constant mean motion and small relative separation. No perturbations, finite burns, navigation uncertainty, collision screening, keep-out zone or approach corridor are modelled.</span></div>
