@@ -1,7 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const styles = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
+const textureGuide = readFileSync(new URL('../docs/design/BACKGROUND-TEXTURE-SYSTEM.md', import.meta.url), 'utf8');
 const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
 const notFound = readFileSync(new URL('../public/404.html', import.meta.url), 'utf8');
@@ -39,5 +42,13 @@ describe('website quality checklist', () => {
     expect(unslopAttribution).toContain('Damir Sokolovsky');
     expect(unslopAttribution).toContain('CC BY 4.0');
     expect(unslopAudit).toContain('focused unslop pass was warranted and applied');
+  }); 
+  it('provides restrained, reusable aerospace-lab background textures', () => {
+    expect(styles).toContain('.texture-speckled-graphite');
+    expect(styles).toContain('.texture-blueprint');
+    expect(styles).toContain('.texture-contour');
+    expect(textureGuide).toContain('22 directions');
+    expect(textureGuide).toContain('Never apply all 22 effects to one page');
   });
+
 });
