@@ -469,6 +469,11 @@ function SoftwareProductsView() {
       {csvError && <p className="finder-intake-error" role="alert">{csvError}</p>}
       {csvResult && <div className="finder-brief-result" aria-live="polite">
         <div className="finder-csv-stats"><b>{csvResult.total} data rows found</b><b>{csvResult.records.length} unique organisations</b><b>{csvResult.duplicates} duplicate row{csvResult.duplicates === 1 ? '' : 's'} excluded</b></div>
+        <div className="finder-csv-preview" role="table" aria-label="Cleaned business list preview">
+          <div className="finder-csv-preview-row finder-csv-preview-head" role="row"><span role="columnheader">COMPANY</span><span role="columnheader">WEBSITE</span><span role="columnheader">CITY</span></div>
+          {csvResult.records.slice(0, 5).map((record, index) => <div className="finder-csv-preview-row" role="row" key={record.company.toLowerCase() + record.website.toLowerCase() + index}><span role="cell">{record.company}</span><span role="cell">{record.website || '—'}</span><span role="cell">{record.city || '—'}</span></div>)}
+        </div>
+        {csvResult.records.length > 5 && <p className="software-demo-note">Showing the first 5 of {csvResult.records.length} unique organisations.</p>}
         <button className="primary" type="button" onClick={downloadCleanCsv}>Download cleaned CSV <Download size={15}/></button>
         <p className="software-demo-note">Your file is processed in this browser only; it is not uploaded. Review the cleaned file before using it.</p>
       </div>}
