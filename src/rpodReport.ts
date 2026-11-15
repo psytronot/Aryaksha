@@ -11,6 +11,10 @@ export type RpodEngineeringReport = {
     epochTai: string;
     stateSource: 'manual-lvlh' | 'imported-eme2000';
     importedFrame: 'EME2000' | null;
+    importedMissionState?: {
+      target: { positionKm: [number, number, number]; velocityKmS: [number, number, number] };
+      chaser: { positionKm: [number, number, number]; velocityKmS: [number, number, number] };
+    };
   };
   model: {
     name: 'Clohessy-Wiltshire / Hill';
