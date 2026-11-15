@@ -27,7 +27,11 @@ public class RpodAnalysisController {
 
     public record CartesianState(double[] positionKm, double[] velocityKmS) {}
     public record RelativeState(double[] positionKm, double[] velocityKmS) {}
-    public record RpodRequest(CartesianState target, CartesianState chaser, double elapsedSeconds, String epochTai) {}
+    public record RpodRequest(CartesianState target, CartesianState chaser, double elapsedSeconds, String epochTai) {
+        public RpodRequest(CartesianState target, CartesianState chaser, double elapsedSeconds) {
+            this(target, chaser, elapsedSeconds, null);
+        }
+    }
     public record StateVector(double[] positionKm, double[] velocityKmS) {}
     public record RpodResponse(
         boolean valid, String engine, String engineVersion, String frame, String epoch,
