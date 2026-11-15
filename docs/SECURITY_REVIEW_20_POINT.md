@@ -39,7 +39,7 @@
 
 ## Release blockers / manual verification
 
-1. Scan all Git history and deployment configuration for exposed credentials; rotate any discovered secret. Repository rulesets currently return an empty list; branch-protection details could not be read through the connected integration, so configure and verify required pull-request reviews, required CI checks, and force-push restrictions in GitHub settings.
+1. Review the new full-history Gitleaks CI result and deployment configuration for exposed credentials; rotate any discovered secret. Gitleaks does not inspect host-only secrets or prove that every credential type is detectable. Repository rulesets currently return an empty list; branch-protection details could not be read through the connected integration, so configure and verify required pull-request reviews, required CI checks, and force-push restrictions in GitHub settings.
 2. Inspect production host settings for HTTPS redirects, TLS, trusted proxy count, environment secrets, and edge/WAF controls.
 3. Review the deployed CSP report-only violations and then create an enforceable CSP policy based on actual required origins.
 4. Add an integration test proving unexpected upstream Orekit fields are not forwarded.
