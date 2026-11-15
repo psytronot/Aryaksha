@@ -50,9 +50,12 @@ export function parseRpodMissionState(source: string): RpodMissionState {
   if (Object.keys(parsed).some(key => !allowedKeys.includes(key))) {
     throw new Error('Mission-state file contains an unexpected field.');
   }
-  if (typeof parsed.epochTai !== 'string'
-      || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(parsed.epochTai)
-      || !Number.isFinite(Date.parse(`${parsed.epochTai}Z`))) {
+  const epochBase = typeof parsed.epochTai === 'string' ? parsed.epochTai.slice(0, 19) : '';
+  const parsedEpoch = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(String(parsed.epochTai))
+    ? new Date(`${epochBase}Z`)
+    : null;
+  if (!parsedEpoch || !Number.isFinite(parsedEpoch.getTime())
+      || parsedEpoch.toISOString().slice(0, 19) !== epochBase) {
     throw new Error('epochTai must be a valid ISO-8601 date-time interpreted in TAI.');
   }
   if (parsed.frame !== 'EME2000') {
