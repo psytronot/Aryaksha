@@ -92,13 +92,14 @@ The current Arakshya engineering application is the Aryaksha repository: https:/
 
 ## Current status
 
-- [x] Located the likely upstream repositories and inspected their READMEs.
+- [x] Located the upstream repositories and inspected their READMEs and MIT license files.
 - [x] Confirmed the current Aryaksha repository is the space-exploration lab codebase.
 - [x] Created an isolated implementation branch for this initiative.
 - [ ] Confirm exact upstream scraper ownership/provenance and inspect all source files.
 - [ ] Complete compliance and privacy review.
-- [ ] Implement the Software Tools catalogue UI.
+- [x] Implement the Software Tools catalogue UI on the isolated branch.
 - [ ] Implement controlled First Customer Finder execution.
 - [ ] Decide the compliant replacement/architecture for Google Maps data.
 - [ ] Configure and test payment collection.
+- [x] Opened draft pull request #124 for review; CI/build verification remains pending.
 - [ ] Pilot with schools, colleges, and individual users.
