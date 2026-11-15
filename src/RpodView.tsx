@@ -1,0 +1,160 @@
+import { useMemo, useState, type FormEvent } from 'react';
+import { AlertTriangle, Orbit, Play, Satellite } from 'lucide-react';
+import { EARTH_RADIUS, MU } from './orbit';
+import { propagateCw, solveRendezvousImpulse, type RelativeState } from './rpod';
+
+type ScenarioInput = {
+  chiefAltitudeKm: string;
+  xKm: string;
+  yKm: string;
+  zKm: string;
+  vxKmS: string;
+  vyKmS: string;
+  vzKmS: string;
+  rendezvousMinutes: string;
+};
+
+const initialScenario: ScenarioInput = {
+  chiefAltitudeKm: '550',
+  xKm: '0.1',
+  yKm: '-0.2',
+  zKm: '0.05',
+  vxKmS: '0.0001',
+  vyKmS: '0.0002',
+  vzKmS: '-0.00005',
+  rendezvousMinutes: '30',
+};
+
+const numberValue = (value: string, label: string): number => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) throw new Error(`${label} must be a finite number.`);
+  return parsed;
+};
+
+const fixed = (value: number, digits = 6): string => value.toFixed(digits);
+
+export default function RpodView() {
+  const [input, setInput] = useState<ScenarioInput>(initialScenario);
+  const [result, setResult] = useState<{
+    meanMotionRadS: number;
+    rendezvousTimeSeconds: number;
+    deltaVKmS: [number, number, number];
+    deltaVMagnitudeMps: number;
+    terminal: RelativeState;
+  } | null>(null);
+  const [error, setError] = useState('');
+
+  const update = (key: keyof ScenarioInput, value: string) => {
+    setInput(current => ({ ...current, [key]: value }));
+  };
+
+  const defaultMeanMotion = useMemo(() => {
+    const altitude = Number(input.chiefAltitudeKm);
+    if (!Number.isFinite(altitude) || altitude <= -EARTH_RADIUS) return null;
+    return Math.sqrt(MU / (EARTH_RADIUS + altitude) ** 3);
+  }, [input.chiefAltitudeKm]);
+
+  const runScenario = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    try {
+      const altitude = numberValue(input.chiefAltitudeKm, 'Chief altitude');
+      const rendezvousMinutes = numberValue(input.rendezvousMinutes, 'Rendezvous time');
+      if (altitude <= 0) throw new Error('Chief altitude must be above the Earth surface.');
+      if (rendezvousMinutes <= 0) throw new Error('Rendezvous time must be greater than zero.');
+
+      const meanMotionRadS = Math.sqrt(MU / (EARTH_RADIUS + altitude) ** 3);
+      const rendezvousTimeSeconds = rendezvousMinutes * 60;
+      const initial: RelativeState = {
+        positionKm: [
+          numberValue(input.xKm, 'Radial separation'),
+          numberValue(input.yKm, 'Along-track separation'),
+          numberValue(input.zKm, 'Cross-track separation'),
+        ],
+        velocityKmS: [
+          numberValue(input.vxKmS, 'Radial relative velocity'),
+          numberValue(input.vyKmS, 'Along-track relative velocity'),
+          numberValue(input.vzKmS, 'Cross-track relative velocity'),
+        ],
+      };
+
+      const solution = solveRendezvousImpulse(initial, meanMotionRadS, rendezvousTimeSeconds);
+      const terminal = propagateCw(
+        { positionKm: initial.positionKm, velocityKmS: solution.postBurnVelocityKmS },
+        meanMotionRadS,
+        rendezvousTimeSeconds,
+      );
+
+      setResult({
+        meanMotionRadS,
+        rendezvousTimeSeconds,
+        deltaVKmS: solution.deltaVKmS,
+        deltaVMagnitudeMps: solution.deltaVMagnitudeMps,
+        terminal,
+      });
+      setError('');
+    } catch (cause) {
+      setResult(null);
+      setError(cause instanceof Error ? cause.message : 'Unable to solve this rendezvous scenario.');
+    }
+  };
+
+  return (
+    <div className="page">
+      <div className="page-header">
+        <div>
+          <small>RPOD · PHASE 01 · RELATIVE MOTION</small>
+          <h1>Design a preliminary rendezvous.</h1>
+          <p>Initialize a chaser relative to a target in its LVLH frame, calculate a single impulsive correction and inspect the predicted terminal separation.</p>
+        </div>
+      </div>
+
+      <div className="orbit-layout">
+        <section className="card">
+          <div className="card-head"><span><Satellite size={17} /></span><b>Target orbit and chaser initial state</b></div>
+          <form onSubmit={runScenario}>
+            <div className="field-grid">
+              <div className="field"><span><label htmlFor="rpod-chief-altitude"><span className="field-label">CHIEF ORBIT ALTITUDE</span></label><em>km</em></span><input id="rpod-chief-altitude" aria-label="Chief orbit altitude" type="number" min="1" step="any" required value={input.chiefAltitudeKm} onChange={event => update('chiefAltitudeKm', event.target.value)} /></div>
+              <div className="field"><span><label htmlFor="rpod-rendezvous-time"><span className="field-label">RENDEZVOUS TIME</span></label><em>min</em></span><input id="rpod-rendezvous-time" aria-label="Rendezvous time" type="number" min="0.001" step="any" required value={input.rendezvousMinutes} onChange={event => update('rendezvousMinutes', event.target.value)} /></div>
+              <div className="field"><span><label htmlFor="rpod-x"><span className="field-label">RADIAL SEPARATION</span></label><em>km</em></span><input id="rpod-x" aria-label="Radial separation" type="number" step="any" required value={input.xKm} onChange={event => update('xKm', event.target.value)} /></div>
+              <div className="field"><span><label htmlFor="rpod-y"><span className="field-label">ALONG-TRACK SEPARATION</span></label><em>km</em></span><input id="rpod-y" aria-label="Along-track separation" type="number" step="any" required value={input.yKm} onChange={event => update('yKm', event.target.value)} /></div>
+              <div className="field"><span><label htmlFor="rpod-z"><span className="field-label">CROSS-TRACK SEPARATION</span></label><em>km</em></span><input id="rpod-z" aria-label="Cross-track separation" type="number" step="any" required value={input.zKm} onChange={event => update('zKm', event.target.value)} /></div>
+              <div className="field"><span><label htmlFor="rpod-vx"><span className="field-label">RADIAL RELATIVE VELOCITY</span></label><em>km/s</em></span><input id="rpod-vx" aria-label="Radial relative velocity" type="number" step="any" required value={input.vxKmS} onChange={event => update('vxKmS', event.target.value)} /></div>
+              <div className="field"><span><label htmlFor="rpod-vy"><span className="field-label">ALONG-TRACK RELATIVE VELOCITY</span></label><em>km/s</em></span><input id="rpod-vy" aria-label="Along-track relative velocity" type="number" step="any" required value={input.vyKmS} onChange={event => update('vyKmS', event.target.value)} /></div>
+              <div className="field"><span><label htmlFor="rpod-vz"><span className="field-label">CROSS-TRACK RELATIVE VELOCITY</span></label><em>km/s</em></span><input id="rpod-vz" aria-label="Cross-track relative velocity" type="number" step="any" required value={input.vzKmS} onChange={event => update('vzKmS', event.target.value)} /></div>
+            </div>
+            <button className="primary wide" type="submit"><Play size={15} /> Solve single-impulse rendezvous</button>
+          </form>
+          <div className="callout"><Orbit size={15} /><span>LVLH convention: +R radial outward, +T along-track, +N orbit-normal. Relative velocity is expressed in the rotating LVLH frame.</span></div>
+          {error && <div className="callout"><AlertTriangle size={15} /><span>{error}</span></div>}
+        </section>
+
+        <section className="card">
+          <div className="card-head"><span><Orbit size={17} /></span><b>Rendezvous solution</b></div>
+          {!result ? (
+            <div className="empty-state"><p>Run the scenario to calculate the initial impulse and predicted terminal relative state.</p></div>
+          ) : (
+            <>
+              <div className="metric-big"><b>{fixed(result.deltaVMagnitudeMps, 4)}</b><span>m/s · initial impulse magnitude</span></div>
+              <div className="state-card">
+                <div><small>ΔV RADIAL</small><b>{fixed(result.deltaVKmS[0], 8)} km/s</b></div>
+                <div><small>ΔV ALONG-TRACK</small><b>{fixed(result.deltaVKmS[1], 8)} km/s</b></div>
+                <div><small>ΔV CROSS-TRACK</small><b>{fixed(result.deltaVKmS[2], 8)} km/s</b></div>
+              </div>
+              <div className="result-list">
+                <div className="stat-row"><span className="result-label">Chief mean motion</span><b>{fixed(result.meanMotionRadS, 9)} rad/s</b></div>
+                <div className="stat-row"><span className="result-label">Rendezvous time</span><b>{fixed(result.rendezvousTimeSeconds, 2)} s</b></div>
+                <div className="stat-row"><span className="result-label">Terminal radial position</span><b>{fixed(result.terminal.positionKm[0], 9)} km</b></div>
+                <div className="stat-row"><span className="result-label">Terminal along-track position</span><b>{fixed(result.terminal.positionKm[1], 9)} km</b></div>
+                <div className="stat-row"><span className="result-label">Terminal cross-track position</span><b>{fixed(result.terminal.positionKm[2], 9)} km</b></div>
+                <div className="stat-row"><span className="result-label">Terminal relative speed</span><b>{fixed(Math.hypot(...result.terminal.velocityKmS) * 1000, 4)} m/s</b></div>
+              </div>
+              <div className="callout"><AlertTriangle size={15} /><span>Position rendezvous only. Terminal relative velocity is not constrained; this is not a docking-ready solution.</span></div>
+            </>
+          )}
+          <div className="callout"><AlertTriangle size={15} /><span>HCW assumes a circular chief orbit, constant mean motion and small relative separation. No perturbations, collision screening, keep-out zone or approach corridor are modelled.</span></div>
+          {defaultMeanMotion !== null && <div className="bottom-bar"><b>Reference mean motion: {fixed(defaultMeanMotion, 9)} rad/s</b><span>Two-body circular orbit</span></div>}
+        </section>
+      </div>
+    </div>
+  );
+}
