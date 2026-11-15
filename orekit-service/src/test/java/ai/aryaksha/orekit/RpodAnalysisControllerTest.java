@@ -109,6 +109,20 @@ class RpodAnalysisControllerTest {
     }
 
     @Test
+    void propagatesFromExplicitTaiEpochInsteadOfIntegratingFromJ2000() {
+        var target = new RpodAnalysisController.CartesianState(
+            new double[] {6928.137, 0, 0}, new double[] {0, 7.585, 0});
+        var chaser = new RpodAnalysisController.CartesianState(
+            new double[] {6928.237, -0.2, 0.05}, new double[] {0.0001, 7.585398018, -0.00005});
+        var result = controller.relativeState(new RpodAnalysisController.RpodRequest(
+            target, chaser, 900.0, "2026-11-15T12:00:00"));
+        assertTrue(result.valid());
+        assertTrue(result.epoch().contains("2026-11-15"));
+        assertTrue(java.util.Arrays.stream(result.relativeLvlh().positionKm()).allMatch(Double::isFinite));
+        assertTrue(java.util.Arrays.stream(result.relativeLvlh().velocityKmS()).allMatch(Double::isFinite));
+    }
+
+    @Test
     void rejectsTimezoneQualifiedEpochInsteadOfTreatingUtcAsTai() {
         var state = new RpodAnalysisController.CartesianState(
             new double[] {7000, 0, 0}, new double[] {0, 7.54605329, 0});
