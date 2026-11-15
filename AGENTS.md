@@ -69,3 +69,7 @@ Before changing search visibility, metadata, robots, sitemap, structured data or
 ## Conventional SEO workflow
 
 Before conventional search optimization work, read `.agents/skills/seo/SKILL.md` and its checklist. This skill owns technical SEO, on-page optimization, indexation, site architecture, content quality, image SEO, performance and search measurement. For AI answer-engine discoverability, also consult `.agents/skills/geo-seo/SKILL.md`. Keep the two workflows distinct but coordinated. Preserve preview noindex/canonical protections and all project-specific factual, scientific, privacy and production boundaries.
+
+## StringTune motion workflow
+
+Before adding Fiddle Digital StringTune or changing motion architecture, read `.agents/skills/string-tune/SKILL.md` and its checklist. Audit existing animation systems first; do not duplicate engines. Keep runtime client-only and singleton-owned, use only documented exports, update package lockfiles with dependencies, preserve reduced-motion/accessibility/touch behavior, and follow project-specific guardrails. Do not add StringTune-3D without a concrete requirement.
