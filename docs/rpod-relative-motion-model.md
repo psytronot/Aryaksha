@@ -33,7 +33,7 @@ Implemented in:
 
 `POST /api/v1/rpod/relative-state` accepts target and chaser inertial Cartesian states at a shared TAI mission epoch in EME2000. The `epochTai` request field is an explicit ISO-8601 TAI date-time; omission retains J2000 TAI compatibility. It independently propagates both spacecraft using Orekit 13.1.9 numerical propagation with Dormand–Prince 8(5,3) and Newtonian central gravity, then computes the target-centred rotating LVLH relative state. The response includes both propagated inertial states, the LVLH relative state, frame/epoch metadata and explicit model assumptions.
 
-The browser RPOD workspace is wired through the Express proxy to this endpoint. Its cross-check constructs a synthetic circular equatorial chief orbit in EME2000 at J2000 TAI, converts the entered LVLH state into inertial target/chaser states, and compares the independently propagated Orekit relative state with the analytical HCW prediction. This is an initial unburned propagation comparison; it does not apply the calculated rendezvous impulses. A dedicated Orekit controller test currently checks a small-separation circular two-body case against HCW with 10 m position and 10 mm/s velocity bounds. Those are regression-test bounds for that fixture, not universal accuracy guarantees.
+The browser RPOD workspace accepts a strict JSON mission-state import (`docs/examples/rpod-mission-state.example.json`) containing target/chaser EME2000 Cartesian states and an explicit TAI epoch. The parser rejects unsupported frames, malformed epochs, non-finite vectors, Earth-intersecting states and degenerate target orbital planes. Imported states are passed through the Express proxy to this endpoint. When imported mission states are used, the UI reports Orekit relative-state results without presenting HCW residuals against an invalid synthetic circular reference. Its cross-check constructs a synthetic circular equatorial chief orbit in EME2000 at J2000 TAI, converts the entered LVLH state into inertial target/chaser states, and compares the independently propagated Orekit relative state with the analytical HCW prediction. This is an initial unburned propagation comparison; it does not apply the calculated rendezvous impulses. A dedicated Orekit controller test currently checks a small-separation circular two-body case against HCW with 10 m position and 10 mm/s velocity bounds. Those are regression-test bounds for that fixture, not universal accuracy guarantees.
 
 ## Assumptions and validity
 
@@ -64,7 +64,7 @@ Orekit controller tests cover:
 
 ## Remaining engineering work
 
-1. Replace the synthetic circular equatorial comparison fixture with importable mission states and supported frame transformations. The endpoint and UI now accept an explicit TAI epoch, but mission-state file import and non-EME2000 frame conversion remain outstanding.
+1. Extend mission-state import to additional validated frames with real Orekit frame transformations. The current JSON importer accepts EME2000 only; non-EME2000 conversion remains outstanding.
 2. Add target/chaser trajectory histories and time-series visualisation with comparison residual plots.
 3. Add maneuver-aware propagation so the Orekit comparison can evaluate the departure and arrival impulses, rather than only the unburned initial state.
 4. Add multi-impulse and finite-burn maneuver sequencing with thrust, mass, attitude and actuator constraints.
