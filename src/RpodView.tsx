@@ -371,7 +371,7 @@ export default function RpodView() {
               </div>}
             </>
           )}
-          <div className="callout"><AlertTriangle size={15} /><span>HCW assumes a circular chief orbit, constant mean motion and small relative separation. No perturbations, finite burns, navigation uncertainty, collision screening, keep-out zone or approach corridor are modelled.</span></div>
+          <div className="callout"><AlertTriangle size={15} /><span>HCW assumes a circular chief orbit, constant mean motion and small relative separation. No perturbations, finite burns, navigation uncertainty, continuous-time collision screening or approach corridor are modelled. The sampled pre-terminal keep-out check is a coarse geometric indicator only.</span></div>
           {defaultMeanMotion !== null && <div className="bottom-bar"><b>Reference mean motion: {fixed(defaultMeanMotion, 9)} rad/s</b><span>Two-body circular orbit</span></div>}
         </section>
       </div>
