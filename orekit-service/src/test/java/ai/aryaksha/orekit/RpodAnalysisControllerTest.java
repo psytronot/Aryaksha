@@ -98,6 +98,24 @@ class RpodAnalysisControllerTest {
             "Orekit and HCW relative velocity should agree within 10 mm/s for this small-separation case");
     }
 
+    @Test
+    void acceptsExplicitTaiMissionEpoch() {
+        var state = new RpodAnalysisController.CartesianState(
+            new double[] {7000, 0, 0}, new double[] {0, 7.54605329, 0});
+        var result = controller.relativeState(new RpodAnalysisController.RpodRequest(
+            state, state, 0.0, "2000-01-02T12:00:00"));
+        assertTrue(result.valid());
+        assertTrue(result.epoch().contains("2000-01-02"));
+    }
+
+    @Test
+    void rejectsMalformedExplicitTaiMissionEpoch() {
+        var state = new RpodAnalysisController.CartesianState(
+            new double[] {7000, 0, 0}, new double[] {0, 7.54605329, 0});
+        assertThrows(IllegalArgumentException.class, () -> controller.relativeState(
+            new RpodAnalysisController.RpodRequest(state, state, 0.0, "not-a-date")));
+    }
+
     private double distance(double[] actual, double[] expected) {
         double sum = 0;
         for (int i = 0; i < actual.length; i++) {
