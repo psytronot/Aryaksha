@@ -3,6 +3,7 @@ import { AlertTriangle, Orbit, Play, Satellite } from 'lucide-react';
 import { EARTH_RADIUS, MU } from './orbit';
 import { propagateCw, sampleCwTrajectory, solveTwoImpulseRendezvous, screenCwKeepOut, propagateCwCovariance, type RelativeState } from './rpod';
 import { parseRpodMissionState, type RpodMissionState } from './rpodMissionState';
+import { serializeRpodEngineeringReport, type RpodEngineeringReport } from './rpodReport';
 
 type ScenarioInput = {
   epochTai: string;
@@ -288,6 +289,96 @@ export default function RpodView() {
     }
   };
 
+  const exportEngineeringReport = () => {
+    if (!result) return;
+    const report: RpodEngineeringReport = {
+      schema: 'aryaksha.rpod-engineering-report/v1',
+      generatedAtUtc: new Date().toISOString(),
+      mission: {
+        epochTai: input.epochTai.trim(),
+        stateSource: 'manual-lvlh',
+        importedFrame: null,
+      },
+      model: {
+        name: 'Clohessy-Wiltshire / Hill',
+        chiefAltitudeKm: numberValue(input.chiefAltitudeKm, 'Chief altitude'),
+        meanMotionRadS: result.meanMotionRadS,
+        rendezvousTimeSeconds: result.rendezvousTimeSeconds,
+        assumptions: [
+          'Circular chief orbit with constant mean motion.',
+          'Linearized relative motion with small separation.',
+          'Two-body reference orbit; no perturbing forces.',
+          'Instantaneous LVLH impulses; no finite-burn execution.',
+        ],
+      },
+      initialRelativeState: {
+        positionKm: [numberValue(input.xKm, 'Radial separation'), numberValue(input.yKm, 'Along-track separation'), numberValue(input.zKm, 'Cross-track separation')],
+        velocityKmS: [numberValue(input.vxKmS, 'Radial relative velocity'), numberValue(input.vyKmS, 'Along-track relative velocity'), numberValue(input.vzKmS, 'Cross-track relative velocity')],
+      },
+      maneuvers: [
+        { event: 'departure', elapsedSeconds: 0, deltaVKmS: result.departureDeltaVKmS, magnitudeMps: result.departureDeltaVMagnitudeMps, execution: 'instantaneous-impulse' },
+        { event: 'terminal-velocity-match', elapsedSeconds: result.rendezvousTimeSeconds, deltaVKmS: result.arrivalDeltaVKmS, magnitudeMps: result.arrivalDeltaVMagnitudeMps, execution: 'instantaneous-impulse' },
+      ],
+      deltaVBudgetMps: {
+        departure: result.departureDeltaVMagnitudeMps,
+        terminal: result.arrivalDeltaVMagnitudeMps,
+        total: result.totalDeltaVMagnitudeMps,
+      },
+      terminalStateAfterArrivalImpulse: {
+        positionKm: result.terminal.positionKm,
+        velocityKmS: result.terminal.velocityKmS,
+      },
+      trajectory: result.trajectory.map(sample => ({
+        elapsedSeconds: sample.elapsedSeconds,
+        positionKm: sample.state.positionKm,
+        velocityKmS: sample.state.velocityKmS,
+      })),
+      keepOutScreen: {
+        method: 'sampled-pre-terminal-spherical-range',
+        keepOutRadiusKm: result.keepOutScreen.keepOutRadiusKm,
+        minimumPreTerminalRangeKm: result.keepOutScreen.minimumPreTerminalRangeKm,
+        closestElapsedSeconds: result.keepOutScreen.closestElapsedSeconds,
+        enteredKeepOut: result.keepOutScreen.enteredKeepOut,
+        terminalCoincidenceExcluded: true,
+      },
+      uncertainty: {
+        initialPositionSigmaM: numberValue(input.positionSigmaM, 'Position 1-sigma uncertainty'),
+        initialVelocitySigmaMmS: numberValue(input.velocitySigmaMmS, 'Velocity 1-sigma uncertainty'),
+        assumption: 'independent-diagonal-initial-covariance',
+        terminalPositionThreeSigmaM: [0, 1, 2].map(axis => 3 * Math.sqrt(Math.max(0, result.terminalCovariance[axis][axis])) * 1000) as [number, number, number],
+        collisionProbabilityComputed: false,
+      },
+      orekitCrossCheck: {
+        performed: orekitCheck !== null,
+        ...(orekitCheck ? {
+          epochTai: orekitCheck.epoch,
+          positionKm: orekitCheck.positionKm,
+          velocityKmS: orekitCheck.velocityKmS,
+          positionDifferenceM: orekitCheck.positionDifferenceM,
+          velocityDifferenceMmS: orekitCheck.velocityDifferenceMmS,
+        } : {}),
+      },
+      engineeringLimitations: [
+        'Not safe approach or docking guidance; no validated approach corridor.',
+        'The terminal velocity match is an instantaneous impulse at the same epoch as position coincidence.',
+        'Keep-out result is a sampled pre-terminal spherical range screen, not continuous-time collision certification.',
+        'Uncertainty assumes independent diagonal initial covariance; no correlations, measurement updates or maneuver-execution uncertainty.',
+        'No collision probability is computed.',
+        'No J2, atmospheric drag, solar radiation pressure or third-body perturbations.',
+        'This report is a preliminary analytical engineering record, not a flight-certified product.',
+      ],
+    };
+    const blob = new Blob([serializeRpodEngineeringReport(report)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `aryaksha-rpod-report-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="page">
       <div className="page-header">
@@ -332,6 +423,7 @@ export default function RpodView() {
           ) : (
             <>
               <div className="metric-big"><b>{fixed(result.totalDeltaVMagnitudeMps, 4)}</b><span>m/s · total ideal impulsive Δv</span></div>
+              <button className="primary wide" type="button" onClick={exportEngineeringReport}>Export versioned engineering report (JSON)</button>
               <div className="state-card">
                 <div><small>ΔV RADIAL</small><b>{fixed(result.departureDeltaVKmS[0], 8)} km/s</b></div>
                 <div><small>ΔV ALONG-TRACK</small><b>{fixed(result.departureDeltaVKmS[1], 8)} km/s</b></div>
