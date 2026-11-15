@@ -128,7 +128,7 @@ test('cleaned CSV neutralizes spreadsheet formula prefixes in exported cells', a
   await page.getByLabel('Upload a business CSV').setInputFiles({
     name: 'formula.csv',
     mimeType: 'text/csv',
-    buffer: Buffer.from('Company,Website,City\n=HYPERLINK("https://bad.example"),https://safe.example,+Bengaluru')
+    buffer: Buffer.from('Company,Website,City\n"=HYPERLINK(""https://bad.example"")",https://safe.example,+Bengaluru')
   });
 
   await expect(page.getByRole('button', { name: 'Download cleaned CSV' })).toBeVisible();
