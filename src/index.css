@@ -329,3 +329,35 @@ body{background:var(--bg)}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+
+
+/* Product texture system — opt-in utilities, derived from the 22-background reference.
+   Textures stay subtle and never compete with engineering values or status indicators. */
+.texture-speckled-graphite{
+  background-color:var(--panel,#10151c);
+  background-image:radial-gradient(rgba(226,235,242,.09) .55px,transparent .8px);
+  background-size:7px 7px;
+}
+.texture-blueprint{
+  background-color:var(--panel2,#171e27);
+  background-image:linear-gradient(rgba(139,189,204,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(139,189,204,.09) 1px,transparent 1px),linear-gradient(rgba(139,189,204,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(139,189,204,.035) 1px,transparent 1px);
+  background-size:40px 40px,40px 40px,8px 8px,8px 8px;
+}
+.texture-contour{
+  background-color:var(--panel,#10151c);
+  background-image:repeating-radial-gradient(ellipse at 18% 38%,transparent 0 16px,rgba(139,189,204,.11) 17px 18px,transparent 19px 29px);
+}
+.texture-square-dots{
+  background-image:radial-gradient(rgba(139,189,204,.17) 1px,transparent 1.4px);
+  background-size:12px 12px;
+}
+.texture-halftone{
+  background-image:radial-gradient(rgba(139,189,204,.15) .7px,transparent .9px);
+  background-size:6px 6px;
+}
+.texture-stippled{
+  background-image:radial-gradient(ellipse at 18% 20%,rgba(139,189,204,.09),transparent 48%),radial-gradient(ellipse at 85% 80%,rgba(198,161,106,.045),transparent 44%);
+}
+.mission-strip{background-image:linear-gradient(rgba(139,189,204,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(139,189,204,.055) 1px,transparent 1px);background-size:24px 24px}
+.model-box{background-image:repeating-radial-gradient(ellipse at 20% 45%,transparent 0 18px,rgba(139,189,204,.08) 19px 20px,transparent 21px 32px)}
