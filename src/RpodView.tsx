@@ -70,6 +70,7 @@ export default function RpodView() {
     positionDifferenceM: number | null;
     velocityDifferenceMmS: number | null;
     epoch: string;
+    history: Array<{ elapsedSeconds: number; positionKm: number[]; velocityKmS: number[]; positionDifferenceM: number | null; velocityDifferenceMmS: number | null }>;
   } | null>(null);
 
   const importMissionState = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -197,6 +198,7 @@ export default function RpodView() {
           chaser: { positionKm: chaserPositionKm, velocityKmS: chaserVelocityKmS },
           elapsedSeconds,
           epochTai: importedMissionState?.epochTai ?? input.epochTai.trim(),
+          historySamples: 21,
         }),
       });
       const payload = await response.json();
@@ -207,6 +209,25 @@ export default function RpodView() {
         ? propagateCw(hcwInitialState, hcwMeanMotion, elapsedSeconds)
         : null;
       const norm = (values: number[]) => Math.hypot(...values);
+      const history = Array.isArray(payload.history) ? payload.history.map((sample: {
+        elapsedSeconds: number;
+        relativeLvlh: { positionKm: number[]; velocityKmS: number[] };
+      }) => {
+        const reference = hcwInitialState && hcwMeanMotion !== null
+          ? propagateCw(hcwInitialState, hcwMeanMotion, sample.elapsedSeconds)
+          : null;
+        return {
+          elapsedSeconds: sample.elapsedSeconds,
+          positionKm: sample.relativeLvlh.positionKm,
+          velocityKmS: sample.relativeLvlh.velocityKmS,
+          positionDifferenceM: reference
+            ? norm(sample.relativeLvlh.positionKm.map((value, index) => value - reference.positionKm[index])) * 1000
+            : null,
+          velocityDifferenceMmS: reference
+            ? norm(sample.relativeLvlh.velocityKmS.map((value, index) => value - reference.velocityKmS[index])) * 1_000_000
+            : null,
+        };
+      }) : [];
       setOrekitCheck({
         positionKm: orekitPosition,
         velocityKmS: orekitVelocity,
@@ -217,6 +238,7 @@ export default function RpodView() {
           ? norm(orekitVelocity.map((value, index) => value - cw.velocityKmS[index])) * 1_000_000
           : null,
         epoch: payload.epoch,
+        history,
       });
     } catch (cause) {
       setOrekitError(cause instanceof Error ? cause.message : 'Orekit cross-check failed.');
@@ -377,6 +399,7 @@ export default function RpodView() {
           velocityKmS: orekitCheck.velocityKmS,
           positionDifferenceM: orekitCheck.positionDifferenceM,
           velocityDifferenceMmS: orekitCheck.velocityDifferenceMmS,
+          history: orekitCheck.history,
         } : {}),
       },
       engineeringLimitations: [
@@ -531,6 +554,38 @@ export default function RpodView() {
                 {orekitLoading ? 'Propagating both spacecraft with Orekit…' : (importedMissionState ? 'Cross-check imported mission states against Orekit' : 'Cross-check initial propagation (no burns) against Orekit')}
               </button>
               {orekitError && <div className="callout"><AlertTriangle size={15} /><span>{orekitError}</span></div>}
+              {orekitCheck && orekitCheck.history.length > 1 && (
+                <div className="trajectory-panel">
+                  <div className="stat-row"><span className="result-label">Orekit relative-state history</span><b>{orekitCheck.history.length} samples</b></div>
+                  {orekitCheck.history.some(sample => sample.positionDifferenceM !== null) ? (
+                    <>
+                      <p>HCW residual norm by epoch · position (m) and velocity (mm/s)</p>
+                      <svg viewBox="0 0 600 190" role="img" aria-label="Orekit versus HCW position residual time series">
+                        <line x1="24" y1="160" x2="576" y2="160" stroke="currentColor" opacity="0.25" />
+                        {([0, 1, 2] as const).map((axis, series) => {
+                          const values = orekitCheck.history.map(sample => sample.positionDifferenceM === null ? 0 : Math.abs(sample.positionKm[axis] - (sample.positionKm[axis] - (sample.positionDifferenceM / 1000))));
+                          const peak = Math.max(...values, 0.000001);
+                          const points = values.map((value, index) => `${24 + index * 552 / (values.length - 1)},${155 - value / peak * 125}`).join(' ');
+                          return <polyline key={axis} points={points} fill="none" stroke={['#60a5fa', '#34d399', '#f59e0b'][series]} strokeWidth="2" />;
+                        })}
+                      </svg>
+                      <div className="stat-row"><span className="result-label">Position residual norm</span><b>{fixed(orekitCheck.positionDifferenceM ?? 0, 4)} m at final epoch</b></div>
+                      <svg viewBox="0 0 600 190" role="img" aria-label="Orekit versus HCW velocity residual time series">
+                        <line x1="24" y1="160" x2="576" y2="160" stroke="currentColor" opacity="0.25" />
+                        {orekitCheck.history.some(sample => sample.velocityDifferenceMmS !== null) && (() => {
+                          const values = orekitCheck.history.map(sample => sample.velocityDifferenceMmS ?? 0);
+                          const peak = Math.max(...values.map(Math.abs), 0.000001);
+                          const points = values.map((value, index) => `${24 + index * 552 / (values.length - 1)},${95 - value / peak * 65}`).join(' ');
+                          return <polyline points={points} fill="none" stroke="#a78bfa" strokeWidth="2" />;
+                        })()}
+                      </svg>
+                    </>
+                  ) : (
+                    <p>Imported mission: Orekit relative-state history is available, but HCW residuals are intentionally omitted because the imported orbit is not assumed to match the synthetic circular-chief model.</p>
+                  )}
+                  <div className="stat-row"><span className="result-label">Time span</span><b>0–{fixed(orekitCheck.history[orekitCheck.history.length - 1].elapsedSeconds, 1)} s</b></div>
+                </div>
+              )}
               {orekitCheck && <div className="result-list">
                 {orekitCheck.positionDifferenceM !== null && <div className="stat-row"><span className="result-label">Orekit vs HCW position difference</span><b>{fixed(orekitCheck.positionDifferenceM, 4)} m</b></div>}
                 {orekitCheck.velocityDifferenceMmS !== null && <div className="stat-row"><span className="result-label">Orekit vs HCW velocity difference</span><b>{fixed(orekitCheck.velocityDifferenceMmS, 4)} mm/s</b></div>}
