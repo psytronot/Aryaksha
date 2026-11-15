@@ -84,7 +84,7 @@ test('CSV cleanup rejects files without a recognised organisation column', async
   await page.getByLabel('Upload a business CSV').setInputFiles({
     name: 'invalid.csv',
     mimeType: 'text/csv',
-    buffer: Buffer.from('Website,City\\nhttps://example.test,Bengaluru')
+    buffer: Buffer.from('Website,City\nhttps://example.test,Bengaluru')
   });
   await expect(page.getByRole('alert')).toContainText('Add a Company, Business Name or Name column.');
   await expect(page.getByRole('button', { name: 'Download cleaned CSV' })).toHaveCount(0);
