@@ -19,6 +19,18 @@ describe('RPOD mission-state import contract', () => {
     expect(parseRpodMissionState(JSON.stringify(validMission))).toEqual(validMission);
   });
 
+  it('preserves valid nanosecond TAI epoch precision', () => {
+    const mission = { ...validMission, epochTai: '2026-11-15T12:00:00.123456789' };
+    expect(parseRpodMissionState(JSON.stringify(mission)).epochTai).toBe(mission.epochTai);
+  });
+
+  it('rejects TAI epoch precision beyond Java LocalDateTime nanoseconds', () => {
+    expect(() => parseRpodMissionState(JSON.stringify({
+      ...validMission,
+      epochTai: '2026-11-15T12:00:00.1234567890',
+    }))).toThrow(/epochTai/);
+  });
+
   it('rejects unsupported frames instead of relabelling inertial coordinates', () => {
     expect(() => parseRpodMissionState(JSON.stringify({ ...validMission, frame: 'GCRF' })))
       .toThrow(/EME2000/);
