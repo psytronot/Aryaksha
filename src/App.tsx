@@ -268,9 +268,100 @@ function App() {
   );
 }
 
+function parseBusinessCsv(raw: string) {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = '';
+  let quoted = false;
+
+  for (let i = 0; i < raw.length; i += 1) {
+    const char = raw[i];
+    if (char === '"' && quoted && raw[i + 1] === '"') {
+      field += '"';
+      i += 1;
+    } else if (char === '"') {
+      quoted = !quoted;
+    } else if (char === ',' && !quoted) {
+      row.push(field);
+      field = '';
+    } else if ((char === '\\n' || char === '\\r') && !quoted) {
+      if (char === '\\r' && raw[i + 1] === '\\n') i += 1;
+      row.push(field);
+      if (row.some(value => value.trim())) rows.push(row);
+      row = [];
+      field = '';
+    } else {
+      field += char;
+    }
+  }
+  row.push(field);
+  if (row.some(value => value.trim())) rows.push(row);
+  if (quoted) throw new Error('The CSV contains an unclosed quoted field.');
+  if (rows.length < 2) throw new Error('Add a header row and at least one organisation.');
+
+  const headers = rows[0].map(value => value.trim().toLowerCase());
+  const companyIndex = headers.findIndex(value => ['company', 'company name', 'business name', 'organisation', 'organization', 'name'].includes(value));
+  const websiteIndex = headers.findIndex(value => ['website', 'site', 'url', 'company website'].includes(value));
+  const cityIndex = headers.findIndex(value => ['city', 'location', 'region'].includes(value));
+  if (companyIndex < 0) throw new Error('Add a Company, Business Name or Name column.');
+
+  const seen = new Set<string>();
+  const records: { company: string; website: string; city: string }[] = [];
+  let duplicates = 0;
+  for (const values of rows.slice(1)) {
+    const company = (values[companyIndex] || '').trim();
+    if (!company) continue;
+    const website = websiteIndex >= 0 ? (values[websiteIndex] || '').trim() : '';
+    const city = cityIndex >= 0 ? (values[cityIndex] || '').trim() : '';
+    const key = company.toLocaleLowerCase().replace(/\\s+/g, ' ') + '|' + website.toLocaleLowerCase().replace(/\\/$/, '');
+    if (seen.has(key)) {
+      duplicates += 1;
+      continue;
+    }
+    seen.add(key);
+    records.push({ company, website, city });
+  }
+  return { total: rows.length - 1, records, duplicates };
+}
+
 function SoftwareProductsView() {
   const [brief, setBrief] = useState<{ offer: string; customer: string; geography: string } | null>(null);
   const [briefError, setBriefError] = useState('');
+  const [csvResult, setCsvResult] = useState<ReturnType<typeof parseBusinessCsv> | null>(null);
+  const [csvError, setCsvError] = useState('');
+
+  const handleCsvUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    setCsvResult(null);
+    setCsvError('');
+    if (!file) return;
+    if (file.size > 2_000_000) {
+      setCsvError('Choose a CSV smaller than 2 MB.');
+      return;
+    }
+    try {
+      const parsed = parseBusinessCsv(await file.text());
+      if (!parsed.records.length) throw new Error('No organisation names were found in the data rows.');
+      setCsvResult(parsed);
+    } catch (error) {
+      setCsvError(error instanceof Error ? error.message : 'Unable to read this CSV file.');
+    }
+  };
+
+  const downloadCleanCsv = () => {
+    if (!csvResult) return;
+    const quote = (value: string) => '"' + value.replace(/"/g, '""') + '"';
+    const lines = [
+      ['Company', 'Website', 'City'].map(quote).join(','),
+      ...csvResult.records.map(record => [record.company, record.website, record.city].map(quote).join(','))
+    ];
+    const url = URL.createObjectURL(new Blob([lines.join('\\r\\n')], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'cleaned-business-list.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const prepareBrief = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -326,6 +417,20 @@ function SoftwareProductsView() {
         <div><span className="software-hub-kicker">BRIEF VALIDATED · NO LIVE SEARCH</span><h3>Research brief ready</h3></div>
         <p><b>Offer:</b> {brief.offer}</p><p><b>Intended customer:</b> {brief.customer}</p><p><b>Geography:</b> {brief.geography}</p>
         <p className="software-demo-note">No live research was run and no prospects have been invented. A live research provider, account controls and source-permission checks are still required.</p>
+      </div>}
+    </section>
+    <section className="finder-intake" aria-labelledby="csv-cleanup-title">
+      <div className="software-demo-heading"><div><span className="software-hub-kicker">USER-SUPPLIED DATA · LOCAL ONLY</span><h2 id="csv-cleanup-title">Clean an existing business CSV</h2><p>Use data you already have permission to process. This tool does not scrape Google Maps, enrich private contacts or upload your file.</p></div><span className="software-demo-tag">NO SERVER UPLOAD</span></div>
+      <div className="finder-csv-controls">
+        <label htmlFor="business-csv-upload">Upload a business CSV</label>
+        <input id="business-csv-upload" aria-label="Upload a business CSV" type="file" accept=".csv,text/csv" onChange={handleCsvUpload} />
+        <small>Maximum file size: 2 MB. Expected header: Company, Business Name or Name. Website and City are optional.</small>
+      </div>
+      {csvError && <p className="finder-intake-error" role="alert">{csvError}</p>}
+      {csvResult && <div className="finder-brief-result" aria-live="polite">
+        <div className="finder-csv-stats"><b>{csvResult.total} data rows found</b><b>{csvResult.records.length} unique organisations</b><b>{csvResult.duplicates} duplicate row{csvResult.duplicates === 1 ? '' : 's'} excluded</b></div>
+        <button className="primary" type="button" onClick={downloadCleanCsv}>Download cleaned CSV <Download size={15}/></button>
+        <p className="software-demo-note">Your file is processed in this browser only; it is not uploaded. Review the cleaned file before using it.</p>
       </div>}
     </section>
     <section className="software-demo" aria-labelledby="software-demo-title">
