@@ -237,3 +237,16 @@ test('CSV cleanup bounds rows, columns and individual cell size', async ({ page 
   });
   await expect(page.getByRole('alert')).toContainText('cell cannot exceed 4,096 characters');
 });
+
+
+test('CSV utility provides a blank header template download', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download blank CSV template' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('business-list-template.csv');
+  const path = await download.path();
+  expect(path).toBeTruthy();
+  expect(await readFile(path!, 'utf8')).toBe('Company,Website,City\\r\\n');
+});
