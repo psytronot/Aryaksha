@@ -71,12 +71,13 @@ Orekit controller tests cover:
 ## Remaining engineering work
 
 1. Extend mission-state import to additional validated frames with real Orekit frame transformations. The current JSON importer accepts EME2000 only; non-EME2000 conversion remains outstanding.
-2. Add Orekit-vs-HCW residual time-series plots; imported EME2000 target/chaser inertial histories are now independently sampled with a local RK4 two-body propagator (41 samples each, maximum 10 s integration step). This history is a separate Newtonian point-mass visualization and is not a substitute for Orekit results.
+2. Add Orekit-vs-HCW residual time-series plots; the Orekit API now returns an optional endpoint-inclusive history (2–101 samples), and the RPOD UI plots signed R/T/N position residuals in metres and velocity residuals in mm/s for the synthetic circular-chief comparison. Imported EME2000 missions display Orekit relative-state history but intentionally omit HCW residuals.
 3. Add maneuver-aware Orekit propagation so the numerical comparison can evaluate departure and arrival impulses, rather than only the unburned initial state.
 4. Add multi-impulse and finite-burn sequencing with thrust, mass, attitude and actuator constraints; the current maneuver sequence is analytical and impulsive only.
 5. Upgrade the sampled pre-terminal keep-out sphere indicator to continuous-time approach-corridor and collision screening; extend the current diagonal-only uncertainty model to correlated covariance, measurement updates and maneuver uncertainty.
 6. Add capture/docking terminal constraints and extend the versioned JSON report with review metadata and additional verification provenance.
 7. Configure and run a separate staging deployment smoke test; the production-linked live integration job remains skipped on pull requests.
+8. Add adaptive continuous-time HCW keep-out screening; the existing configurable sphere test remains sampled-only.
 
 Do not describe the current implementation as a complete RPOD simulator or flight-ready rendezvous solution.
 
@@ -91,3 +92,16 @@ The report explicitly records that it is not safe-approach or docking guidance, 
 ## Inertial trajectory history
 
 `src/rpodInertial.ts` provides a separate Newtonian two-body Cartesian propagator using fixed-step RK4 (maximum integration step 10 s) and endpoint-inclusive uniform sampling. When an EME2000 mission file is imported, the RPOD workspace independently propagates the target and chaser from the imported TAI epoch and displays five checkpoints from each 41-sample history, including inertial orbital radii and mutual separation. This is a visualization/history layer only: it does not apply the planned HCW impulses, does not perform frame transformations, and does not replace the Orekit numerical cross-check. Its point-mass assumptions exclude J2, drag, SRP and third-body perturbations.
+
+
+## Orekit-versus-HCW time-series comparison
+
+The RPOD browser sends `historySamples: 21` with the initial dual-spacecraft request. The Orekit service returns endpoint-inclusive relative LVLH states at uniformly spaced epochs (history sample counts are constrained to 2–101). The Express proxy validates that the service returned the requested number of samples.
+
+For the synthetic circular-chief case, the UI independently evaluates the closed-form HCW state at each Orekit sample epoch and plots signed radial, along-track and cross-track residual components for position (metres) and velocity (mm/s). The final residual norms are also shown. For imported EME2000 mission states, the Orekit history is still displayed, but HCW residuals are intentionally suppressed because the imported orbit is not assumed to be the same circular-chief reference used by the HCW design inputs.
+
+The engineering report optionally retains each Orekit history sample, residual norms and signed component residuals. The comparison remains an unburned initial-propagation comparison: neither planned departure nor terminal impulses are applied to the Orekit spacecraft.
+
+## HCW separation screening indicator
+
+The RPOD results include the maximum sampled relative separation divided by the chief-orbit radius. A 1% ratio is displayed as a review trigger only. It is a heuristic intended to prompt scrutiny of the small-separation linearization assumption; it is not a universal HCW accuracy boundary, a validated operating envelope or a safety criterion.
