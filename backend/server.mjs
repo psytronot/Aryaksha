@@ -8,7 +8,7 @@ const app = express();
 const port = Number(process.env.PORT || 3000);
 const EARTH_RADIUS = 6378.137;
 const MAX_PROPAGATION_SECONDS = 604_800;
-const TLE_LINE_PATTERN = /^[12] [0-9 ]{67}$/;
+const TLE_LINE_PATTERN = /^[12] [\\x20-\\x7e]{67}$/;
 
 app.disable('x-powered-by');
 // Render terminates TLS and forwards requests through one trusted proxy hop.
@@ -70,14 +70,38 @@ app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
     } finally { clearTimeout(timer); }
     if (!upstream.ok) return res.status(502).json({ error: `Orekit service returned HTTP ${upstream.status}.` });
     const payload = await upstream.json();
-    if (!payload || typeof payload !== 'object' || Array.isArray(payload) ||
-        payload.valid !== true || payload.engine !== 'Orekit' ||
-        payload.comparison?.engineAdapter !== 'orekit-http' ||
-        !payload.orbit || typeof payload.orbit !== 'object' ||
-        !payload.state || typeof payload.state !== 'object') {
-      return res.status(502).json({ error: 'Orekit service returned an invalid analysis response.' });
-    }
-    return res.json({ ...payload, comparison: { engineAdapter: 'orekit-http', status: 'connected', note: 'Results returned by the independently hosted Orekit service.' } });
+    const orbitFields = ['altitudeKm', 'semiMajorAxisKm', 'eccentricity', 'inclinationDeg', 'periodSeconds', 'periodMinutes', 'periapsisAltitudeKm', 'apoapsisAltitudeKm', 'circularVelocityKmS', 'specificOrbitalEnergyKm2S2'];
+    const stateFields = ['elapsedSeconds', 'epoch', 'timeScale', 'frame', 'positionKm', 'velocityKmS'];
+    const finiteFields = (object, fields) => fields.every(field => typeof object?.[field] === 'number' && Number.isFinite(object[field]));
+    const validPayload = payload && typeof payload === 'object' && !Array.isArray(payload) &&
+      payload.valid === true && payload.engine === 'Orekit' &&
+      typeof payload.engineVersion === 'string' && /^\\d+\\.\\d+\\.\\d+$/.test(payload.engineVersion) &&
+      payload.fidelity === 'Orekit numerical propagation (two-body)' &&
+      Array.isArray(payload.assumptions) && payload.assumptions.length > 0 &&
+      payload.assumptions.every(item => typeof item === 'string' && item.length > 0) &&
+      payload.orbit && typeof payload.orbit === 'object' && finiteFields(payload.orbit, orbitFields) &&
+      payload.state && typeof payload.state === 'object' &&
+      typeof payload.state.elapsedSeconds === 'number' && Number.isFinite(payload.state.elapsedSeconds) &&
+      payload.state.elapsedSeconds >= 0 && payload.state.elapsedSeconds <= MAX_PROPAGATION_SECONDS &&
+      typeof payload.state.epoch === 'string' && payload.state.timeScale === 'TAI' && payload.state.frame === 'EME2000' &&
+      Array.isArray(payload.state.positionKm) && payload.state.positionKm.length === 3 && payload.state.positionKm.every(Number.isFinite) &&
+      Array.isArray(payload.state.velocityKmS) && payload.state.velocityKmS.length === 3 && payload.state.velocityKmS.every(Number.isFinite) &&
+      payload.comparison?.engineAdapter === 'orekit-http';
+    if (!validPayload) return res.status(502).json({ error: 'Orekit service returned an invalid analysis response.' });
+
+    // Build an explicit response allowlist; never forward arbitrary upstream fields.
+    const orbit = Object.fromEntries(orbitFields.map(field => [field, payload.orbit[field]]));
+    const state = Object.fromEntries(stateFields.map(field => [field, payload.state[field]]));
+    return res.json({
+      valid: true,
+      engine: 'Orekit',
+      engineVersion: payload.engineVersion,
+      fidelity: 'Orekit numerical propagation (two-body)',
+      assumptions: payload.assumptions,
+      orbit,
+      state,
+      comparison: { engineAdapter: 'orekit-http', status: 'connected', note: 'Results returned by the independently hosted Orekit service.' }
+    });
   } catch (err) {
     return res.status(502).json({ error: err?.name === 'AbortError' ? 'Orekit service timed out after 90 seconds.' : 'Orekit service is configured but unavailable. Check its deployment and logs.' });
   }
