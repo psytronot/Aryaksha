@@ -274,8 +274,10 @@ function SoftwareProductsView() {
   const [briefError, setBriefError] = useState('');
   const [csvResult, setCsvResult] = useState<ReturnType<typeof parseBusinessCsv> | null>(null);
   const [csvError, setCsvError] = useState('');
+  const csvReadId = useRef(0);
 
   const handleCsvUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const requestId = ++csvReadId.current;
     const input = event.currentTarget;
     const file = input.files?.[0];
     setCsvResult(null);
@@ -288,9 +290,11 @@ function SoftwareProductsView() {
     }
     try {
       const parsed = parseBusinessCsv(await file.text());
+      if (requestId !== csvReadId.current) return;
       if (!parsed.records.length) throw new Error('No organisation names were found in the data rows.');
       setCsvResult(parsed);
     } catch (error) {
+      if (requestId !== csvReadId.current) return;
       setCsvError(error instanceof Error ? error.message : 'Unable to read this CSV file.');
     }
   };
