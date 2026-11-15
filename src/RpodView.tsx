@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { AlertTriangle, Orbit, Play, Satellite } from 'lucide-react';
 import { EARTH_RADIUS, MU } from './orbit';
-import { propagateCw, solveRendezvousImpulse, type RelativeState } from './rpod';
+import { propagateCw, solveTwoImpulseRendezvous, type RelativeState } from './rpod';
 
 type ScenarioInput = {
   chiefAltitudeKm: string;
@@ -38,8 +38,11 @@ export default function RpodView() {
   const [result, setResult] = useState<{
     meanMotionRadS: number;
     rendezvousTimeSeconds: number;
-    deltaVKmS: [number, number, number];
-    deltaVMagnitudeMps: number;
+    departureDeltaVKmS: [number, number, number];
+    arrivalDeltaVKmS: [number, number, number];
+    departureDeltaVMagnitudeMps: number;
+    arrivalDeltaVMagnitudeMps: number;
+    totalDeltaVMagnitudeMps: number;
     terminal: RelativeState;
   } | null>(null);
   const [error, setError] = useState('');
@@ -77,18 +80,17 @@ export default function RpodView() {
         ],
       };
 
-      const solution = solveRendezvousImpulse(initial, meanMotionRadS, rendezvousTimeSeconds);
-      const terminal = propagateCw(
-        { positionKm: initial.positionKm, velocityKmS: solution.postBurnVelocityKmS },
-        meanMotionRadS,
-        rendezvousTimeSeconds,
-      );
+      const solution = solveTwoImpulseRendezvous(initial, meanMotionRadS, rendezvousTimeSeconds);
+      const terminal = solution.postArrivalBurnState;
 
       setResult({
         meanMotionRadS,
         rendezvousTimeSeconds,
-        deltaVKmS: solution.deltaVKmS,
-        deltaVMagnitudeMps: solution.deltaVMagnitudeMps,
+        departureDeltaVKmS: solution.departureDeltaVKmS,
+        arrivalDeltaVKmS: solution.arrivalDeltaVKmS,
+        departureDeltaVMagnitudeMps: solution.departureDeltaVMagnitudeMps,
+        arrivalDeltaVMagnitudeMps: solution.arrivalDeltaVMagnitudeMps,
+        totalDeltaVMagnitudeMps: solution.totalDeltaVMagnitudeMps,
         terminal,
       });
       setError('');
@@ -102,9 +104,9 @@ export default function RpodView() {
     <div className="page">
       <div className="page-header">
         <div>
-          <small>RPOD · PHASE 01 · RELATIVE MOTION</small>
+          <small>RPOD · PHASE 02 · TWO-IMPULSE CW</small>
           <h1>Design a preliminary rendezvous.</h1>
-          <p>Initialize a chaser relative to a target in its LVLH frame, calculate a single impulsive correction and inspect the predicted terminal separation.</p>
+          <p>Initialize a chaser relative to a target in its LVLH frame, calculate departure and terminal velocity-matching impulses under the linear CW model.</p>
         </div>
       </div>
 
@@ -122,7 +124,7 @@ export default function RpodView() {
               <div className="field"><span><label htmlFor="rpod-vy"><span className="field-label">ALONG-TRACK RELATIVE VELOCITY</span></label><em>km/s</em></span><input id="rpod-vy" aria-label="Along-track relative velocity" type="number" step="any" required value={input.vyKmS} onChange={event => update('vyKmS', event.target.value)} /></div>
               <div className="field"><span><label htmlFor="rpod-vz"><span className="field-label">CROSS-TRACK RELATIVE VELOCITY</span></label><em>km/s</em></span><input id="rpod-vz" aria-label="Cross-track relative velocity" type="number" step="any" required value={input.vzKmS} onChange={event => update('vzKmS', event.target.value)} /></div>
             </div>
-            <button className="primary wide" type="submit"><Play size={15} /> Solve single-impulse rendezvous</button>
+            <button className="primary wide" type="submit"><Play size={15} /> Solve two-impulse rendezvous</button>
           </form>
           <div className="callout"><Orbit size={15} /><span>LVLH convention: +R radial outward, +T along-track, +N orbit-normal. Relative velocity is expressed in the rotating LVLH frame.</span></div>
           {error && <div className="callout"><AlertTriangle size={15} /><span>{error}</span></div>}
@@ -131,27 +133,34 @@ export default function RpodView() {
         <section className="card">
           <div className="card-head"><span><Orbit size={17} /></span><b>Rendezvous solution</b></div>
           {!result ? (
-            <div className="empty-state"><p>Run the scenario to calculate the initial impulse and predicted terminal relative state.</p></div>
+            <div className="empty-state"><p>Run the scenario to calculate departure and arrival impulses and the predicted terminal relative state.</p></div>
           ) : (
             <>
-              <div className="metric-big"><b>{fixed(result.deltaVMagnitudeMps, 4)}</b><span>m/s · initial impulse magnitude</span></div>
+              <div className="metric-big"><b>{fixed(result.totalDeltaVMagnitudeMps, 4)}</b><span>m/s · total ideal impulsive Δv</span></div>
               <div className="state-card">
-                <div><small>ΔV RADIAL</small><b>{fixed(result.deltaVKmS[0], 8)} km/s</b></div>
-                <div><small>ΔV ALONG-TRACK</small><b>{fixed(result.deltaVKmS[1], 8)} km/s</b></div>
-                <div><small>ΔV CROSS-TRACK</small><b>{fixed(result.deltaVKmS[2], 8)} km/s</b></div>
+                <div><small>ΔV RADIAL</small><b>{fixed(result.departureDeltaVKmS[0], 8)} km/s</b></div>
+                <div><small>ΔV ALONG-TRACK</small><b>{fixed(result.departureDeltaVKmS[1], 8)} km/s</b></div>
+                <div><small>ΔV CROSS-TRACK</small><b>{fixed(result.departureDeltaVKmS[2], 8)} km/s</b></div>
+              </div>
+              <div className="state-card">
+                <div><small>ARRIVAL ΔV RADIAL</small><b>{fixed(result.arrivalDeltaVKmS[0], 8)} km/s</b></div>
+                <div><small>ARRIVAL ΔV ALONG-TRACK</small><b>{fixed(result.arrivalDeltaVKmS[1], 8)} km/s</b></div>
+                <div><small>ARRIVAL ΔV CROSS-TRACK</small><b>{fixed(result.arrivalDeltaVKmS[2], 8)} km/s</b></div>
               </div>
               <div className="result-list">
+                <div className="stat-row"><span className="result-label">Departure impulse</span><b>{fixed(result.departureDeltaVMagnitudeMps, 4)} m/s</b></div>
+                <div className="stat-row"><span className="result-label">Arrival velocity match</span><b>{fixed(result.arrivalDeltaVMagnitudeMps, 4)} m/s</b></div>
                 <div className="stat-row"><span className="result-label">Chief mean motion</span><b>{fixed(result.meanMotionRadS, 9)} rad/s</b></div>
                 <div className="stat-row"><span className="result-label">Rendezvous time</span><b>{fixed(result.rendezvousTimeSeconds, 2)} s</b></div>
                 <div className="stat-row"><span className="result-label">Terminal radial position</span><b>{fixed(result.terminal.positionKm[0], 9)} km</b></div>
                 <div className="stat-row"><span className="result-label">Terminal along-track position</span><b>{fixed(result.terminal.positionKm[1], 9)} km</b></div>
                 <div className="stat-row"><span className="result-label">Terminal cross-track position</span><b>{fixed(result.terminal.positionKm[2], 9)} km</b></div>
-                <div className="stat-row"><span className="result-label">Terminal relative speed</span><b>{fixed(Math.hypot(...result.terminal.velocityKmS) * 1000, 4)} m/s</b></div>
+                <div className="stat-row"><span className="result-label">Terminal relative speed after arrival burn</span><b>{fixed(Math.hypot(...result.terminal.velocityKmS) * 1000, 4)} m/s</b></div>
               </div>
-              <div className="callout"><AlertTriangle size={15} /><span>Position rendezvous only. Terminal relative velocity is not constrained; this is not a docking-ready solution.</span></div>
+              <div className="callout"><AlertTriangle size={15} /><span>The arrival impulse mathematically cancels terminal relative velocity at the same epoch as position coincidence. This is not a safe approach or docking guidance solution.</span></div>
             </>
           )}
-          <div className="callout"><AlertTriangle size={15} /><span>HCW assumes a circular chief orbit, constant mean motion and small relative separation. No perturbations, collision screening, keep-out zone or approach corridor are modelled.</span></div>
+          <div className="callout"><AlertTriangle size={15} /><span>HCW assumes a circular chief orbit, constant mean motion and small relative separation. No perturbations, finite burns, navigation uncertainty, collision screening, keep-out zone or approach corridor are modelled.</span></div>
           {defaultMeanMotion !== null && <div className="bottom-bar"><b>Reference mean motion: {fixed(defaultMeanMotion, 9)} rad/s</b><span>Two-body circular orbit</span></div>}
         </section>
       </div>
