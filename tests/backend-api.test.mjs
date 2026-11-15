@@ -11,39 +11,27 @@ async function getAvailablePort() {
     probe.once('error', reject);
     probe.listen(0, '127.0.0.1', resolve);
   });
-
   const address = probe.address();
   if (!address || typeof address === 'string') {
     await new Promise(resolve => probe.close(resolve));
     throw new Error('Could not allocate a local test port.');
   }
-
-  await new Promise((resolve, reject) => {
-    probe.close(error => error ? reject(error) : resolve());
-  });
+  await new Promise((resolve, reject) => probe.close(error => error ? reject(error) : resolve()));
   return address.port;
 }
 
 async function waitForHealth(url, child) {
   const deadline = Date.now() + 15_000;
   let lastError;
-
   while (Date.now() < deadline) {
-    if (child.exitCode !== null) {
-      throw new Error(`API process exited before becoming healthy (code ${child.exitCode}).`);
-    }
-
+    if (child.exitCode !== null) throw new Error(`API process exited before becoming healthy (code ${child.exitCode}).`);
     try {
       const response = await fetch(`${url}/api/v1/health`);
       if (response.ok) return;
       lastError = new Error(`Health endpoint returned HTTP ${response.status}.`);
-    } catch (error) {
-      lastError = error;
-    }
-
+    } catch (error) { lastError = error; }
     await new Promise(resolve => setTimeout(resolve, 100));
   }
-
   throw new Error(`API did not become healthy within 15 seconds: ${lastError}`);
 }
 
@@ -65,12 +53,10 @@ afterAll(() => {
 describe('standalone orbit-analysis HTTP contract', () => {
   it('fails explicitly when Orekit is not configured instead of returning a misleading fallback', async () => {
     const response = await fetch(`${baseUrl}/api/mission-analysis/orbit`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ altitudeKm: 550, inclinationDeg: 97.6, eccentricity: 0.001 })
     });
     const payload = await response.json();
-
     expect(response.status).toBe(503);
     expect(payload.error).toContain('Orekit service is not configured');
   });
@@ -84,85 +70,88 @@ describe('standalone orbit-analysis HTTP contract', () => {
     ['negative propagation time', { altitudeKm: 550, inclinationDeg: 97.6, eccentricity: 0.001, elapsedSeconds: -1 }],
     ['propagation time beyond seven days', { altitudeKm: 550, inclinationDeg: 97.6, eccentricity: 0.001, elapsedSeconds: 604800.01 }],
     ['string propagation time', { altitudeKm: 550, inclinationDeg: 97.6, eccentricity: 0.001, elapsedSeconds: '600' }]
-  ])('rejects %s in the request contract', async (_label, requestBody) => {
+  ])('rejects %s in the orbit-analysis contract', async (_label, requestBody) => {
     const response = await fetch(`${baseUrl}/api/mission-analysis/orbit`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(requestBody)
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(requestBody)
     });
     const payload = await response.json();
-
     expect(response.status).toBe(400);
     expect(payload.error).toEqual(expect.any(String));
     expect(payload.error.length).toBeGreaterThan(0);
   });
 
-  it('rejects a physically Earth-intersecting orbit even when each field is in range', async () => {
+  it('rejects an Earth-intersecting orbit', async () => {
     const response = await fetch(`${baseUrl}/api/mission-analysis/orbit`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ altitudeKm: 120, inclinationDeg: 45, eccentricity: 0.02 })
     });
     const payload = await response.json();
-
     expect(response.status).toBe(400);
     expect(payload.error).toContain('intersects Earth');
   });
 
-  it('returns a structured JSON error for malformed JSON', async () => {
-    const response = await fetch(`${baseUrl}/api/mission-analysis/orbit`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: '{"altitudeKm":'
+  it('returns structured errors for malformed and oversized JSON', async () => {
+    const malformed = await fetch(`${baseUrl}/api/mission-analysis/orbit`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"altitudeKm":'
     });
-    const payload = await response.json();
+    expect(malformed.status).toBe(400);
+    expect((await malformed.json()).error).toBe('Request body must be valid JSON.');
 
-    expect(response.status).toBe(400);
-    expect(response.headers.get('content-type')).toContain('application/json');
-    expect(payload.error).toBe('Request body must be valid JSON.');
+    const oversized = await fetch(`${baseUrl}/api/mission-analysis/orbit`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ altitudeKm: 550, inclinationDeg: 97.6, eccentricity: 0.001, padding: 'x'.repeat(70 * 1024) })
+    });
+    expect(oversized.status).toBe(413);
+    expect((await oversized.json()).error).toBe('Request body exceeds the 64 KiB limit.');
   });
 
-  it('returns a structured JSON error when the request body exceeds 64 KiB', async () => {
-    const body = JSON.stringify({
-      altitudeKm: 550,
-      inclinationDeg: 97.6,
-      eccentricity: 0.001,
-      padding: 'x'.repeat(70 * 1024)
-    });
-    const response = await fetch(`${baseUrl}/api/mission-analysis/orbit`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body
-    });
-    const payload = await response.json();
-
-    expect(response.status).toBe(413);
-    expect(response.headers.get('content-type')).toContain('application/json');
-    expect(payload.error).toBe('Request body exceeds the 64 KiB limit.');
+  it('sets no-store on API responses', async () => {
+    const response = await fetch(`${baseUrl}/api/v1/health`);
+    expect(response.headers.get('cache-control')).toBe('no-store');
   });
 
-  it('rejects negative simulation time with a structured JSON error', async () => {
+  it('rejects negative, non-numeric and excessive simulation time', async () => {
+    for (const seconds of [-1, '10', 604800.01]) {
+      const response = await fetch(`${baseUrl}/api/simulation/propagate`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ seconds, mode: 'tle', tle: { line1: '', line2: '' } })
+      });
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toContain('Simulation time');
+    }
+  });
+
+  it('rejects unexpected simulation fields', async () => {
     const response = await fetch(`${baseUrl}/api/simulation/propagate`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ seconds: -1 })
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ seconds: 0, mode: 'tle', tle: { line1: '', line2: '' }, admin: true })
     });
-    const payload = await response.json();
-
     expect(response.status).toBe(400);
-    expect(payload.error).toBe('Simulation time must be finite and non-negative.');
+    expect((await response.json()).error).toContain('seconds, mode and tle only');
   });
 
   it('rejects TLE propagation when either TLE line is missing', async () => {
     const response = await fetch(`${baseUrl}/api/simulation/propagate`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ seconds: 0, mode: 'tle', tle: { line1: '', line2: '' } })
     });
-    const payload = await response.json();
-
     expect(response.status).toBe(400);
-    expect(payload.error).toBe('Both TLE lines are required.');
+    expect((await response.json()).error).toBe('Both TLE lines are required.');
   });
 
+  it('rejects malformed TLE lines and unexpected TLE properties', async () => {
+    const malformed = await fetch(`${baseUrl}/api/simulation/propagate`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ seconds: 0, mode: 'tle', tle: { line1: '1'.repeat(69), line2: '2'.repeat(69) } })
+    });
+    expect(malformed.status).toBe(400);
+    expect((await malformed.json()).error).toContain('69-character');
+
+    const extra = await fetch(`${baseUrl}/api/simulation/propagate`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ seconds: 0, mode: 'tle', tle: { line1: 'x', line2: 'y', privileged: true } })
+    });
+    expect(extra.status).toBe(400);
+    expect((await extra.json()).error).toContain('line1, line2 and optional name only');
+  });
 });
