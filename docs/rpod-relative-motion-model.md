@@ -49,7 +49,13 @@ It returns:
 
 **Important limitation:** this solution constrains terminal relative position only. It does not constrain terminal relative velocity, guarantee a safe approach path, optimize a multi-burn sequence, model finite-duration thrust, or check keep-out zones and collision probability. Singular or ill-conditioned transfer matrices are rejected.
 
-## Two-impulse position and velocity matching\n\n`solveTwoImpulseRendezvous(state, n, T)` extends the position-only solution with an idealized instantaneous terminal impulse at the rendezvous epoch. The first impulse is selected to make relative position zero at `T`; the second cancels the residual relative velocity at that same instant. It reports both impulse vectors, their magnitudes, total ideal impulsive delta-v, and pre-/post-arrival-burn relative states.\n\nThis does not define a safe approach trajectory: it has no keep-out geometry, approach corridor, collision probability, navigation uncertainty, finite-burn execution, or docking capture constraints. The second burn occurs at the terminal position coincidence, so this is a mathematical two-impulse rendezvous boundary condition, not a flight-ready RPOD sequence.\n\n## Verification coverage
+## Two-impulse position and velocity matching
+
+`solveTwoImpulseRendezvous(state, n, T)` extends the position-only solution with an idealized instantaneous terminal impulse at the rendezvous epoch. The first impulse is selected to make relative position zero at `T`; the second cancels the residual relative velocity at that same instant. It reports both impulse vectors, their magnitudes, total ideal impulsive delta-v, and pre-/post-arrival-burn relative states.
+
+This does not define a safe approach trajectory: it has no keep-out geometry, approach corridor, collision probability, navigation uncertainty, finite-burn execution, or docking capture constraints. The second burn occurs at the terminal position coincidence, so this is a mathematical two-impulse rendezvous boundary condition, not a flight-ready RPOD sequence.
+
+## Verification coverage
 
 The unit tests cover:
 - Inertial-to-LVLH conversion, including rotating-frame velocity correction.
