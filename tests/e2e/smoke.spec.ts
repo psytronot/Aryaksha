@@ -13,6 +13,45 @@ test('desktop app shell renders and mission analysis navigation works', async ({
   expect(pageErrors).toEqual([]);
 });
 
+test('RPOD workspace solves HCW and cross-checks relative propagation with Orekit', async ({ page }) => {
+  let requestBody: unknown;
+  await page.route('**/api/rpod/relative-state', async route => {
+    requestBody = route.request().postDataJSON();
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        valid: true,
+        engine: 'Orekit',
+        engineVersion: '13.1.9',
+        frame: 'EME2000 / target LVLH',
+        epoch: '2000-01-01T12:29:27.816',
+        elapsedSeconds: 1800,
+        target: { positionKm: [6928, 0, 0], velocityKmS: [0, 7.5, 0] },
+        chaser: { positionKm: [6928.1, 0, 0], velocityKmS: [0, 7.5, 0] },
+        relativeLvlh: { positionKm: [0.1, -0.2, 0.05], velocityKmS: [0.0001, 0.0002, -0.00005] },
+        assumptions: ['Newtonian central gravity only'],
+        comparison: { engineAdapter: 'orekit-rpod-http', status: 'connected' }
+      })
+    });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'RPOD Design', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Design a preliminary rendezvous.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Solve two-impulse rendezvous', exact: true }).click();
+  await expect(page.getByText(/total ideal impulsive Δv/)).toBeVisible();
+  await page.getByRole('button', { name: 'Cross-check initial propagation (no burns) against Orekit', exact: true }).click();
+
+  await expect(page.getByText('Orekit propagated LVLH position')).toBeVisible();
+  await expect(page.getByText('Orekit epoch (TAI)')).toBeVisible();
+  expect(requestBody).toEqual({
+    target: { positionKm: [6928.137, 0, 0], velocityKmS: [0, 7.585, 0] },
+    chaser: { positionKm: [6928.237, -0.2, 0.05], velocityKmS: [-0.000115, 7.585207, -0.00005] },
+    elapsedSeconds: 1800
+  });
+});
+
 test('mobile navigation opens, changes section and closes after selection', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
