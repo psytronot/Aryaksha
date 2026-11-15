@@ -330,7 +330,7 @@ export default function RpodView() {
                 <div className="stat-row"><span className="result-label">Terminal relative speed after arrival burn</span><b>{fixed(Math.hypot(...result.terminal.velocityKmS) * 1000, 4)} m/s</b></div>
               </div>
               <div className="callout"><AlertTriangle size={15} /><span>The arrival impulse mathematically cancels terminal relative velocity at the same epoch as position coincidence. This is not a safe approach or docking guidance solution.</span></div>
-              <div className="callout"><Orbit size={15} /><span>Orekit cross-check creates a synthetic circular equatorial chief orbit in EME2000 at J2000 TAI, converts the entered LVLH state to inertial Cartesian states, and independently propagates target and chaser. This is a model comparison case, not an arbitrary mission-orbit import.</span></div>
+              <div className="callout"><Orbit size={15} /><span>Orekit cross-check uses imported EME2000 target/chaser states when a mission file is loaded; otherwise it constructs a synthetic circular equatorial chief orbit. The imported states are propagated from their declared TAI epoch. HCW residuals are shown only for the synthetic circular-orbit case.</span></div>
               <button className="primary wide" type="button" onClick={crossCheckWithOrekit} disabled={orekitLoading}>
                 {orekitLoading ? 'Propagating both spacecraft with Orekit…' : (importedMissionState ? 'Cross-check imported mission states against Orekit' : 'Cross-check initial propagation (no burns) against Orekit')}
               </button>
