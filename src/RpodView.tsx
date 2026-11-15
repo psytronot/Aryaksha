@@ -1,7 +1,8 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import { AlertTriangle, Orbit, Play, Satellite } from 'lucide-react';
 import { EARTH_RADIUS, MU } from './orbit';
 import { propagateCw, sampleCwTrajectory, solveTwoImpulseRendezvous, type RelativeState } from './rpod';
+import { parseRpodMissionState, type RpodMissionState } from './rpodMissionState';
 
 type ScenarioInput = {
   epochTai: string;
@@ -49,6 +50,8 @@ export default function RpodView() {
     trajectory: ReturnType<typeof sampleCwTrajectory>;
   } | null>(null);
   const [error, setError] = useState('');
+  const [importedMissionState, setImportedMissionState] = useState<RpodMissionState | null>(null);
+  const [importError, setImportError] = useState('');
   const [orekitLoading, setOrekitLoading] = useState(false);
   const [orekitError, setOrekitError] = useState('');
   const [orekitCheck, setOrekitCheck] = useState<{
@@ -58,6 +61,25 @@ export default function RpodView() {
     velocityDifferenceMmS: number;
     epoch: string;
   } | null>(null);
+
+  const importMissionState = async (event: ChangeEvent<HTMLInputElement>) => {
+    const inputElement = event.currentTarget;
+    const file = inputElement.files?.[0];
+    if (!file) return;
+    try {
+      const parsed = parseRpodMissionState(await file.text());
+      setImportedMissionState(parsed);
+      setInput(current => ({ ...current, epochTai: parsed.epochTai }));
+      setImportError('');
+      setOrekitCheck(null);
+      setOrekitError('');
+    } catch (cause) {
+      setImportedMissionState(null);
+      setImportError(cause instanceof Error ? cause.message : 'Unable to import mission-state file.');
+    } finally {
+      inputElement.value = '';
+    }
+  };
 
   const update = (key: keyof ScenarioInput, value: string) => {
     setInput(current => ({ ...current, [key]: value }));
@@ -94,34 +116,47 @@ export default function RpodView() {
     setOrekitError('');
     setOrekitCheck(null);
     try {
-      const altitude = numberValue(input.chiefAltitudeKm, 'Chief altitude');
       const rendezvousMinutes = numberValue(input.rendezvousMinutes, 'Rendezvous time');
-      if (altitude <= 0 || rendezvousMinutes <= 0) throw new Error('Altitude and rendezvous time must be positive.');
-      const radiusKm = EARTH_RADIUS + altitude;
-      const meanMotion = Math.sqrt(MU / radiusKm ** 3);
-      const targetPositionKm: [number, number, number] = [radiusKm, 0, 0];
-      const targetVelocityKmS: [number, number, number] = [0, Math.sqrt(MU / radiusKm), 0];
-      const relativePosition: [number, number, number] = [
-        numberValue(input.xKm, 'Radial separation'),
-        numberValue(input.yKm, 'Along-track separation'),
-        numberValue(input.zKm, 'Cross-track separation'),
-      ];
-      const relativeVelocity: [number, number, number] = [
-        numberValue(input.vxKmS, 'Radial relative velocity'),
-        numberValue(input.vyKmS, 'Along-track relative velocity'),
-        numberValue(input.vzKmS, 'Cross-track relative velocity'),
-      ];
-      const chaserPositionKm: [number, number, number] = [
-        targetPositionKm[0] + relativePosition[0],
-        targetPositionKm[1] + relativePosition[1],
-        targetPositionKm[2] + relativePosition[2],
-      ];
-      const chaserVelocityKmS: [number, number, number] = [
-        targetVelocityKmS[0] - meanMotion * relativePosition[1] + relativeVelocity[0],
-        targetVelocityKmS[1] + meanMotion * relativePosition[0] + relativeVelocity[1],
-        targetVelocityKmS[2] + relativeVelocity[2],
-      ];
+      if (rendezvousMinutes <= 0) throw new Error('Rendezvous time must be positive.');
       const elapsedSeconds = rendezvousMinutes * 60;
+      let targetPositionKm: [number, number, number];
+      let targetVelocityKmS: [number, number, number];
+      let chaserPositionKm: [number, number, number];
+      let chaserVelocityKmS: [number, number, number];
+
+      if (importedMissionState) {
+        targetPositionKm = importedMissionState.target.positionKm;
+        targetVelocityKmS = importedMissionState.target.velocityKmS;
+        chaserPositionKm = importedMissionState.chaser.positionKm;
+        chaserVelocityKmS = importedMissionState.chaser.velocityKmS;
+      } else {
+        const altitude = numberValue(input.chiefAltitudeKm, 'Chief altitude');
+        if (altitude <= 0) throw new Error('Chief altitude must be positive.');
+        const radiusKm = EARTH_RADIUS + altitude;
+        const meanMotion = Math.sqrt(MU / radiusKm ** 3);
+        targetPositionKm = [radiusKm, 0, 0];
+        targetVelocityKmS = [0, Math.sqrt(MU / radiusKm), 0];
+        const relativePosition: [number, number, number] = [
+          numberValue(input.xKm, 'Radial separation'),
+          numberValue(input.yKm, 'Along-track separation'),
+          numberValue(input.zKm, 'Cross-track separation'),
+        ];
+        const relativeVelocity: [number, number, number] = [
+          numberValue(input.vxKmS, 'Radial relative velocity'),
+          numberValue(input.vyKmS, 'Along-track relative velocity'),
+          numberValue(input.vzKmS, 'Cross-track relative velocity'),
+        ];
+        chaserPositionKm = [
+          targetPositionKm[0] + relativePosition[0],
+          targetPositionKm[1] + relativePosition[1],
+          targetPositionKm[2] + relativePosition[2],
+        ];
+        chaserVelocityKmS = [
+          targetVelocityKmS[0] - meanMotion * relativePosition[1] + relativeVelocity[0],
+          targetVelocityKmS[1] + meanMotion * relativePosition[0] + relativeVelocity[1],
+          targetVelocityKmS[2] + relativeVelocity[2],
+        ];
+      }
       const response = await fetch('/api/rpod/relative-state', {
         method: 'POST',
         headers: { 'content-type': 'application/json', accept: 'application/json' },
@@ -129,7 +164,7 @@ export default function RpodView() {
           target: { positionKm: targetPositionKm, velocityKmS: targetVelocityKmS },
           chaser: { positionKm: chaserPositionKm, velocityKmS: chaserVelocityKmS },
           elapsedSeconds,
-          epochTai: input.epochTai.trim(),
+          epochTai: importedMissionState?.epochTai ?? input.epochTai.trim(),
         }),
       });
       const payload = await response.json();
@@ -225,6 +260,9 @@ export default function RpodView() {
           <div className="card-head"><span><Satellite size={17} /></span><b>Target orbit and chaser initial state</b></div>
           <form onSubmit={runScenario}>
             <div className="field"><span><label htmlFor="rpod-epoch-tai"><span className="field-label">MISSION EPOCH</span></label><em>TAI</em></span><input id="rpod-epoch-tai" aria-label="Mission epoch TAI" type="text" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?" title="Use YYYY-MM-DDTHH:mm:ss in TAI" required value={input.epochTai} onChange={event => update('epochTai', event.target.value)} /></div>
+            <div className="field"><span><label htmlFor="rpod-mission-file"><span className="field-label">IMPORT MISSION STATE</span></label><em>JSON · EME2000</em></span><input id="rpod-mission-file" aria-label="Import EME2000 mission-state JSON" type="file" accept=".json,application/json" onChange={importMissionState} /></div>
+            {importedMissionState && <div className="callout"><Orbit size={15} /><span>Imported target and chaser Cartesian states in EME2000 at {importedMissionState.epochTai} TAI.</span></div>}
+            {importError && <div className="callout"><AlertTriangle size={15} /><span>{importError}</span></div>}
             <div className="field-grid">
               <div className="field"><span><label htmlFor="rpod-chief-altitude"><span className="field-label">CHIEF ORBIT ALTITUDE</span></label><em>km</em></span><input id="rpod-chief-altitude" aria-label="Chief orbit altitude" type="number" min="1" step="any" required value={input.chiefAltitudeKm} onChange={event => update('chiefAltitudeKm', event.target.value)} /></div>
               <div className="field"><span><label htmlFor="rpod-rendezvous-time"><span className="field-label">RENDEZVOUS TIME</span></label><em>min</em></span><input id="rpod-rendezvous-time" aria-label="Rendezvous time" type="number" min="0.001" step="any" required value={input.rendezvousMinutes} onChange={event => update('rendezvousMinutes', event.target.value)} /></div>
@@ -284,7 +322,7 @@ export default function RpodView() {
               <div className="callout"><AlertTriangle size={15} /><span>The arrival impulse mathematically cancels terminal relative velocity at the same epoch as position coincidence. This is not a safe approach or docking guidance solution.</span></div>
               <div className="callout"><Orbit size={15} /><span>Orekit cross-check creates a synthetic circular equatorial chief orbit in EME2000 at J2000 TAI, converts the entered LVLH state to inertial Cartesian states, and independently propagates target and chaser. This is a model comparison case, not an arbitrary mission-orbit import.</span></div>
               <button className="primary wide" type="button" onClick={crossCheckWithOrekit} disabled={orekitLoading}>
-                {orekitLoading ? 'Propagating both spacecraft with Orekit…' : 'Cross-check initial propagation (no burns) against Orekit'}
+                {orekitLoading ? 'Propagating both spacecraft with Orekit…' : '{importedMissionState ? 'Cross-check imported mission states against Orekit' : 'Cross-check initial propagation (no burns) against Orekit'}'}
               </button>
               {orekitError && <div className="callout"><AlertTriangle size={15} /><span>{orekitError}</span></div>}
               {orekitCheck && <div className="result-list">
