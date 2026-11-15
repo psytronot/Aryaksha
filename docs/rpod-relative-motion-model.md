@@ -33,7 +33,7 @@ Implemented in:
 
 `POST /api/v1/rpod/relative-state` accepts target and chaser inertial Cartesian states at a shared TAI mission epoch in EME2000. The `epochTai` request field is an explicit ISO-8601 TAI date-time; omission retains J2000 TAI compatibility. It independently propagates both spacecraft using Orekit 13.1.9 numerical propagation with Dormand–Prince 8(5,3) and Newtonian central gravity, then computes the target-centred rotating LVLH relative state. The response includes both propagated inertial states, the LVLH relative state, frame/epoch metadata and explicit model assumptions.
 
-The browser RPOD workspace accepts a strict JSON mission-state import (`docs/examples/rpod-mission-state.example.json`) containing target/chaser EME2000 Cartesian states and an explicit TAI epoch. The parser rejects unsupported frames, malformed epochs, non-finite vectors, Earth-intersecting current positions or osculating periapses, degenerate orbital planes and files over 64 KiB. Imported states are passed through the Express proxy to this endpoint. When imported mission states are used, the UI reports Orekit relative-state results without presenting HCW residuals against an invalid synthetic circular reference. Its cross-check constructs a synthetic circular equatorial chief orbit in EME2000 at J2000 TAI, converts the entered LVLH state into inertial target/chaser states, and compares the independently propagated Orekit relative state with the analytical HCW prediction. This is an initial unburned propagation comparison; it does not apply the calculated rendezvous impulses. A dedicated Orekit controller test currently checks a small-separation circular two-body case against HCW with 10 m position and 10 mm/s velocity bounds. Those are regression-test bounds for that fixture, not universal accuracy guarantees.
+The browser RPOD workspace accepts a strict JSON mission-state import (`docs/examples/rpod-mission-state.example.json`) containing target/chaser EME2000 Cartesian states and an explicit TAI epoch. The parser rejects unsupported frames, malformed epochs, non-finite vectors, Earth-intersecting current positions or osculating periapses, degenerate orbital planes and files over 64 KiB. Imported states are passed through the Express proxy to this endpoint. When imported mission states are used, the UI reports Orekit relative-state results without presenting HCW residuals against an invalid synthetic circular reference. Its default cross-check constructs a synthetic circular equatorial chief orbit in EME2000 at the user-supplied TAI epoch, converts the entered LVLH state into inertial target/chaser states, and compares the independently propagated Orekit relative state with the analytical HCW prediction. This is an initial unburned propagation comparison; it does not apply the calculated rendezvous impulses. A dedicated Orekit controller test currently checks a small-separation circular two-body case against HCW with 10 m position and 10 mm/s velocity bounds. Those are regression-test bounds for that fixture, not universal accuracy guarantees.
 
 ## Assumptions and validity
 
@@ -55,6 +55,8 @@ Analytical tests cover:
 - Two-impulse terminal velocity cancellation.
 - Invalid mean motion, negative time and singular transfer-time rejection.
 
+CI also starts the real Orekit Spring Boot service locally for the RPOD integration smoke test, routes a request through the Express proxy, verifies the returned LVLH state and explicit TAI epoch, and checks malformed-epoch and Earth-intersecting-periapsis rejection. This local test does not depend on or modify the deployed Render services.
+
 Orekit controller tests cover:
 - Coincident target/chaser state producing zero LVLH relative state.
 - Correct rotating-frame velocity transport at the initial epoch.
@@ -70,6 +72,6 @@ Orekit controller tests cover:
 4. Add multi-impulse and finite-burn maneuver sequencing with thrust, mass, attitude and actuator constraints.
 5. Add keep-out sphere, approach corridor, collision screening and navigation uncertainty.
 6. Add capture/docking terminal constraints and report export with assumptions, units, tolerances and model fidelity.
-7. Configure and run a live Orekit deployment smoke test; the current CI job is skipped until its external service configuration is available.
+7. Configure and run a separate staging deployment smoke test; the production-linked live integration job remains skipped on pull requests.
 
 Do not describe the current implementation as a complete RPOD simulator or flight-ready rendezvous solution.
