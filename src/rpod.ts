@@ -357,6 +357,49 @@ export function propagateCwWithImpulses(
   return propagateCw(state, meanMotionRadS, durationSeconds - previousTime);
 }
 
+export type KeepOutScreen = {
+  minimumPreTerminalRangeKm: number;
+  closestElapsedSeconds: number;
+  keepOutRadiusKm: number;
+  enteredKeepOut: boolean;
+};
+
+/**
+ * Sampled geometric screen against a spherical keep-out radius. The final
+ * trajectory sample is excluded because the ideal rendezvous solver forces
+ * terminal position coincidence. This is a coarse screening indicator only,
+ * not collision probability, continuous-time certification or guidance.
+ */
+export function screenCwKeepOut(
+  trajectory: CwTrajectorySample[],
+  keepOutRadiusKm: number,
+): KeepOutScreen {
+  if (!Array.isArray(trajectory) || trajectory.length < 2) {
+    throw new Error('Keep-out screening requires at least two trajectory samples.');
+  }
+  if (!Number.isFinite(keepOutRadiusKm) || keepOutRadiusKm <= 0) {
+    throw new Error('Keep-out radius must be a positive finite number.');
+  }
+
+  const preTerminal = trajectory.slice(0, -1);
+  let closest = preTerminal[0];
+  let minimumRange = magnitude(closest.state.positionKm);
+  for (const sample of preTerminal.slice(1)) {
+    const range = magnitude(sample.state.positionKm);
+    if (range < minimumRange) {
+      minimumRange = range;
+      closest = sample;
+    }
+  }
+
+  return {
+    minimumPreTerminalRangeKm: minimumRange,
+    closestElapsedSeconds: closest.elapsedSeconds,
+    keepOutRadiusKm,
+    enteredKeepOut: minimumRange < keepOutRadiusKm,
+  };
+}
+
 export type CwTrajectorySample = {
   /** Time from the initial state epoch, seconds. */
   elapsedSeconds: number;
