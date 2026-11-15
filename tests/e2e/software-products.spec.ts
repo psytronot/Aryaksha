@@ -63,7 +63,7 @@ test('user-supplied business CSV is processed locally and duplicate rows are rep
   await page.getByLabel('Upload a business CSV').setInputFiles({
     name: 'prospects.csv',
     mimeType: 'text/csv',
-    buffer: Buffer.from('Company,Website,City\\nAcme Robotics,https://acme.example,Bengaluru\\nAcme Robotics,https://acme.example,Bengaluru\\nOrbit Learning,https://orbit.example,Pune')
+    buffer: Buffer.from('Company,Website,City\nAcme Robotics,https://acme.example,Bengaluru\nAcme Robotics,https://acme.example,Bengaluru\nOrbit Learning,https://orbit.example,Pune')
   });
 
   await expect(page.getByText('3 data rows found')).toBeVisible();
