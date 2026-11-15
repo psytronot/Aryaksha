@@ -79,6 +79,10 @@ test('user-supplied business CSV is processed locally and duplicate rows are rep
   await expect(page.getByText('Orbit Learning', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Download cleaned CSV' })).toBeVisible();
   await expect(page.getByText('Your file is processed in this browser only; it is not uploaded.')).toBeVisible();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download cleaned CSV' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('cleaned-business-list.csv');
 });
 
 
