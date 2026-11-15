@@ -58,6 +58,9 @@ export default function RpodView() {
 
   const update = (key: keyof ScenarioInput, value: string) => {
     setInput(current => ({ ...current, [key]: value }));
+    setResult(null);
+    setOrekitCheck(null);
+    setOrekitError('');
   };
 
   const defaultMeanMotion = useMemo(() => {
