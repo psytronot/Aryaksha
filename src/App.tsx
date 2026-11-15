@@ -408,7 +408,7 @@ function SoftwareProductsView() {
       <div className="finder-csv-controls">
         <label htmlFor="business-csv-upload">Upload a business CSV</label>
         <input id="business-csv-upload" aria-label="Upload a business CSV" type="file" accept=".csv,text/csv" onChange={handleCsvUpload} />
-        <small>Maximum file size: 2 MB. Expected header: Company, Business Name or Name. Website and City are optional.</small>
+        <small>Maximum file size: 2 MB · 10,000 data rows · 50 columns · 4,096 characters per cell. Expected header: Company, Business Name or Name. Website and City are optional.</small>
       </div>
       {csvError && <p className="finder-intake-error" role="alert">{csvError}</p>}
       {csvResult && <div className="finder-brief-result" aria-live="polite">
