@@ -55,6 +55,7 @@ Analytical tests cover:
 - Two-impulse terminal velocity cancellation.
 - Piecewise coast propagation with timed instantaneous LVLH impulses, including event ordering and interval validation.
 - Sampled pre-terminal keep-out-radius screening, with terminal coincidence explicitly excluded.
+- Linear HCW covariance propagation for a symmetric positive-semidefinite 6x6 LVLH state covariance, plus UI 3-sigma axis summaries from independent diagonal position/velocity uncertainty inputs.
 - Invalid mean motion, negative time and singular transfer-time rejection.
 
 CI also starts the real Orekit Spring Boot service locally for the RPOD integration smoke test, routes a request through the Express proxy, verifies the returned LVLH state and explicit TAI epoch, and checks malformed-epoch and Earth-intersecting-periapsis rejection. This local test does not depend on or modify the deployed Render services.
@@ -72,7 +73,7 @@ Orekit controller tests cover:
 2. Extend target/chaser inertial trajectory histories and time-series visualisation with Orekit-vs-HCW residual plots; current visible history is sampled relative LVLH state only.
 3. Add maneuver-aware Orekit propagation so the numerical comparison can evaluate departure and arrival impulses, rather than only the unburned initial state.
 4. Add multi-impulse and finite-burn sequencing with thrust, mass, attitude and actuator constraints; the current maneuver sequence is analytical and impulsive only.
-5. Upgrade the sampled pre-terminal keep-out sphere indicator to continuous-time approach-corridor and collision screening, then add navigation uncertainty/covariance.
+5. Upgrade the sampled pre-terminal keep-out sphere indicator to continuous-time approach-corridor and collision screening; extend the current diagonal-only uncertainty model to correlated covariance, measurement updates and maneuver uncertainty.
 6. Add capture/docking terminal constraints and report export with assumptions, units, tolerances and model fidelity.
 7. Configure and run a separate staging deployment smoke test; the production-linked live integration job remains skipped on pull requests.
 
