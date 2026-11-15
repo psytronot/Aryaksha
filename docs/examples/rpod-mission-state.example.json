@@ -1,0 +1,12 @@
+{
+  "epochTai": "2026-11-15T12:00:00",
+  "frame": "EME2000",
+  "target": {
+    "positionKm": [6928.137, 0, 0],
+    "velocityKmS": [0, 7.585, 0]
+  },
+  "chaser": {
+    "positionKm": [6928.237, -0.2, 0.05],
+    "velocityKmS": [0.0001, 7.585, 0]
+  }
+}
