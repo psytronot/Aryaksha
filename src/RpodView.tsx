@@ -321,7 +321,20 @@ export default function RpodView() {
                   <text x="580" y="102" textAnchor="end" fill="currentColor" fontSize="11">+R</text>
                   <text x="310" y="20" fill="currentColor" fontSize="11">+T</text>
                 </svg>
-                <div className="stat-row"><span className="result-label">Green: initial state · amber: target rendezvous point</span><b>km</b></div>
+                <div className="stat-row"><span className="result-label">Green: post-departure state · amber: target rendezvous point</span><b>km</b></div>
+              </div>
+              <div className="result-list">
+                <div className="stat-row"><span className="result-label">Maneuver event · departure</span><b>T+00:00 · {fixed(result.departureDeltaVMagnitudeMps, 4)} m/s</b></div>
+                <div className="stat-row"><span className="result-label">Maneuver event · terminal velocity match</span><b>T+{fixed(result.rendezvousTimeSeconds, 1)} s · {fixed(result.arrivalDeltaVMagnitudeMps, 4)} m/s</b></div>
+              </div>
+              <div className="trajectory-panel">
+                <div className="stat-row"><span className="result-label">Trajectory history · sampled LVLH states</span><b>5 checkpoints</b></div>
+                {result.trajectory.filter((_, index) => index % 10 === 0).map((sample, index) => (
+                  <div className="stat-row" key={sample.elapsedSeconds}>
+                    <span className="result-label">T+{fixed(sample.elapsedSeconds, 1)} s · R {fixed(sample.state.positionKm[0], 5)} km · T {fixed(sample.state.positionKm[1], 5)} km</span>
+                    <b>{fixed(Math.hypot(...sample.state.velocityKmS) * 1000, 3)} m/s</b>
+                  </div>
+                ))}
               </div>
               <div className="result-list">
                 <div className="stat-row"><span className="result-label">Departure impulse</span><b>{fixed(result.departureDeltaVMagnitudeMps, 4)} m/s</b></div>
