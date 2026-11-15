@@ -207,3 +207,33 @@ test('CSV cleanup rejects duplicate headers and unclosed quoted fields', async (
   });
   await expect(page.getByRole('alert')).toContainText('unclosed quoted field');
 });
+
+
+test('CSV cleanup bounds rows, columns and individual cell size', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+  const upload = page.getByLabel('Upload a business CSV');
+
+  const tooManyRows = 'Company\n' + Array.from({ length: 10_001 }, (_, index) => `Company ${index}`).join('\n');
+  await upload.setInputFiles({
+    name: 'too-many-rows.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(tooManyRows)
+  });
+  await expect(page.getByRole('alert')).toContainText('no more than 10,000 data rows');
+
+  const tooManyColumns = ['Company', ...Array.from({ length: 50 }, (_, index) => `Field ${index}`)].join(',');
+  await upload.setInputFiles({
+    name: 'too-many-columns.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(tooManyColumns + '\n' + Array(51).fill('value').join(','))
+  });
+  await expect(page.getByRole('alert')).toContainText('no more than 50 columns');
+
+  await upload.setInputFiles({
+    name: 'oversized-cell.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Company\n' + 'A'.repeat(4097))
+  });
+  await expect(page.getByRole('alert')).toContainText('cell cannot exceed 4,096 characters');
+});
