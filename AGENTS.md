@@ -65,3 +65,7 @@ Before adding or changing decorative backgrounds, read `docs/design/BACKGROUND-T
 ## GEO + SEO workflow
 
 Before changing search visibility, metadata, robots, sitemap, structured data or search-facing content, read `.agents/skills/geo-seo/SKILL.md` and its checklist. GEO means Generative Engine Optimization. Follow deployment-specific indexing protections, preserve preview noindex/disallow behavior, use verified canonical origins only, and never promise rankings or AI citations. Structured data must match visible facts. `llms.txt` is optional and must not be added as a ranking hack. Follow the project-specific scientific, content, privacy and production boundaries in the skill.
+
+## Conventional SEO workflow
+
+Before conventional search optimization work, read `.agents/skills/seo/SKILL.md` and its checklist. This skill owns technical SEO, on-page optimization, indexation, site architecture, content quality, image SEO, performance and search measurement. For AI answer-engine discoverability, also consult `.agents/skills/geo-seo/SKILL.md`. Keep the two workflows distinct but coordinated. Preserve preview noindex/canonical protections and all project-specific factual, scientific, privacy and production boundaries.
