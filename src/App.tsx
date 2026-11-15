@@ -36,7 +36,7 @@ const spacecraftDefaults: Spacecraft = {
   settlingTimeS: 5, thermalAreaM2: 1.2, absorptivity: 0.7, emissivity: 0.85, batteryEfficiencyPct: 90, batteryDoDPct: 80, solarDegradationPct: 15, thermalHotFactor: 1.25, thermalColdFactor: 0.9
 };
 
-type View = 'mission' | 'payload' | 'spacecraft' | 'orbit' | 'simulation' | 'tracking' | 'missionAnalysis' | 'analysis' | 'verification' | 'report' | 'instructions' | 'tools';
+type View = 'mission' | 'payload' | 'spacecraft' | 'orbit' | 'simulation' | 'tracking' | 'missionAnalysis' | 'analysis' | 'verification' | 'report' | 'instructions' | 'tools' | 'software';
 const nav: { id: View; label: string; icon: React.ReactNode; group: string }[] = [
   { id: 'mission', label: 'Mission', icon: <Target size={16} />, group: 'DESIGN' },
   { id: 'payload', label: 'Payload', icon: <Globe2 size={16} />, group: 'DESIGN' },
@@ -49,7 +49,8 @@ const nav: { id: View; label: string; icon: React.ReactNode; group: string }[] =
   { id: 'verification', label: 'Verification', icon: <Check size={16} />, group: 'RUN' },
   { id: 'report', label: 'Design Report', icon: <Download size={16} />, group: 'OUTPUT' },
   { id: 'instructions', label: 'Instructions & Glossary', icon: <BookOpen size={16} />, group: 'LEARN' },
-  { id: 'tools', label: 'Calculator & Reference', icon: <Calculator size={16} />, group: 'TOOLS' }
+  { id: 'tools', label: 'Calculator & Reference', icon: <Calculator size={16} />, group: 'TOOLS' },
+  { id: 'software', label: 'Software Products', icon: <Search size={16} />, group: 'TOOLS' }
 ];
 
 function App() {
@@ -207,6 +208,7 @@ function App() {
           <button className="welcome-feature" onClick={() => { setView('orbit'); document.querySelector('.shell')?.scrollIntoView({ behavior: 'smooth' }); }}><Globe2 size={26}/><span><b>Learn Orbital Science</b><small>Understand trajectories and orbital mechanics.</small></span><ArrowRight size={15}/></button>
           <button className="welcome-feature" onClick={() => { setView('simulation'); document.querySelector('.shell')?.scrollIntoView({ behavior: 'smooth' }); }}><Gauge size={26}/><span><b>Run Simulations</b><small>Experiment with mission and spacecraft concepts.</small></span><ArrowRight size={15}/></button>
           <button className="welcome-feature" onClick={() => { setView('mission'); document.querySelector('.shell')?.scrollIntoView({ behavior: 'smooth' }); }}><Cpu size={26}/><span><b>Build Projects</b><small>Turn curiosity into practical engineering work.</small></span><ArrowRight size={15}/></button>
+          <button className="welcome-feature" onClick={() => { setView('software'); document.querySelector('.shell')?.scrollIntoView({ behavior: 'smooth' }); }}><Search size={26}/><span><b>Explore Software Tools</b><small>Discover practical tools for research and customer discovery.</small></span><ArrowRight size={15}/></button>
         </div>
       </section>
       <section className="about-kakshiya" id="about-aryaksha"><div className="about-orbit-visual" aria-hidden="true"><div className="about-earth"><Globe2 size={82}/></div><div className="about-orbit-line"/><span className="about-mini-sat"><Satellite size={22}/></span><span className="about-visual-label">LEARN · EXPERIMENT · CREATE</span></div><div className="about-copy"><p className="welcome-kicker">ABOUT ARYAKSHA</p><h2>A Space Lab for the Next Generation</h2><p>Aryaksha brings space exploration and engineering tools into one accessible place. Explore satellite movement, investigate orbital mechanics, experiment with preliminary spacecraft mission design and understand the engineering trade-offs behind a mission.</p><p>Whether you are taking your first steps into space science or building practical aerospace skills, Aryaksha is designed to help you learn by doing.</p><div className="about-values"><span><Rocket size={19}/> Student focused</span><span><Globe2 size={19}/> Explore space data</span><span><Wrench size={19}/> Hands-on tools</span></div><small className="about-disclaimer">Some tools use public orbital data; simulations are educational models, not flight-certified systems.</small></div></section>
@@ -256,6 +258,7 @@ function App() {
           {view === 'report' && <ReportView mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} summary={summary} geometry={geometry} verification={verification} onExport={exportReport} />}
           {view === 'instructions' && <InstructionsView />}
           {view === 'tools' && <ToolsView />}
+          {view === 'software' && <SoftwareProductsView />}
           </Suspense>
           {coachEnabled && <ContextCoach view={view} />}
         </main>
@@ -263,6 +266,39 @@ function App() {
       {notice && <div className="toast"><Check size={15} /> {notice}</div>}
     </div>
   );
+}
+
+function SoftwareProductsView() {
+  return <div className="page software-hub-page">
+    <PageHeader eyebrow="10 · ARAKSHYA SOFTWARE HUB" title="Useful software. Open access. Practical outcomes." text="A separate Arakshya Space Lab initiative bringing accessible research, discovery and productivity tools to students, institutions, founders and individuals." />
+    <div className="software-hub-intro">
+      <div><span className="software-hub-kicker">ACCESS MODEL</span><strong>Free by default · Maximum ₹1 per user transaction</strong><p>We want useful tools to be easy to try and return to. Institutional sponsorships, workshops and custom support can help sustain free access.</p></div>
+      <div className="software-hub-payment"><span>PLANNED PAYMENT METHODS</span><b>UPI · Cards · Cash</b><small>Payments are not enabled yet. We will publish checkout only after secure verification and reconciliation are ready.</small></div>
+    </div>
+    <div className="software-hub-grid">
+      <article className="software-hub-card">
+        <div className="software-hub-card-top"><span className="software-hub-icon"><Globe2 size={22}/></span><span className="software-hub-status review">COMPLIANCE REVIEW</span></div>
+        <p className="software-hub-eyebrow">RESEARCH & BUSINESS DISCOVERY</p>
+        <h2>Google Maps Scrapper</h2>
+        <p>Explore the technical prototype for location-based business research. Public access is paused while we verify data-source permissions, privacy requirements and compliant alternatives.</p>
+        <ul><li>Python and Playwright prototype</li><li>CSV-based output workflow</li><li>Not available as a hosted extraction service</li></ul>
+        <a className="software-hub-link" href="https://github.com/zohaibbashir/Google-Maps-Scrapper" target="_blank" rel="noreferrer">Review upstream project <ArrowRight size={14}/></a>
+      </article>
+      <article className="software-hub-card">
+        <div className="software-hub-card-top"><span className="software-hub-icon"><Target size={22}/></span><span className="software-hub-status pilot">PILOT PREPARATION</span></div>
+        <p className="software-hub-eyebrow">STARTUP & CUSTOMER RESEARCH</p>
+        <h2>First Customer Finder</h2>
+        <p>Research public demand signals, identify potential early adopters and prepare evidence-backed next steps. Prospects are hypotheses—not confirmed buyers.</p>
+        <ul><li>Weighted prospect qualification</li><li>Markdown, CSV and HTML reports</li><li>Human-reviewed research; no automated outreach</li></ul>
+        <a className="software-hub-link" href="https://github.com/Kappaemme-git/codex-first-customer-finder-skill" target="_blank" rel="noreferrer">Review upstream project <ArrowRight size={14}/></a>
+      </article>
+    </div>
+    <div className="software-hub-bottom">
+      <div><span className="software-hub-kicker">WHO CAN USE IT?</span><b>Schools · Colleges · Students · Individuals · Startups · Small businesses</b><p>We plan guided demonstrations, simple tutorials and institution-friendly onboarding.</p></div>
+      <div><span className="software-hub-kicker">OUR RELEASE PROMISE</span><b>Useful, transparent and responsible access</b><p>Each tool will show its prerequisites, data handling, limitations and current availability before a user starts.</p></div>
+    </div>
+    <p className="software-hub-disclaimer">Arakshya Space Lab is independently managed and is not affiliated with the upstream repository owners. Product availability, pricing and payment features will be announced only after testing and compliance review.</p>
+  </div>;
 }
 
 function PageHeader({ eyebrow, title, text, action }: { eyebrow: string; title: string; text: string; action?: React.ReactNode }) {
