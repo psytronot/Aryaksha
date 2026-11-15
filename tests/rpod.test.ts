@@ -7,6 +7,7 @@ import {
   sampleCwTrajectory,
   propagateCwWithImpulses,
   screenCwKeepOut,
+  screenCwKeepOutContinuous,
   propagateCwCovariance,
   type RelativeState,
 } from '../src/rpod';
@@ -271,6 +272,20 @@ describe('RPOD relative-motion foundation', () => {
     expect(result.enteredKeepOut).toBe(true);
     expect(() => screenCwKeepOut(trajectory, 0)).toThrow(/positive/);
     expect(() => screenCwKeepOut([], 0.05)).toThrow(/two trajectory/);
+  });
+
+  it('locates a between-sample keep-out minimum with a bracketed continuous-time search', () => {
+    const initial: RelativeState = {
+      positionKm: [1, 0, 0],
+      velocityKmS: [-0.001, 0, 0],
+    };
+    const result = screenCwKeepOutContinuous(initial, 1e-8, 2000, 0.01);
+    expect(result.minimumPreTerminalRangeKm).toBeLessThan(1e-5);
+    expect(result.closestElapsedSeconds).toBeCloseTo(1000, 2);
+    expect(result.enteredKeepOut).toBe(true);
+    expect(result.stationaryPointCount).toBeGreaterThan(0);
+    expect(() => screenCwKeepOutContinuous(initial, 1e-8, 0, 0.01)).toThrow(/duration/);
+    expect(() => screenCwKeepOutContinuous(initial, 1e-8, 2000, 0)).toThrow(/positive/);
   });
 
   it('propagates a symmetric LVLH state covariance through the HCW state transition', () => {
