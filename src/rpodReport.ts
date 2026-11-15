@@ -21,6 +21,7 @@ export type RpodEngineeringReport = {
     chiefAltitudeKm: number | null;
     meanMotionRadS: number;
     rendezvousTimeSeconds: number;
+    maximumSampledSeparationRatio: number;
     assumptions: string[];
   };
   initialRelativeState: {
