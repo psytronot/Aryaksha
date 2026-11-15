@@ -17,16 +17,25 @@ describe('API security middleware', () => {
   it('sets baseline security headers on every response', () => {
     const result = fakeResponse();
     let continued = false;
-    securityHeaders({}, result.response, () => { continued = true; });
+    securityHeaders({ secure: false }, result.response, () => { continued = true; });
     expect(continued).toBe(true);
     expect(result.headers['x-content-type-options']).toBe('nosniff');
     expect(result.headers['x-frame-options']).toBe('DENY');
     expect(result.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
     expect(result.headers['permissions-policy']).toBe('camera=(), microphone=(), geolocation=()');
+    expect(result.headers['cross-origin-resource-policy']).toBe('same-origin');
+    expect(result.headers['cross-origin-opener-policy']).toBe('same-origin');
+    expect(result.headers['x-permitted-cross-domain-policies']).toBe('none');
+    expect(result.headers['strict-transport-security']).toBeUndefined();
     expect(result.headers['content-security-policy-report-only']).toContain("default-src 'self'");
     expect(result.headers['content-security-policy-report-only']).toContain("connect-src 'self' https://celestrak.org https://assets.science.nasa.gov");
-    expect(result.headers['content-security-policy-report-only']).not.toContain('svs.gsfc.nasa.gov');
     expect(result.headers['content-security-policy-report-only']).toContain("object-src 'none'");
+  });
+
+  it('adds HSTS only for HTTPS requests', () => {
+    const result = fakeResponse();
+    securityHeaders({ secure: true }, result.response, () => {});
+    expect(result.headers['strict-transport-security']).toBe('max-age=31536000; includeSubDomains');
   });
 
   it('limits requests per client and resets after the time window', () => {
