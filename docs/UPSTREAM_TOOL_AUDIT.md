@@ -34,3 +34,10 @@ This review is limited to the upstream source files listed below. It is a produc
 2. Keep Google Maps Scrapper visibly unavailable until the exact data source and use are approved; prefer a licensed provider or a source-neutral CSV research utility.
 3. Do not charge users or collect payment data until the execution service, privacy controls, support, and payment verification are in place.
 4. Retain attribution and license notices; MIT licensing does not override third-party platform terms or grant rights to Google Maps data.
+
+
+## Current Google Maps Platform terms cross-check (2026-11-15)
+
+The current Google Maps Platform Terms of Service explicitly state that customers must not export, extract or scrape Google Maps Content for use outside the Services. The examples include pre-fetching, indexing, storing, resharing or rehosting content and copying business names, addresses or user reviews. See Section 3.2.3(a)–(c): https://cloud.google.com/maps-platform/terms
+
+This reinforces the existing launch gate: do not operate the upstream Google Maps Scrapper as a hosted extraction product or use it to build/export a business database. The prototype's MIT licence does not grant rights to the Google Maps content it may collect. Keep the Maps product paused and prioritize user-supplied data or a separately licensed data source. This is a technical/product risk note, not legal advice.
