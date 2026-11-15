@@ -28,16 +28,20 @@ public class RpodAnalysisController {
 
     public record CartesianState(double[] positionKm, double[] velocityKmS) {}
     public record RelativeState(double[] positionKm, double[] velocityKmS) {}
-    public record RpodRequest(CartesianState target, CartesianState chaser, double elapsedSeconds, String epochTai) {
+    public record RpodRequest(CartesianState target, CartesianState chaser, double elapsedSeconds, String epochTai, Integer historySamples) {
         public RpodRequest(CartesianState target, CartesianState chaser, double elapsedSeconds) {
-            this(target, chaser, elapsedSeconds, null);
+            this(target, chaser, elapsedSeconds, null, null);
+        }
+        public RpodRequest(CartesianState target, CartesianState chaser, double elapsedSeconds, String epochTai) {
+            this(target, chaser, elapsedSeconds, epochTai, null);
         }
     }
     public record StateVector(double[] positionKm, double[] velocityKmS) {}
+    public record HistorySample(double elapsedSeconds, RelativeState relativeLvlh) {}
     public record RpodResponse(
         boolean valid, String engine, String engineVersion, String frame, String epoch,
         double elapsedSeconds, StateVector target, StateVector chaser,
-        RelativeState relativeLvlh, List<String> assumptions, Map<String, Object> comparison
+        RelativeState relativeLvlh, List<HistorySample> history, List<String> assumptions, Map<String, Object> comparison
     ) {}
 
     @PostMapping("/relative-state")
@@ -52,11 +56,43 @@ public class RpodAnalysisController {
 
         PVCoordinates targetPv = target.getPVCoordinates(FramesFactory.getEME2000());
         PVCoordinates chaserPv = chaser.getPVCoordinates(FramesFactory.getEME2000());
+        RelativeState relative = toRelativeState(targetPv, chaserPv);
+        List<HistorySample> history = sampleHistory(request, epoch);
+        return new RpodResponse(true, "Orekit", "13.1.9", "EME2000 / target LVLH",
+            targetDate.toString(org.orekit.time.TimeScalesFactory.getTAI()),
+            request.elapsedSeconds(),
+            toStateVector(targetPv), toStateVector(chaserPv), relative, history,
+            List.of("Target and chaser are independently numerically propagated.",
+                    "Force model: Newtonian central gravity only; no J2, drag, SRP or third bodies.",
+                    "Frame: EME2000; epoch: requested TAI; integration tolerance: 1 m; maximum step: 60 s.",
+                    "LVLH axes: +R radial outward, +T along-track, +N orbit-normal.",
+                    "Relative velocity includes the rotating-frame transport correction.",
+                    "This endpoint does not implement collision screening or safe-approach guidance."),
+            Map.of("engineAdapter", "orekit-rpod-http", "status", "connected",
+                   "note", "Relative state computed from two independently propagated Orekit spacecraft."));
+    }
+
+    private List<HistorySample> sampleHistory(RpodRequest request, AbsoluteDate epoch) {
+        if (request.historySamples() == null) return List.of();
+        int count = request.historySamples();
+        java.util.ArrayList<HistorySample> samples = new java.util.ArrayList<>(count);
+        for (int index = 0; index < count; index++) {
+            double elapsed = request.elapsedSeconds() * index / (count - 1.0);
+            AbsoluteDate date = epoch.shiftedBy(elapsed);
+            SpacecraftState target = propagate(request.target(), epoch, date);
+            SpacecraftState chaser = propagate(request.chaser(), epoch, date);
+            samples.add(new HistorySample(elapsed, toRelativeState(
+                target.getPVCoordinates(FramesFactory.getEME2000()),
+                chaser.getPVCoordinates(FramesFactory.getEME2000()))));
+        }
+        return List.copyOf(samples);
+    }
+
+    private RelativeState toRelativeState(PVCoordinates targetPv, PVCoordinates chaserPv) {
         Vector3D r = targetPv.getPosition();
         Vector3D v = targetPv.getVelocity();
         Vector3D deltaR = chaserPv.getPosition().subtract(r);
         Vector3D deltaV = chaserPv.getVelocity().subtract(v);
-
         if (r.getNorm() < 1.0 || r.crossProduct(v).getNorm() < 1e-6) {
             throw new IllegalArgumentException("Target state must define a non-degenerate Earth orbit.");
         }
@@ -65,8 +101,7 @@ public class RpodAnalysisController {
         Vector3D alongTrack = normal.crossProduct(radial).normalize();
         Vector3D omega = normal.scalarMultiply(r.crossProduct(v).getNorm() / r.getNormSq());
         Vector3D rotatingVelocity = deltaV.subtract(omega.crossProduct(deltaR));
-
-        RelativeState relative = new RelativeState(
+        return new RelativeState(
             new double[] { deltaR.dotProduct(radial) / 1000.0,
                            deltaR.dotProduct(alongTrack) / 1000.0,
                            deltaR.dotProduct(normal) / 1000.0 },
@@ -74,18 +109,6 @@ public class RpodAnalysisController {
                            rotatingVelocity.dotProduct(alongTrack) / 1000.0,
                            rotatingVelocity.dotProduct(normal) / 1000.0 }
         );
-        return new RpodResponse(true, "Orekit", "13.1.9", "EME2000 / target LVLH",
-            targetDate.toString(org.orekit.time.TimeScalesFactory.getTAI()),
-            request.elapsedSeconds(),
-            toStateVector(targetPv), toStateVector(chaserPv), relative,
-            List.of("Target and chaser are independently numerically propagated.",
-                    "Force model: Newtonian central gravity only; no J2, drag, SRP or third bodies.",
-                    "Frame: EME2000; epoch: J2000 TAI; integration tolerance: 1 m; maximum step: 60 s.",
-                    "LVLH axes: +R radial outward, +T along-track, +N orbit-normal.",
-                    "Relative velocity includes the rotating-frame transport correction.",
-                    "This endpoint does not implement collision screening or safe-approach guidance."),
-            Map.of("engineAdapter", "orekit-rpod-http", "status", "connected",
-                   "note", "Relative state computed from two independently propagated Orekit spacecraft."));
     }
 
     private AbsoluteDate parseTaiEpoch(String value) {
@@ -132,6 +155,10 @@ public class RpodAnalysisController {
             throw new IllegalArgumentException("Target, chaser and elapsedSeconds (0–604800 s) are required.");
         }
         if (request.epochTai() != null && !request.epochTai().isBlank()) parseTaiEpoch(request.epochTai());
+        if (request.historySamples() != null &&
+                (request.historySamples() < 2 || request.historySamples() > 101)) {
+            throw new IllegalArgumentException("historySamples must be between 2 and 101.");
+        }
         validateState(request.target(), "target");
         validateState(request.chaser(), "chaser");
     }
