@@ -58,6 +58,10 @@ describe('RPOD mission-state import contract', () => {
     expect(() => parseRpodMissionState(JSON.stringify(degenerateTarget))).toThrow(/orbital plane/);
   });
 
+  it('rejects mission-state files larger than 64 KiB', () => {
+    expect(() => parseRpodMissionState(' '.repeat(64 * 1024 + 1))).toThrow(/64 KiB/);
+  });
+
   it('rejects unknown fields to keep the import contract explicit', () => {
     expect(() => parseRpodMissionState(JSON.stringify({ ...validMission, surprise: true })))
       .toThrow(/unexpected/);
