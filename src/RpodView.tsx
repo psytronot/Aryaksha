@@ -230,8 +230,8 @@ export default function RpodView() {
               </div>
               <div className="callout"><AlertTriangle size={15} /><span>The arrival impulse mathematically cancels terminal relative velocity at the same epoch as position coincidence. This is not a safe approach or docking guidance solution.</span></div>
               <div className="callout"><Orbit size={15} /><span>Orekit cross-check creates a synthetic circular equatorial chief orbit in EME2000 at J2000 TAI, converts the entered LVLH state to inertial Cartesian states, and independently propagates target and chaser. This is a model comparison case, not an arbitrary mission-orbit import.</span></div>
-              <button className="secondary wide" type="button" onClick={crossCheckWithOrekit} disabled={orekitLoading}>
-                {orekitLoading ? 'Propagating both spacecraft with Orekit…' : 'Cross-check HCW against Orekit'}
+              <button className="primary wide" type="button" onClick={crossCheckWithOrekit} disabled={orekitLoading}>
+                {orekitLoading ? 'Propagating both spacecraft with Orekit…' : 'Cross-check initial propagation (no burns) against Orekit'}
               </button>
               {orekitError && <div className="callout"><AlertTriangle size={15} /><span>{orekitError}</span></div>}
               {orekitCheck && <div className="result-list">
