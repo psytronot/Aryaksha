@@ -102,6 +102,9 @@ test('RPOD imports EME2000 mission states and forwards their TAI epoch', async (
   await page.locator('#rpod-epoch-tai').fill('2026-11-15T12:05:00');
   await expect(page.getByText(/at 2026-11-15T12:05:00 TAI/)).toBeVisible();
   await page.getByRole('button', { name: 'Solve two-impulse rendezvous', exact: true }).click();
+  await expect(page.getByText('Inertial target / chaser history · EME2000')).toBeVisible();
+  await expect(page.getByText('41 samples each')).toBeVisible();
+  await expect(page.getByText(/two-body gravity \(RK4, maximum 10 s integration step\)/)).toBeVisible();
   await page.getByRole('button', { name: 'Cross-check imported mission states against Orekit', exact: true }).click();
 
   await expect(page.getByText('Orekit propagated LVLH position')).toBeVisible();
