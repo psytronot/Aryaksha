@@ -41,6 +41,7 @@ describe('RPOD engineering report', () => {
     const parsed = JSON.parse(serialized) as RpodEngineeringReport;
     expect(parsed.schema).toBe('aryaksha.rpod-engineering-report/v1');
     expect(parsed.trajectory).toHaveLength(2);
+    expect(parsed.model.maximumSampledSeparationRatio).toBe(0.0001);
     expect(parsed.maneuvers).toHaveLength(2);
     expect(parsed.keepOutScreen.terminalCoincidenceExcluded).toBe(true);
     expect(parsed.uncertainty.collisionProbabilityComputed).toBe(false);
