@@ -1,7 +1,7 @@
 # First Customer Finder — Infrastructure Readiness and Next 10 Steps
 
 Review date: 2026-11-15
-Status: architecture assessment only; no external services selected, connected or provisioned.
+Status: architecture and build specification documented; no external services selected, connected or provisioned. See `FIRST_CUSTOMER_FINDER_HOSTED_PILOT_BUILD_SPEC.md` for the detailed schema, authorization model, queue lifecycle, abuse controls and acceptance matrix.
 
 ## Current repository facts
 
@@ -66,15 +66,15 @@ These steps follow the completed local CSV hardening cycle. They are ordered to 
 
 | # | Step | Can proceed now? | Exit condition |
 |---|---|---|---|
-| 1 | Confirm pilot identity model (individual accounts vs institutional SSO) | Needs owner decision | Written identity and organization-role requirements |
+| 1 | Confirm pilot identity model (individual accounts vs institutional SSO) | Recommended default documented; owner confirmation still needed | Written identity and organization-role requirements |
 | 2 | Select an authentication provider | Needs owner decision/account | Approved provider, DPA and verified account configuration |
 | 3 | Select database and region | Needs owner decision/account | Managed Postgres provisioned with backup/retention plan |
-| 4 | Define tenant schema and RLS policies | Design can proceed; implementation waits for DB | Tests prove cross-tenant reads/writes/exports/deletes are denied |
-| 5 | Select durable queue/worker topology | Design can proceed | Retry, dedupe, cancellation, dead-letter and concurrency behavior specified |
+| 4 | Define tenant schema and RLS policies | Schema and authorization design documented; implementation waits for DB/auth choice | Tests prove cross-tenant reads/writes/exports/deletes are denied |
+| 5 | Select durable queue/worker topology | PostgreSQL-backed queue recommended for evaluation; final selection waits for deployment constraints | Retry, dedupe, cancellation, dead-letter and concurrency behavior specified and tested |
 | 6 | Obtain written research-provider approval | Draft is ready; vendor response needed | Written confirmation covering SaaS, output storage/export and data processing |
 | 7 | Implement server-side provider adapter | Blocked on steps 2, 3, 5 and 6 | Credentials server-only; timeouts, quotas and provider response validation tested |
 | 8 | Implement authenticated job API and deletion | Blocked on steps 2–5 | Owner-scoped CRUD/export/delete and cross-tenant tests pass |
-| 9 | Add abuse controls, retention and audit telemetry | Design can proceed; production setup waits | Quotas, cancellation, expiry, deletion and redacted logs verified |
+| 9 | Add abuse controls, retention and audit telemetry | Control set and acceptance matrix documented; production setup waits | Quotas, cancellation, expiry, deletion and redacted logs verified |
 | 10 | Run an invite-only pilot and measure real unit economics | Blocked on steps 1–9 | Small cohort completes research jobs; quality, cost, failure rate and support load measured |
 
 ## Owner decisions needed before live hosting
@@ -86,3 +86,15 @@ These steps follow the completed local CSV hardening cycle. They are ordered to 
 5. What is the pilot cohort size and retention period?
 
 Until these decisions are made, the safe deliverable is the local-only brief and CSV workflow. Do not represent the live Finder as launched.
+
+
+## 2026-11-15 build-spec progress
+
+The detailed hosted-pilot build specification is now committed on the feature branch:
+- `docs/FIRST_CUSTOMER_FINDER_HOSTED_PILOT_BUILD_SPEC.md`
+- Includes tenant-aware relational schema, workspace role model, server-derived ownership, authorization rules, transactional outbox, queue/worker lifecycle, cancellation/retry semantics, SSRF and prompt-injection controls, retention/deletion requirements, API contract and acceptance-test matrix.
+- Recommended rollout is individual accounts first, with nullable workspace support for institution-managed accounts later. This remains a recommendation pending owner confirmation.
+- PostgreSQL-backed pg-boss is the first queue option to evaluate; it is not selected or deployed.
+- Tavily remains conditional pending written terms clarification and owner acceptance.
+
+This advances the design portions of steps 4, 5 and 9. It does not complete implementation, provider approval, infrastructure provisioning or pilot launch.
