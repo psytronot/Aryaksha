@@ -22,9 +22,9 @@ const report: RpodEngineeringReport = {
     { elapsedSeconds: 1800, positionKm: [0, 0, 0], velocityKmS: [0, 0, 0] },
   ],
   keepOutScreen: {
-    method: 'sampled-pre-terminal-spherical-range', keepOutRadiusKm: 0.05,
+    method: 'hcw-stationary-point-root-search', keepOutRadiusKm: 0.05,
     minimumPreTerminalRangeKm: 0.1, closestElapsedSeconds: 0,
-    enteredKeepOut: false, terminalCoincidenceExcluded: true,
+    enteredKeepOut: false, terminalCoincidenceExcluded: true, stationaryPointCount: 1, resolutionLimited: false,
   },
   uncertainty: {
     initialPositionSigmaM: 10, initialVelocitySigmaMmS: 1,
