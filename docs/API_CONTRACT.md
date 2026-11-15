@@ -7,7 +7,8 @@ This document defines the request/response contracts for preliminary orbit analy
 - `GET /api/v1/health` — service health and engine/version metadata.
 - `POST /api/mission-analysis/orbit` — hosted Aryaksha backend proxy for orbit analysis.
 - `POST /api/v1/orbit/analysis` — direct Orekit orbit-analysis endpoint.
-- `POST /api/v1/rpod/relative-state` — independently propagate target and chaser Cartesian states, then compute the target-centred rotating LVLH relative state.
+- `POST /api/rpod/relative-state` — hosted backend proxy for RPOD relative-state analysis.
+- `POST /api/v1/rpod/relative-state` — Orekit service endpoint; independently propagate target and chaser Cartesian states, then compute the target-centred rotating LVLH relative state.
 
 ## Orbit analysis request
 
@@ -53,6 +54,7 @@ The endpoint accepts two independent inertial Cartesian states in EME2000 at the
 
 Constraints:
 - Each position and velocity vector must contain exactly three finite components.
+- Both initial position vectors must be above the WGS-84 equatorial Earth radius.
 - The target state must define a non-degenerate orbital plane.
 - `elapsedSeconds` must be between 0 and 604,800 seconds.
 - Input states are interpreted in EME2000 at J2000 TAI. No arbitrary input epoch or frame conversion is currently accepted.
