@@ -248,5 +248,5 @@ test('CSV utility provides a blank header template download', async ({ page }) =
   expect(download.suggestedFilename()).toBe('business-list-template.csv');
   const path = await download.path();
   expect(path).toBeTruthy();
-  expect(await readFile(path!, 'utf8')).toBe('Company,Website,City\\r\\n');
+  expect(await readFile(path!, 'utf8')).toBe('Company,Website,City\r\n');
 });
