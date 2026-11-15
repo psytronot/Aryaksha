@@ -47,8 +47,8 @@ public class RpodAnalysisController {
             ? AbsoluteDate.J2000_EPOCH
             : parseTaiEpoch(request.epochTai());
         AbsoluteDate targetDate = epoch.shiftedBy(request.elapsedSeconds());
-        SpacecraftState target = propagate(request.target(), targetDate);
-        SpacecraftState chaser = propagate(request.chaser(), targetDate);
+        SpacecraftState target = propagate(request.target(), epoch, targetDate);
+        SpacecraftState chaser = propagate(request.chaser(), epoch, targetDate);
 
         PVCoordinates targetPv = target.getPVCoordinates(FramesFactory.getEME2000());
         PVCoordinates chaserPv = chaser.getPVCoordinates(FramesFactory.getEME2000());
@@ -97,12 +97,12 @@ public class RpodAnalysisController {
         }
     }
 
-    private SpacecraftState propagate(CartesianState input, AbsoluteDate date) {
+    private SpacecraftState propagate(CartesianState input, AbsoluteDate initialDate, AbsoluteDate targetDate) {
         Vector3D position = vector(input.positionKm()).scalarMultiply(1000.0);
         Vector3D velocity = vector(input.velocityKmS()).scalarMultiply(1000.0);
         CartesianOrbit orbit = new CartesianOrbit(
             new PVCoordinates(position, velocity), FramesFactory.getEME2000(),
-            AbsoluteDate.J2000_EPOCH, Constants.WGS84_EARTH_MU);
+            initialDate, Constants.WGS84_EARTH_MU);
         double[][] tolerances = NumericalPropagator.tolerances(
             POSITION_ERROR_METRES, orbit, OrbitType.CARTESIAN);
         DormandPrince853Integrator integrator = new DormandPrince853Integrator(
@@ -111,7 +111,7 @@ public class RpodAnalysisController {
         propagator.setOrbitType(OrbitType.CARTESIAN);
         propagator.setInitialState(new SpacecraftState(orbit));
         propagator.addForceModel(new NewtonianAttraction(Constants.WGS84_EARTH_MU));
-        return propagator.propagate(date);
+        return propagator.propagate(targetDate);
     }
 
     private StateVector toStateVector(PVCoordinates pv) {
