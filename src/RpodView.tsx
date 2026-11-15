@@ -4,6 +4,7 @@ import { EARTH_RADIUS, MU } from './orbit';
 import { propagateCw, sampleCwTrajectory, solveTwoImpulseRendezvous, screenCwKeepOut, propagateCwCovariance, type RelativeState } from './rpod';
 import { parseRpodMissionState, type RpodMissionState } from './rpodMissionState';
 import { serializeRpodEngineeringReport, type RpodEngineeringReport } from './rpodReport';
+import { sampleTwoBodyTrajectory } from './rpodInertial';
 
 type ScenarioInput = {
   epochTai: string;
@@ -106,6 +107,20 @@ export default function RpodView() {
     if (!Number.isFinite(altitude) || altitude <= -EARTH_RADIUS) return null;
     return Math.sqrt(MU / (EARTH_RADIUS + altitude) ** 3);
   }, [input.chiefAltitudeKm]);
+
+  const inertialHistory = useMemo(() => {
+    if (!importedMissionState) return null;
+    try {
+      const durationSeconds = numberValue(input.rendezvousMinutes, 'Rendezvous time') * 60;
+      if (durationSeconds <= 0) return null;
+      return {
+        target: sampleTwoBodyTrajectory(importedMissionState.target, durationSeconds, 40),
+        chaser: sampleTwoBodyTrajectory(importedMissionState.chaser, durationSeconds, 40),
+      };
+    } catch {
+      return null;
+    }
+  }, [importedMissionState, input.rendezvousMinutes]);
 
   const trajectoryPlot = useMemo(() => {
     if (!result) return null;
@@ -473,6 +488,32 @@ export default function RpodView() {
                     <b>{fixed(Math.hypot(...sample.state.velocityKmS) * 1000, 3)} m/s</b>
                   </div>
                 ))}
+              </div>
+              <div className="trajectory-panel">
+                <div className="stat-row"><span className="result-label">Inertial target / chaser history · EME2000</span><b>{inertialHistory ? '41 samples each' : 'Mission import required'}</b></div>
+                {!inertialHistory ? (
+                  <p>Import an EME2000 mission-state JSON to inspect independently propagated inertial target and chaser histories.</p>
+                ) : (
+                  <>
+                    <div className="callout"><Orbit size={15} /><span>Both spacecraft are propagated independently from the imported TAI epoch with Newtonian two-body gravity (RK4, maximum 10 s integration step). This history is not the HCW design trajectory or the Orekit cross-check.</span></div>
+                    {inertialHistory.target.filter((_, index) => index % 10 === 0).map((sample, index) => {
+                      const chaser = inertialHistory.chaser[index * 10];
+                      const targetRadius = Math.hypot(...sample.state.positionKm);
+                      const chaserRadius = Math.hypot(...chaser.state.positionKm);
+                      const separation = Math.hypot(
+                        chaser.state.positionKm[0] - sample.state.positionKm[0],
+                        chaser.state.positionKm[1] - sample.state.positionKm[1],
+                        chaser.state.positionKm[2] - sample.state.positionKm[2],
+                      );
+                      return (
+                        <div className="stat-row" key={sample.elapsedSeconds}>
+                          <span className="result-label">T+{fixed(sample.elapsedSeconds, 1)} s · target r {fixed(targetRadius, 3)} km · chaser r {fixed(chaserRadius, 3)} km</span>
+                          <b>{fixed(separation * 1000, 2)} m separation</b>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
               </div>
               <div className="result-list">
                 <div className="stat-row"><span className="result-label">Departure impulse</span><b>{fixed(result.departureDeltaVMagnitudeMps, 4)} m/s</b></div>
