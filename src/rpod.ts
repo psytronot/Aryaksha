@@ -480,6 +480,90 @@ export function screenCwKeepOut(
   };
 }
 
+export type ContinuousKeepOutScreen = KeepOutScreen & {
+  method: 'hcw-stationary-point-root-search';
+  stationaryPointCount: number;
+  resolutionLimited: boolean;
+};
+
+/**
+ * Numerically locate pre-terminal range minima by bracketing roots of
+ * rho(t) dot rhoDot(t), the derivative of one-half squared range.
+ * This is a continuous-time stationary-point search over the analytical HCW
+ * solution, not a formal collision certificate; finite search resolution and
+ * the HCW model assumptions still apply.
+ */
+export function screenCwKeepOutContinuous(
+  initial: RelativeState,
+  meanMotionRadS: number,
+  durationSeconds: number,
+  keepOutRadiusKm: number,
+): ContinuousKeepOutScreen {
+  validateState(initial);
+  validateMeanMotionAndTime(meanMotionRadS, durationSeconds);
+  if (durationSeconds <= 0) {
+    throw new Error('Keep-out screening duration must be greater than zero.');
+  }
+  if (!Number.isFinite(keepOutRadiusKm) || keepOutRadiusKm <= 0) {
+    throw new Error('Keep-out radius must be a positive finite number.');
+  }
+
+  const maximumStepSeconds = Math.min(10, Math.PI / (32 * meanMotionRadS));
+  const requiredIntervals = Math.max(64, Math.ceil(durationSeconds / maximumStepSeconds));
+  const intervalCount = Math.min(requiredIntervals, 50_000);
+  const resolutionLimited = requiredIntervals > intervalCount;
+  const step = durationSeconds / intervalCount;
+  const evaluate = (elapsedSeconds: number) => {
+    const state = propagateCw(initial, meanMotionRadS, elapsedSeconds);
+    return {
+      elapsedSeconds,
+      rangeKm: magnitude(state.positionKm),
+      radialDerivative: dot(state.positionKm, state.velocityKmS),
+    };
+  };
+
+  let minimum = evaluate(0);
+  let stationaryPointCount = 0;
+  const consider = (candidate: ReturnType<typeof evaluate>) => {
+    if (candidate.elapsedSeconds < durationSeconds - 1e-7 && candidate.rangeKm < minimum.rangeKm) {
+      minimum = candidate;
+    }
+  };
+
+  let left = evaluate(0);
+  for (let index = 1; index <= intervalCount; index += 1) {
+    const right = evaluate(index * step);
+    consider(right);
+
+    if (left.radialDerivative < 0 && right.radialDerivative >= 0) {
+      let lower = left.elapsedSeconds;
+      let upper = right.elapsedSeconds;
+      for (let iteration = 0; iteration < 60 && upper - lower > 1e-7; iteration += 1) {
+        const middle = (lower + upper) / 2;
+        const derivative = evaluate(middle).radialDerivative;
+        if (derivative < 0) lower = middle;
+        else upper = middle;
+      }
+      const stationary = evaluate((lower + upper) / 2);
+      if (stationary.elapsedSeconds < durationSeconds - 1e-7) {
+        stationaryPointCount += 1;
+        consider(stationary);
+      }
+    }
+    left = right;
+  }
+
+  return {
+    method: 'hcw-stationary-point-root-search',
+    minimumPreTerminalRangeKm: minimum.rangeKm,
+    closestElapsedSeconds: minimum.elapsedSeconds,
+    keepOutRadiusKm,
+    enteredKeepOut: minimum.rangeKm < keepOutRadiusKm,
+    stationaryPointCount,
+    resolutionLimited,
+  };
+}
+
 export type CwTrajectorySample = {
   /** Time from the initial state epoch, seconds. */
   elapsedSeconds: number;
