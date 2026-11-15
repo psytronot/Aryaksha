@@ -58,7 +58,7 @@ Constraints:
 - Both initial position vectors must be above the WGS-84 equatorial Earth radius, and each osculating two-body periapsis must remain above that radius.
 - The target state must define a non-degenerate orbital plane.
 - `elapsedSeconds` must be between 0 and 604,800 seconds.
-- `epochTai`, when supplied, must be a valid ISO-8601 date-time interpreted in TAI.
+- `epochTai`, when supplied, must be a valid timezone-free ISO-8601 local date-time interpreted in TAI (for example `2026-11-15T12:00:00`); do not append `Z` or a UTC offset.
 - Input states are interpreted in EME2000 at the supplied TAI epoch (or J2000 TAI when omitted). Frame conversion is not currently supported; inputs in other frames must not be relabelled as EME2000.
 
 The response includes independently propagated target and chaser Cartesian states and `relativeLvlh`. The LVLH axes are +R radial outward, +T along-track, +N orbit-normal. Relative velocity includes the rotating-frame transport correction:
