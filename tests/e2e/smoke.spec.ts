@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 
 test('desktop app shell renders and mission analysis navigation works', async ({ page }) => {
   const pageErrors: string[] = [];
@@ -111,6 +112,25 @@ test('RPOD imports EME2000 mission states and forwards their TAI epoch', async (
     epochTai: '2026-11-15T12:05:00'
   });
   await expect(page.getByText('Orekit vs HCW position difference')).toHaveCount(0);
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export versioned engineering report (JSON)', exact: true }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^aryaksha-rpod-report-.*\.json$/);
+  const downloadPath = await download.path();
+  expect(downloadPath).not.toBeNull();
+  const report = JSON.parse(await readFile(downloadPath!, 'utf8'));
+  expect(report.schema).toBe('aryaksha.rpod-engineering-report/v1');
+  expect(report.mission).toMatchObject({
+    epochTai: '2026-11-15T12:05:00',
+    stateSource: 'manual-lvlh',
+    importedFrame: 'EME2000',
+    importedMissionState: mission
+  });
+  expect(report.engineeringLimitations).toContain(
+    'HCW rendezvous design uses the manually entered LVLH state; imported EME2000 target/chaser states are retained as provenance and used only for the Orekit cross-check.'
+  );
+  expect(report.trajectory.length).toBe(41);
 });
 
 test('mobile navigation opens, changes section and closes after selection', async ({ page }) => {
