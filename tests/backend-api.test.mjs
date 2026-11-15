@@ -76,6 +76,24 @@ describe('RPOD relative-state proxy contract', () => {
     expect(payload.error).toContain('Orekit service is not configured');
   });
 
+  it('accepts an explicit TAI epoch in the RPOD proxy contract', async () => {
+    const state = { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] };
+    const response = await fetch(`${baseUrl}/api/rpod/relative-state`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        target: state, chaser: state, elapsedSeconds: 0,
+        epochTai: '2026-11-15T12:00:00'
+      })
+    });
+    const payload = await response.json();
+
+    // No upstream is configured in this test process. Reaching 503 proves
+    // the explicit epoch passed proxy schema validation.
+    expect(response.status).toBe(503);
+    expect(payload.error).toContain('Orekit service is not configured');
+  });
+
   it.each([
     ['missing target', { chaser: { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] }, elapsedSeconds: 0 }],
     ['short position vector', { target: { positionKm: [7000, 0], velocityKmS: [0, 7.5, 0] }, chaser: { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] }, elapsedSeconds: 0 }],
