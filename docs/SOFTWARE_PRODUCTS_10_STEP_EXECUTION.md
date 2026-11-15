@@ -26,19 +26,26 @@ Scope: Arakshya only. This workstream is separate from GENSER.
 - Do not merge or deploy without explicit authorization.
 
 
-## Next 10-step hardening cycle (2026-11-15)
+## Next 10-step hardening cycle — implementation status
 
-This is the active follow-on execution list. Items are not marked complete merely because code was committed; browser/CI evidence is required.
+The ten engineering tasks below are implemented on this branch. Repository CI is tracked separately as a release-verification gate; queued workflows are not counted as passing tests.
 
-| # | Next task | Status | Completion evidence |
+| # | Step | Status | Evidence |
 |---|---|---|---|
-| 1 | Replace permissive CSV quote toggling with a strict field-state parser | Implemented + unit tested | Extracted to `src/businessCsv.ts`; rejects quote characters in unquoted fields, characters after a closing quote and unclosed quoted fields. |
-| 2 | Reject structurally inconsistent CSV data | Implemented + unit tested | Rejects duplicate headers and data rows with a different number of columns from the header. |
-| 3 | Verify BOM, quoted commas and escaped quote handling | Unit + browser tests added | Vitest and Playwright cover UTF-8 BOM, comma-containing company names, escaped quotes and quoted line breaks. |
-| 4 | Verify malformed quote and unclosed-field rejection | Unit + browser tests added | Vitest and Playwright assert the corresponding parser errors. |
-| 5 | Verify formula-injection-safe CSV exports | Unit + browser tests added | Formula-safe serializer is isolated and unit-tested for `=`, `@`, leading whitespace, quoting and CRLF; Playwright reads the downloaded file and checks formula prefixes are neutralized. |
-| 6 | Verify upload size boundary and stale-result clearing | Tests added | 2 MB rejection, 10,000-row, 50-column and 4,096-character cell bounds are tested; stale-result clearing, same-file retry and protection against out-of-order asynchronous file reads are implemented; file-input reset has a browser assertion. Blank CSV template is downloadable and covered by a download-content test. Need browser run. |
-| 7 | Verify research-brief trim validation and bounded fields | Test added | Playwright checks whitespace-only rejection and maxLength values. |
-| 8 | Re-review product claims, privacy boundaries and data-source restrictions | Complete (static review) | No live research, data scraping, payments or outreach is represented as active. CSV upload guidance now documents hard processing bounds; file input supports retry. |
-| 9 | Update release notes, ledger and PR verification record | In progress | Product plan and execution ledger updated with parser, limits, retry behavior and blank template; PR description needs latest CI results after they arrive. |
-| 10 | Complete current-head CI and browser acceptance | Blocked on runners | Current-head run must pass build, typecheck, unit, CodeQL, AppDeploy acceptance and product-hub browser tests. Latest relevant runs remain queued; fix any failures before closing. |
+| 1 | Extract CSV parsing into a focused module | Complete | `src/businessCsv.ts`; imported by the product-hub UI. |
+| 2 | Enforce strict CSV quoting rules | Complete | Rejects embedded unquoted quotes, trailing characters after a closing quote and unclosed fields. |
+| 3 | Validate CSV structure | Complete | Handles BOM, CRLF, blank lines, quoted commas, escaped quotes and quoted newlines; rejects duplicate headers and inconsistent row widths. |
+| 4 | Bound browser-side processing | Complete | 2 MB file cap, 10,000 data rows, 50 columns and 4,096 characters per cell; limits are disclosed in the UI. |
+| 5 | Isolate safe CSV serialization | Complete | `serializeBusinessCsv` quotes/escapes every cell and prefixes formula-like values, including whitespace-prefixed values. |
+| 6 | Add a blank CSV template | Complete | Downloadable `Company,Website,City` template with CRLF line endings. |
+| 7 | Improve upload recovery | Complete | File input resets after selection; prior results clear on a new attempt and the same file can be selected again. |
+| 8 | Prevent asynchronous upload races | Complete | Request sequence guard ignores stale file-read completions. |
+| 9 | Add focused automated coverage | Complete (tests authored) | Vitest parser/serializer cases and Playwright coverage for malformed files, limits, formula-safe exports, template content and input reset. |
+| 10 | Update product documentation and PR evidence | Complete | Product plan, execution ledger and PR #124 description updated. |
+
+## Separate release-verification gate
+
+- Current-head Aryaksha CI, CodeQL and AppDeploy acceptance workflows have been created by GitHub but remain queued; no completed current-head result is available yet.
+- An isolated local TypeScript transpile and Node harness passed 12 parser cases; a separate local serializer check passed CRLF, escaping and formula-prefix neutralization. These checks do not replace repository Vitest, Playwright, CodeQL or AppDeploy runs.
+- PR #124 remains draft and unmerged. Do not merge or deploy without explicit authorization.
+- Live First Customer Finder remains blocked on provider permission, authentication, tenant isolation, retention/deletion and legal review. Google Maps extraction remains blocked by the source-terms risk.
