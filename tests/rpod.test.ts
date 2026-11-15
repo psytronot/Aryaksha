@@ -7,6 +7,7 @@ import {
   sampleCwTrajectory,
   propagateCwWithImpulses,
   screenCwKeepOut,
+  propagateCwCovariance,
   type RelativeState,
 } from '../src/rpod';
 
@@ -270,6 +271,22 @@ describe('RPOD relative-motion foundation', () => {
     expect(result.enteredKeepOut).toBe(true);
     expect(() => screenCwKeepOut(trajectory, 0)).toThrow(/positive/);
     expect(() => screenCwKeepOut([], 0.05)).toThrow(/two trajectory/);
+  });
+
+  it('propagates a symmetric LVLH state covariance through the HCW state transition', () => {
+    const covariance = Array.from({ length: 6 }, (_, row) =>
+      Array.from({ length: 6 }, (_, column) => row === column ? (row < 3 ? 1e-4 : 1e-8) : 0),
+    );
+    const propagated = propagateCwCovariance(covariance, 0.001, 120);
+    expect(propagated).toHaveLength(6);
+    propagated.forEach(row => expect(row).toHaveLength(6));
+    expect(propagated[0][0]).toBeGreaterThan(0);
+    expect(propagated[0][3]).not.toBe(0);
+    expect(propagated[0][1]).toBeCloseTo(propagated[1][0], 12);
+    expect(() => propagateCwCovariance([[1]], 0.001, 120)).toThrow(/6 by 6/);
+    const asymmetric = covariance.map(row => [...row]);
+    asymmetric[0][1] = 1;
+    expect(() => propagateCwCovariance(asymmetric, 0.001, 120)).toThrow(/symmetric/);
   });
 
 });
