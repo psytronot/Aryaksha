@@ -33,7 +33,7 @@ Implemented in:
 
 `POST /api/v1/rpod/relative-state` accepts target and chaser inertial Cartesian states at J2000 TAI in EME2000. It independently propagates both spacecraft using Orekit 13.1.9 numerical propagation with Dormand–Prince 8(5,3) and Newtonian central gravity, then computes the target-centred rotating LVLH relative state. The response includes both propagated inertial states, the LVLH relative state, frame/epoch metadata and explicit model assumptions.
 
-The endpoint is a comparison foundation. The browser RPOD workspace is not yet wired to this endpoint, and no automated HCW-versus-Orekit error budget or acceptance threshold is yet established.
+The browser RPOD workspace is wired through the Express proxy to this endpoint. Its cross-check constructs a synthetic circular equatorial chief orbit in EME2000 at J2000 TAI, converts the entered LVLH state into inertial target/chaser states, and compares the independently propagated Orekit relative state with the analytical HCW prediction. This is an initial unburned propagation comparison; it does not apply the calculated rendezvous impulses. A dedicated Orekit controller test currently checks a small-separation circular two-body case against HCW with 10 m position and 10 mm/s velocity bounds. Those are regression-test bounds for that fixture, not universal accuracy guarantees.
 
 ## Assumptions and validity
 
@@ -59,15 +59,17 @@ Orekit controller tests cover:
 - Coincident target/chaser state producing zero LVLH relative state.
 - Correct rotating-frame velocity transport at the initial epoch.
 - Independent propagation of both spacecraft to a requested epoch.
-- Invalid elapsed time and malformed state vectors.
+- HCW-versus-Orekit small-separation circular-orbit comparison with documented regression bounds.
+- Invalid elapsed time, malformed state vectors and initial positions inside Earth.
 
 ## Remaining engineering work
 
-1. Wire the RPOD workspace to the Orekit relative-state endpoint with explicit frame and epoch inputs.
-2. Establish a circular two-body comparison harness between HCW and Orekit, with documented tolerances and relative-state error plots.
-3. Add target/chaser trajectory histories and time-series visualisation.
-4. Add multi-impulse and finite-burn manoeuvre sequencing with thrust and attitude constraints.
+1. Replace the synthetic circular equatorial comparison fixture with importable mission states, explicit source epoch and supported frame transformations.
+2. Add target/chaser trajectory histories and time-series visualisation with comparison residual plots.
+3. Add maneuver-aware propagation so the Orekit comparison can evaluate the departure and arrival impulses, rather than only the unburned initial state.
+4. Add multi-impulse and finite-burn maneuver sequencing with thrust, mass, attitude and actuator constraints.
 5. Add keep-out sphere, approach corridor, collision screening and navigation uncertainty.
 6. Add capture/docking terminal constraints and report export with assumptions, units, tolerances and model fidelity.
+7. Configure and run a live Orekit deployment smoke test; the current CI job is skipped until its external service configuration is available.
 
 Do not describe the current implementation as a complete RPOD simulator or flight-ready rendezvous solution.
