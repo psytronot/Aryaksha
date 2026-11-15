@@ -9,7 +9,7 @@ test('software products hub is reachable and presents honest product availabilit
 
   await expect(page.getByRole('heading', { name: 'Useful software. Open access. Practical outcomes.' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Google Maps Scrapper' })).toBeVisible();
-  await expect(page.getByText('COMPLIANCE REVIEW')).toBeVisible();
+  await expect(page.getByText('COMPLIANCE REVIEW', { exact: true })).toBeVisible();
   await expect(page.getByText('Not available as a hosted extraction service')).toBeVisible();
 
   await expect(page.getByRole('heading', { name: 'First Customer Finder' })).toBeVisible();
