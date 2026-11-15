@@ -27,8 +27,27 @@ const parseCartesianState = (value: unknown, label: string): RpodMissionCartesia
   }
   const positionKm = parseVector(value.positionKm, `${label}.positionKm`);
   const velocityKmS = parseVector(value.velocityKmS, `${label}.velocityKmS`);
-  if (Math.hypot(...positionKm) <= 6378.137) {
+  const radiusKm = Math.hypot(...positionKm);
+  if (radiusKm <= 6378.137) {
     throw new Error(`${label} initial position must be above Earth.`);
+  }
+  const [rx, ry, rz] = positionKm;
+  const [vx, vy, vz] = velocityKmS;
+  const hx = ry * vz - rz * vy;
+  const hy = rz * vx - rx * vz;
+  const hz = rx * vy - ry * vx;
+  const angularMomentum = Math.hypot(hx, hy, hz);
+  if (angularMomentum < 1e-6) {
+    throw new Error(`${label} state must define a non-degenerate orbital plane.`);
+  }
+  const mu = 398600.4418;
+  const evx = (vy * hz - vz * hy) / mu - rx / radiusKm;
+  const evy = (vz * hx - vx * hz) / mu - ry / radiusKm;
+  const evz = (vx * hy - vy * hx) / mu - rz / radiusKm;
+  const eccentricity = Math.hypot(evx, evy, evz);
+  const periapsisKm = angularMomentum ** 2 / mu / (1 + eccentricity);
+  if (!Number.isFinite(periapsisKm) || periapsisKm <= 6378.137) {
+    throw new Error(`${label} osculating periapsis intersects Earth.`);
   }
   return { positionKm, velocityKmS };
 };
