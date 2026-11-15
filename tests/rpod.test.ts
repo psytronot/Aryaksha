@@ -12,6 +12,42 @@ const closeToVector = (actual: number[], expected: number[], digits = 8) => {
   actual.forEach((value, index) => expect(value).toBeCloseTo(expected[index], digits));
 };
 
+
+const integrateCwRk4 = (initial: RelativeState, n: number, duration: number, step: number): RelativeState => {
+  type State = [number, number, number, number, number, number];
+  const derivative = (state: State): State => [
+    state[3],
+    state[4],
+    state[5],
+    3 * n * n * state[0] + 2 * n * state[4],
+    -2 * n * state[3],
+    -n * n * state[2],
+  ];
+  const add = (state: State, slope: State, factor: number): State =>
+    state.map((value, index) => value + factor * slope[index]) as State;
+  let state: State = [
+    ...initial.positionKm,
+    ...initial.velocityKmS,
+  ];
+  const steps = Math.ceil(duration / step);
+  const dt = duration / steps;
+
+  for (let index = 0; index < steps; index += 1) {
+    const k1 = derivative(state);
+    const k2 = derivative(add(state, k1, dt / 2));
+    const k3 = derivative(add(state, k2, dt / 2));
+    const k4 = derivative(add(state, k3, dt));
+    state = state.map((value, component) =>
+      value + (dt / 6) * (k1[component] + 2 * k2[component] + 2 * k3[component] + k4[component]),
+    ) as State;
+  }
+
+  return {
+    positionKm: [state[0], state[1], state[2]],
+    velocityKmS: [state[3], state[4], state[5]],
+  };
+};
+
 describe('RPOD relative-motion foundation', () => {
   it('converts inertial relative position and velocity into the target LVLH frame', () => {
     // Target is in a 7,000 km circular equatorial orbit at +X, moving +Y.
@@ -55,6 +91,20 @@ describe('RPOD relative-motion foundation', () => {
       -6 * n * (1 - Math.cos(nt)) * 0.1,
       0,
     ]);
+  });
+
+
+  it('cross-validates the closed-form HCW propagator against independent RK4 integration', () => {
+    const initial: RelativeState = {
+      positionKm: [0.1, -0.2, 0.05],
+      velocityKmS: [0.0001, 0.0002, -0.00005],
+    };
+    const n = Math.sqrt(398600.4418 / 7000 ** 3);
+    const analytical = propagateCw(initial, n, 900);
+    const numerical = integrateCwRk4(initial, n, 900, 0.5);
+
+    closeToVector(analytical.positionKm, numerical.positionKm, 9);
+    closeToVector(analytical.velocityKmS, numerical.velocityKmS, 11);
   });
 
   it('computes an initial impulsive correction that reaches zero relative position at the target time', () => {
