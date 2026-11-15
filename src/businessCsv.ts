@@ -65,7 +65,7 @@ export function parseBusinessCsv(raw: string): BusinessCsvResult {
     } else if (char === ',' && !quoted) {
       pushField();
       closedQuote = false;
-    } else if ((char === '\\n' || char === '\\r') && !quoted) {
+    } else if ((char === '\n' || char === '\r') && !quoted) {
       if (char === '\\r' && raw[i + 1] === '\\n') i += 1;
       pushRow();
       closedQuote = false;
