@@ -4,6 +4,7 @@ import { EARTH_RADIUS, MU } from './orbit';
 import { propagateCw, sampleCwTrajectory, solveTwoImpulseRendezvous, type RelativeState } from './rpod';
 
 type ScenarioInput = {
+  epochTai: string;
   chiefAltitudeKm: string;
   xKm: string;
   yKm: string;
@@ -15,6 +16,7 @@ type ScenarioInput = {
 };
 
 const initialScenario: ScenarioInput = {
+  epochTai: '2000-01-01T12:00:00',
   chiefAltitudeKm: '550',
   xKm: '0.1',
   yKm: '-0.2',
@@ -127,6 +129,7 @@ export default function RpodView() {
           target: { positionKm: targetPositionKm, velocityKmS: targetVelocityKmS },
           chaser: { positionKm: chaserPositionKm, velocityKmS: chaserVelocityKmS },
           elapsedSeconds,
+          epochTai: input.epochTai.trim(),
         }),
       });
       const payload = await response.json();
@@ -221,6 +224,7 @@ export default function RpodView() {
         <section className="card">
           <div className="card-head"><span><Satellite size={17} /></span><b>Target orbit and chaser initial state</b></div>
           <form onSubmit={runScenario}>
+            <div className="field"><span><label htmlFor="rpod-epoch-tai"><span className="field-label">MISSION EPOCH</span></label><em>TAI</em></span><input id="rpod-epoch-tai" aria-label="Mission epoch TAI" type="text" pattern="\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?" title="Use YYYY-MM-DDTHH:mm:ss in TAI" required value={input.epochTai} onChange={event => update('epochTai', event.target.value)} /></div>
             <div className="field-grid">
               <div className="field"><span><label htmlFor="rpod-chief-altitude"><span className="field-label">CHIEF ORBIT ALTITUDE</span></label><em>km</em></span><input id="rpod-chief-altitude" aria-label="Chief orbit altitude" type="number" min="1" step="any" required value={input.chiefAltitudeKm} onChange={event => update('chiefAltitudeKm', event.target.value)} /></div>
               <div className="field"><span><label htmlFor="rpod-rendezvous-time"><span className="field-label">RENDEZVOUS TIME</span></label><em>min</em></span><input id="rpod-rendezvous-time" aria-label="Rendezvous time" type="number" min="0.001" step="any" required value={input.rendezvousMinutes} onChange={event => update('rendezvousMinutes', event.target.value)} /></div>
