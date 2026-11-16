@@ -4,7 +4,7 @@ import { EARTH_RADIUS, MU } from './orbit';
 import { propagateCw, sampleCwTrajectory, solveTwoImpulseRendezvous, screenCwKeepOutContinuous, propagateCwCovariance, type RelativeState } from './rpod';
 import { parseRpodMissionState, type RpodMissionState } from './rpodMissionState';
 import { serializeRpodEngineeringReport, type RpodEngineeringReport } from './rpodReport';
-import { sampleTwoBodyTrajectory } from './rpodInertial';
+import { sampleTwoBodyTrajectory, sampleManeuverAwareTwoBodyTrajectory } from './rpodInertial';
 
 type ScenarioInput = {
   epochTai: string;
@@ -123,6 +123,39 @@ export default function RpodView() {
       return null;
     }
   }, [importedMissionState, input.rendezvousMinutes]);
+
+  const maneuverAwareHistory = useMemo(() => {
+    if (!result || importedMissionState) return null;
+    try {
+      const altitude = numberValue(input.chiefAltitudeKm, 'Chief altitude');
+      const chiefRadiusKm = EARTH_RADIUS + altitude;
+      const durationSeconds = result.rendezvousTimeSeconds;
+      const radialSeparation = numberValue(input.xKm, 'Radial separation');
+      const alongTrackSeparation = numberValue(input.yKm, 'Along-track separation');
+      const crossTrackSeparation = numberValue(input.zKm, 'Cross-track separation');
+      const targetVelocityKmS = Math.sqrt(MU / chiefRadiusKm);
+      const target = {
+        positionKm: [chiefRadiusKm, 0, 0] as [number, number, number],
+        velocityKmS: [0, targetVelocityKmS, 0] as [number, number, number],
+      };
+      // The entered relative velocity is rotating-LVLH velocity. Add omega x rho
+      // to obtain the initial inertial chaser velocity in the aligned frame.
+      const chaser = {
+        positionKm: [chiefRadiusKm + radialSeparation, alongTrackSeparation, crossTrackSeparation] as [number, number, number],
+        velocityKmS: [
+          numberValue(input.vxKmS, 'Radial relative velocity') - result.meanMotionRadS * alongTrackSeparation,
+          targetVelocityKmS + numberValue(input.vyKmS, 'Along-track relative velocity') + result.meanMotionRadS * radialSeparation,
+          numberValue(input.vzKmS, 'Cross-track relative velocity'),
+        ] as [number, number, number],
+      };
+      return sampleManeuverAwareTwoBodyTrajectory(target, chaser, durationSeconds, 40, [
+        { elapsedSeconds: 0, deltaVKmS: result.departureDeltaVKmS },
+        { elapsedSeconds: durationSeconds, deltaVKmS: result.arrivalDeltaVKmS },
+      ]);
+    } catch {
+      return null;
+    }
+  }, [result, importedMissionState, input.chiefAltitudeKm, input.xKm, input.yKm, input.zKm, input.vxKmS, input.vyKmS, input.vzKmS]);
 
   const trajectoryPlot = useMemo(() => {
     if (!result) return null;
@@ -389,6 +422,18 @@ export default function RpodView() {
         positionKm: sample.state.positionKm,
         velocityKmS: sample.state.velocityKmS,
       })),
+      ...(maneuverAwareHistory ? {
+        maneuverAwareInertialHistory: {
+          model: 'newtonian-two-body-rk4' as const,
+          impulseFrame: 'target-instantaneous-lvlh-to-inertial' as const,
+          terminalPositionMissKm: Math.hypot(...maneuverAwareHistory[40].chaser.positionKm.map((value, axis) => value - maneuverAwareHistory[40].target.positionKm[axis])),
+          samples: maneuverAwareHistory.map(sample => ({
+            elapsedSeconds: sample.elapsedSeconds,
+            targetPositionKm: sample.target.positionKm,
+            chaserPositionKm: sample.chaser.positionKm,
+          })),
+        },
+      } : {}),
       keepOutScreen: {
         method: 'hcw-stationary-point-root-search',
         keepOutRadiusKm: result.keepOutScreen.keepOutRadiusKm,
@@ -528,20 +573,39 @@ export default function RpodView() {
                 ))}
               </div>
               <div className="trajectory-panel">
-                <div className="stat-row"><span className="result-label">Inertial target / chaser history · EME2000</span><b>{inertialHistory ? '41 samples each' : 'Mission import required'}</b></div>
-                {!inertialHistory ? (
-                  <p>Import an EME2000 mission-state JSON to inspect independently propagated inertial target and chaser histories.</p>
-                ) : (
+                <div className="stat-row"><span className="result-label">Inertial target / chaser history · EME2000 / two-body</span><b>{importedMissionState ? (inertialHistory ? '41 samples each' : 'Unavailable') : (maneuverAwareHistory ? '41 samples · burns applied' : 'Solve required')}</b></div>
+                {importedMissionState ? (
+                  !inertialHistory ? <p>Imported EME2000 inertial history is unavailable for the current duration.</p> : (
+                    <>
+                      <div className="callout"><Orbit size={15} /><span>Both imported spacecraft are propagated independently from the imported TAI epoch with Newtonian two-body gravity (RK4, maximum 10 s integration step). Planned HCW burns are not applied to imported mission states because their state provenance is separate.</span></div>
+                      {inertialHistory.target.filter((_, index) => index % 10 === 0).map((sample, index) => {
+                        const chaser = inertialHistory.chaser[index * 10];
+                        const targetRadius = Math.hypot(...sample.state.positionKm);
+                        const chaserRadius = Math.hypot(...chaser.state.positionKm);
+                        const separation = Math.hypot(
+                          chaser.state.positionKm[0] - sample.state.positionKm[0],
+                          chaser.state.positionKm[1] - sample.state.positionKm[1],
+                          chaser.state.positionKm[2] - sample.state.positionKm[2],
+                        );
+                        return (
+                          <div className="stat-row" key={sample.elapsedSeconds}>
+                            <span className="result-label">T+{fixed(sample.elapsedSeconds, 1)} s · target r {fixed(targetRadius, 3)} km · chaser r {fixed(chaserRadius, 3)} km</span>
+                            <b>{fixed(separation * 1000, 2)} m separation</b>
+                          </div>
+                        );
+                      })}
+                    </>
+                  )
+                ) : maneuverAwareHistory ? (
                   <>
-                    <div className="callout"><Orbit size={15} /><span>Both spacecraft are propagated independently from the imported TAI epoch with Newtonian two-body gravity (RK4, maximum 10 s integration step). This history is not the HCW design trajectory or the Orekit cross-check.</span></div>
-                    {inertialHistory.target.filter((_, index) => index % 10 === 0).map((sample, index) => {
-                      const chaser = inertialHistory.chaser[index * 10];
-                      const targetRadius = Math.hypot(...sample.state.positionKm);
-                      const chaserRadius = Math.hypot(...chaser.state.positionKm);
+                    <div className="callout"><Orbit size={15} /><span>Manual LVLH departure and terminal impulses are transformed into the target's instantaneous inertial frame at each burn epoch, then applied to the chaser. Both spacecraft use Newtonian two-body RK4 (maximum 10 s step); this independent visualization is not Orekit maneuver propagation and will not exactly reproduce the linear HCW solution.</span></div>
+                    {maneuverAwareHistory.filter((_, index) => index % 10 === 0).map(sample => {
+                      const targetRadius = Math.hypot(...sample.target.positionKm);
+                      const chaserRadius = Math.hypot(...sample.chaser.positionKm);
                       const separation = Math.hypot(
-                        chaser.state.positionKm[0] - sample.state.positionKm[0],
-                        chaser.state.positionKm[1] - sample.state.positionKm[1],
-                        chaser.state.positionKm[2] - sample.state.positionKm[2],
+                        sample.chaser.positionKm[0] - sample.target.positionKm[0],
+                        sample.chaser.positionKm[1] - sample.target.positionKm[1],
+                        sample.chaser.positionKm[2] - sample.target.positionKm[2],
                       );
                       return (
                         <div className="stat-row" key={sample.elapsedSeconds}>
@@ -550,7 +614,10 @@ export default function RpodView() {
                         </div>
                       );
                     })}
+                    <div className="stat-row"><span className="result-label">Two-body terminal position miss after modeled burns</span><b>{fixed(Math.hypot(...maneuverAwareHistory[40].chaser.positionKm.map((value, axis) => value - maneuverAwareHistory[40].target.positionKm[axis])), 3)} km</b></div>
                   </>
+                ) : (
+                  <p>Solve the manual LVLH scenario to inspect a maneuver-aware inertial history, or import an EME2000 mission-state JSON for unburned inertial propagation.</p>
                 )}
               </div>
               <div className="result-list">
