@@ -441,9 +441,9 @@ function SoftwareProductsView() {
       <div className="software-demo-heading"><div><span className="software-hub-kicker">PRODUCT WALKTHROUGH</span><h2 id="software-demo-title">What a First Customer Finder report could look like</h2><p>Illustrative layout only. These fictional examples are not real companies, researched prospects or endorsements.</p></div><span className="software-demo-tag">SAMPLE DATA</span></div>
       <div className="software-demo-table" role="table" aria-label="Illustrative prospect report">
         <div className="software-demo-row software-demo-header" role="row"><span role="columnheader">FICTIONAL ORGANISATION</span><span role="columnheader">RESEARCH SIGNAL</span><span role="columnheader">PRIORITY</span></div>
-        <div className="software-demo-row" role="row"><b>Northstar Robotics (fictional)</b><span>Public pilot-program announcement</span><strong>High</strong></div>
-        <div className="software-demo-row" role="row"><b>Bluepeak Learning (fictional)</b><span>Published STEM-lab expansion plan</span><strong>Medium</strong></div>
-        <div className="software-demo-row" role="row"><b>Orbit Grove Systems (fictional)</b><span>General sector fit; no direct demand evidence</span><strong>Low</strong></div>
+        <div className="software-demo-row" role="row"><b role="cell">Northstar Robotics (fictional)</b><span role="cell">Public pilot-program announcement</span><strong role="cell">High</strong></div>
+        <div className="software-demo-row" role="row"><b role="cell">Bluepeak Learning (fictional)</b><span role="cell">Published STEM-lab expansion plan</span><strong role="cell">Medium</strong></div>
+        <div className="software-demo-row" role="row"><b role="cell">Orbit Grove Systems (fictional)</b><span role="cell">General sector fit; no direct demand evidence</span><strong role="cell">Low</strong></div>
       </div>
       <div className="software-evidence-grid" aria-label="Evidence fields included in a real report">
         <div><b>ORIGINAL SOURCE</b><span>Publisher and direct source URL</span></div>

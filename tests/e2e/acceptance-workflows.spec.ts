@@ -18,6 +18,8 @@ test('primary engineering workflow connects design, simulation, analysis, verifi
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Satellite tracking & pass planning' })).toBeVisible();
+  await page.getByRole('button', { name: 'Mission', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Start with the engineering problem.' })).toBeVisible();
 
   const workspaces = [
