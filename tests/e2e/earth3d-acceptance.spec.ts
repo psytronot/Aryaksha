@@ -723,7 +723,17 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   await expect(speed60).toBeInViewport();
   await expect(speed.getByRole("button", { name: "Set playback speed 60x" })).toHaveAttribute("aria-pressed", "true");
 
-  await timeline.getByRole("button", { name: "Moon scene", exact: true }).click();
+  const moonSceneButton = timeline.getByRole("button", { name: "Moon scene", exact: true });
+  await moonSceneButton.evaluate(button => button.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" }));
+  const moonSceneMetrics = await moonSceneButton.evaluate(button => {
+    const rect = button.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const hit = document.elementFromPoint(x, y);
+    return { x, y, receivesPointer: hit === button || button.contains(hit) };
+  });
+  expect(moonSceneMetrics.receivesPointer).toBe(true);
+  await page.mouse.click(moonSceneMetrics.x, moonSceneMetrics.y);
   await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "MOON", exact: true })).toHaveClass(/active/);
   await expect(timeline.getByRole("button", { name: "Moon scene", exact: true })).toHaveAttribute("aria-pressed", "true");
   const systemSceneButton = timeline.getByRole("button", { name: "Earth and Moon scene" });
