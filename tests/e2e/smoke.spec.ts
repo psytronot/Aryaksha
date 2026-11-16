@@ -50,6 +50,9 @@ test('RPOD workspace solves HCW and cross-checks relative propagation with Oreki
   await page.getByRole('button', { name: 'Solve two-impulse rendezvous', exact: true }).click();
   await expect(page.getByText(/total ideal impulsive Δv/)).toBeVisible();
   await expect(page.getByText(/Maximum sampled separation \/ chief radius/)).toBeVisible();
+  await expect(page.getByText('Maneuver-aware inertial history', { exact: false })).toBeVisible();
+  await expect(page.getByText('41 samples · burns applied')).toBeVisible();
+
   await page.getByRole('button', { name: 'Cross-check initial propagation (no burns) against Orekit', exact: true }).click();
 
   await expect(page.getByText('Orekit propagated LVLH position')).toBeVisible();
