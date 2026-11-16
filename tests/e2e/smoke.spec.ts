@@ -53,7 +53,7 @@ test('RPOD workspace solves HCW and cross-checks relative propagation with Oreki
   await page.getByRole('button', { name: 'Cross-check initial propagation (no burns) against Orekit', exact: true }).click();
 
   await expect(page.getByText('Orekit propagated LVLH position')).toBeVisible();
-  await expect(page.getByText('Orekit relative-state history')).toBeVisible();
+  await expect(page.getByText('Orekit relative-state history', { exact: true })).toBeVisible();
   await expect(page.getByText('21 samples')).toBeVisible();
   await expect(page.getByRole('img', { name: 'Orekit versus HCW position residual time series' })).toBeVisible();
   await expect(page.getByRole('img', { name: 'Orekit versus HCW velocity residual time series' })).toBeVisible();
