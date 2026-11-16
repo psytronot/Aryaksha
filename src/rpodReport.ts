@@ -49,6 +49,12 @@ export type RpodEngineeringReport = {
     positionKm: [number, number, number];
     velocityKmS: [number, number, number];
   }>;
+  maneuverAwareInertialHistory?: {
+    model: 'newtonian-two-body-rk4';
+    impulseFrame: 'target-instantaneous-lvlh-to-inertial';
+    terminalPositionMissKm: number;
+    samples: Array<{ elapsedSeconds: number; targetPositionKm: [number, number, number]; chaserPositionKm: [number, number, number] }>;
+  };
   keepOutScreen: {
     method: 'hcw-stationary-point-root-search';
     keepOutRadiusKm: number;
