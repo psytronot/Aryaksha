@@ -55,6 +55,7 @@ Analytical tests cover:
 - Single-impulse terminal position closure.
 - Two-impulse terminal velocity cancellation.
 - Piecewise coast propagation with timed instantaneous LVLH impulses, including event ordering and interval validation.
+- Epoch-specific LVLH-to-inertial impulse conversion, two-body chaser velocity updates, initial/terminal burn handling, no-burn equivalence and strict maneuver ordering validation.
 - Sampled pre-terminal keep-out-radius screening, with terminal coincidence explicitly excluded.
 - Linear HCW covariance propagation for a symmetric positive-semidefinite 6x6 LVLH state covariance, plus UI 3-sigma axis summaries from independent diagonal position/velocity uncertainty inputs.
 - Invalid mean motion, negative time and singular transfer-time rejection.
