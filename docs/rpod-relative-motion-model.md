@@ -89,9 +89,15 @@ The RPOD results panel exports a versioned JSON engineering record (`aryaksha.rp
 The report explicitly records that it is not safe-approach or docking guidance, that terminal velocity matching is an instantaneous burn at the position-coincidence epoch, that keep-out screening is sampled rather than continuous-time, and that the diagonal uncertainty model does not calculate collision probability. Imported EME2000 mission states are used for the Orekit cross-check only; the current two-impulse design solution remains based on the manually entered LVLH state. The export identifies that distinction rather than implying the imported state was used by the HCW solver.
 
 
-## Inertial trajectory history
+## Inertial trajectory history and LVLH impulse conversion
 
-`src/rpodInertial.ts` provides a separate Newtonian two-body Cartesian propagator using fixed-step RK4 (maximum integration step 10 s) and endpoint-inclusive uniform sampling. When an EME2000 mission file is imported, the RPOD workspace independently propagates the target and chaser from the imported TAI epoch and displays five checkpoints from each 41-sample history, including inertial orbital radii and mutual separation. This is a visualization/history layer only: it does not apply the planned HCW impulses, does not perform frame transformations, and does not replace the Orekit numerical cross-check. Its point-mass assumptions exclude J2, drag, SRP and third-body perturbations.
+`src/rpodInertial.ts` provides a Newtonian two-body Cartesian propagator using fixed-step RK4 (maximum integration step 10 s) and endpoint-inclusive uniform sampling.
+
+For imported EME2000 mission files, the RPOD workspace independently propagates the target and chaser from the imported TAI epoch without applying the manual HCW burns. The imported states retain their own provenance and are not silently mixed with the manually entered LVLH design state.
+
+For manual circular-chief scenarios, `propagateTwoBodyWithLvlhImpulses` propagates both spacecraft inertially and applies the calculated departure and terminal impulses to the chaser. At each burn epoch it constructs the target's instantaneous radial, along-track and orbit-normal basis, resolves the LVLH delta-v into inertial components, and applies the increment to chaser velocity. Burn epochs must be strictly increasing and lie within the propagation interval. The UI displays five checkpoints from a 41-sample paired history and reports the resulting two-body terminal position miss.
+
+This is an independent Newtonian two-body RK4 visualization, not Orekit maneuver propagation and not an exact reproduction of the linear HCW transfer. The terminal miss is useful precisely because it exposes the model difference rather than hiding it. It excludes J2, drag, SRP, third-body perturbations, finite burns, mass/thrust/attitude constraints and maneuver execution error. The exported engineering report includes the maneuver-aware inertial history and its model/provenance metadata when the manual-state path is active.
 
 
 ## Orekit-versus-HCW time-series comparison
