@@ -33,3 +33,55 @@ describe('two-body inertial trajectory history', () => {
     expect(() => sampleTwoBodyTrajectory(circular, 100, 1, mu)).toThrow(/at least two/);
   });
 });
+
+
+describe('maneuver-aware two-body inertial propagation', () => {
+  const target: CartesianOrbitState = {
+    positionKm: [7000, 0, 0],
+    velocityKmS: [0, Math.sqrt(mu / 7000), 0],
+  };
+
+  it('matches independent unburned propagation when no impulses are supplied', async () => {
+    const { propagateTwoBodyWithLvlhImpulses } = await import('../src/rpodInertial');
+    const result = propagateTwoBodyWithLvlhImpulses(target, target, 120, [], mu);
+    expect(result.target.positionKm).toEqual(propagateTwoBodyState(target, 120, mu).positionKm);
+    expect(result.chaser.velocityKmS).toEqual(propagateTwoBodyState(target, 120, mu).velocityKmS);
+    expect(result.appliedImpulses).toHaveLength(0);
+  });
+
+  it('resolves a radial LVLH impulse into the target radial inertial direction', async () => {
+    const { propagateTwoBodyWithLvlhImpulses } = await import('../src/rpodInertial');
+    const result = propagateTwoBodyWithLvlhImpulses(target, target, 0, [
+      { elapsedSeconds: 0, deltaVKmS: [0.001, 0, 0] },
+    ], mu);
+    expect(result.appliedImpulses[0].deltaVInertialKmS).toEqual([0.001, 0, 0]);
+    expect(result.chaser.velocityKmS[0] - target.velocityKmS[0]).toBeCloseTo(0.001, 12);
+  });
+
+  it('applies impulses at the initial and terminal epochs', async () => {
+    const { propagateTwoBodyWithLvlhImpulses } = await import('../src/rpodInertial');
+    const initial = propagateTwoBodyWithLvlhImpulses(target, target, 10, [
+      { elapsedSeconds: 0, deltaVKmS: [0, 0.001, 0] },
+      { elapsedSeconds: 10, deltaVKmS: [0.001, 0, 0] },
+    ], mu);
+    expect(initial.appliedImpulses).toHaveLength(2);
+    expect(initial.appliedImpulses[0].elapsedSeconds).toBe(0);
+    expect(initial.appliedImpulses[1].elapsedSeconds).toBe(10);
+    expect(Math.hypot(...initial.chaser.velocityKmS)).not.toBeCloseTo(Math.hypot(...initial.target.velocityKmS), 8);
+  });
+
+  it('rejects unordered, duplicate and out-of-window burn epochs', async () => {
+    const { propagateTwoBodyWithLvlhImpulses } = await import('../src/rpodInertial');
+    expect(() => propagateTwoBodyWithLvlhImpulses(target, target, 20, [
+      { elapsedSeconds: 10, deltaVKmS: [0, 0, 0] },
+      { elapsedSeconds: 5, deltaVKmS: [0, 0, 0] },
+    ], mu)).toThrow(/strictly increasing/);
+    expect(() => propagateTwoBodyWithLvlhImpulses(target, target, 20, [
+      { elapsedSeconds: 20, deltaVKmS: [0, 0, 0] },
+      { elapsedSeconds: 20, deltaVKmS: [0, 0, 0] },
+    ], mu)).toThrow(/strictly increasing/);
+    expect(() => propagateTwoBodyWithLvlhImpulses(target, target, 20, [
+      { elapsedSeconds: 21, deltaVKmS: [0, 0, 0] },
+    ], mu)).toThrow(/within the propagation interval/);
+  });
+});
