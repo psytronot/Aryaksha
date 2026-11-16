@@ -752,8 +752,20 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       };
       updateOrbit();
 
-      const animate = () => {
+      // Cap the continuously animated globe at 30 FPS. The scene recomputes
+      // orbital frames, solar direction, planetary positions and several
+      // dynamic geometries on every frame; an uncapped 60+ FPS loop can
+      // monopolize software-WebGL browsers and make the surrounding controls
+      // unresponsive without adding meaningful engineering fidelity.
+      let lastFrameAt = 0;
+      const minimumFrameIntervalMs = 1000 / 30;
+      const animate = (frameTime = performance.now()) => {
         if (!mounted) return;
+        if (frameTime - lastFrameAt < minimumFrameIntervalMs) {
+          frameRef.current = requestAnimationFrame(animate);
+          return;
+        }
+        lastFrameAt = frameTime;
         const state = currentRef.current;
         const markerVector = scenePosition(state.r, scale);
         const radial = markerVector.clone().normalize();

@@ -62,6 +62,70 @@ afterAll(() => {
   if (apiProcess && apiProcess.exitCode === null) apiProcess.kill('SIGTERM');
 });
 
+describe('RPOD relative-state proxy contract', () => {
+  it('fails explicitly when the Orekit RPOD service is not configured', async () => {
+    const state = { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] };
+    const response = await fetch(`${baseUrl}/api/rpod/relative-state`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ target: state, chaser: state, elapsedSeconds: 0 })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(payload.error).toContain('Orekit service is not configured');
+  });
+
+  it('accepts an explicit TAI epoch in the RPOD proxy contract', async () => {
+    const state = { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] };
+    const response = await fetch(`${baseUrl}/api/rpod/relative-state`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        target: state, chaser: state, elapsedSeconds: 0,
+        epochTai: '2026-11-15T12:00:00'
+      })
+    });
+    const payload = await response.json();
+
+    // No upstream is configured in this test process. Reaching 503 proves
+    // the explicit epoch passed proxy schema validation.
+    expect(response.status).toBe(503);
+    expect(payload.error).toContain('Orekit service is not configured');
+  });
+
+  it('accepts a bounded Orekit history sample count in the RPOD proxy contract', async () => {
+    const state = { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] };
+    const response = await fetch(`${baseUrl}/api/rpod/relative-state`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ target: state, chaser: state, elapsedSeconds: 900, historySamples: 21 })
+    });
+    expect(response.status).toBe(503);
+    expect((await response.json()).error).toContain('Orekit service is not configured');
+  });
+
+  it.each([
+    ['missing target', { chaser: { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] }, elapsedSeconds: 0 }],
+    ['short position vector', { target: { positionKm: [7000, 0], velocityKmS: [0, 7.5, 0] }, chaser: { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] }, elapsedSeconds: 0 }],
+    ['non-finite component', { target: { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] }, chaser: { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, '0'] }, elapsedSeconds: 0 }],
+    ['time beyond seven days', { target: { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] }, chaser: { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] }, elapsedSeconds: 604801 }],
+    ['history sample count below bounds', { target: { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] }, chaser: { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] }, elapsedSeconds: 60, historySamples: 1 }],
+    ['history sample count above bounds', { target: { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] }, chaser: { positionKm: [7000, 0, 0], velocityKmS: [0, 7.5, 0] }, elapsedSeconds: 60, historySamples: 102 }]
+  ])('rejects %s', async (_label, body) => {
+    const response = await fetch(`${baseUrl}/api/rpod/relative-state`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.error).toEqual(expect.any(String));
+    expect(payload.error.length).toBeGreaterThan(0);
+  });
+});
+
 describe('standalone orbit-analysis HTTP contract', () => {
   it('fails explicitly when Orekit is not configured instead of returning a misleading fallback', async () => {
     const response = await fetch(`${baseUrl}/api/mission-analysis/orbit`, {

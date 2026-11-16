@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 
 test('desktop app shell renders and mission analysis navigation works', async ({ page }) => {
   const pageErrors: string[] = [];
@@ -11,6 +12,153 @@ test('desktop app shell renders and mission analysis navigation works', async ({
   await page.getByRole('button', { name: 'Mission Analysis', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Orbital Mission Analysis' })).toBeVisible();
   expect(pageErrors).toEqual([]);
+});
+
+test('RPOD workspace solves HCW and cross-checks relative propagation with Orekit', async ({ page }) => {
+  let requestBody: unknown;
+  await page.route('**/api/rpod/relative-state', async route => {
+    requestBody = route.request().postDataJSON();
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        valid: true,
+        engine: 'Orekit',
+        engineVersion: '13.1.9',
+        frame: 'EME2000 / target LVLH',
+        epoch: '2000-01-01T12:29:27.816',
+        elapsedSeconds: 1800,
+        target: { positionKm: [6928, 0, 0], velocityKmS: [0, 7.5, 0] },
+        chaser: { positionKm: [6928.1, 0, 0], velocityKmS: [0, 7.5, 0] },
+        relativeLvlh: { positionKm: [0.1, -0.2, 0.05], velocityKmS: [0.0001, 0.0002, -0.00005] },
+        history: Array.from({ length: 21 }, (_, index) => ({
+          elapsedSeconds: index * 90,
+          relativeLvlh: {
+            positionKm: [0.1 + index * 0.00001, -0.2, 0.05],
+            velocityKmS: [0.0001, 0.0002 + index * 0.0000001, -0.00005]
+          }
+        })),
+        assumptions: ['Newtonian central gravity only'],
+        comparison: { engineAdapter: 'orekit-rpod-http', status: 'connected' }
+      })
+    });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'RPOD Design', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Design a preliminary rendezvous.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Solve two-impulse rendezvous', exact: true }).click();
+  await expect(page.getByText(/total ideal impulsive Δv/)).toBeVisible();
+  await expect(page.getByText(/Maximum sampled separation \/ chief radius/)).toBeVisible();
+  await expect(page.getByText('Manual LVLH departure and terminal impulses', { exact: false })).toBeVisible();
+  await expect(page.getByText('41 samples · burns applied')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Cross-check initial propagation (no burns) against Orekit', exact: true }).click();
+
+  await expect(page.getByText('Orekit propagated LVLH position')).toBeVisible();
+  await expect(page.getByText('Orekit relative-state history', { exact: true })).toBeVisible();
+  await expect(page.getByText('21 samples')).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Orekit versus HCW position residual time series' })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Orekit versus HCW velocity residual time series' })).toBeVisible();
+  await expect(page.getByText('Orekit epoch (TAI)')).toBeVisible();
+  const sent = requestBody as {
+    target: { positionKm: number[]; velocityKmS: number[] };
+    chaser: { positionKm: number[]; velocityKmS: number[] };
+    elapsedSeconds: number;
+    epochTai: string;
+    historySamples: number;
+  };
+  expect(sent.target.positionKm).toEqual([6928.137, 0, 0]);
+  expect(sent.target.velocityKmS[1]).toBeCloseTo(7.585088535, 8);
+  expect(sent.chaser.positionKm).toEqual([6928.237, -0.2, 0.05]);
+  expect(sent.chaser.velocityKmS[0]).toBeCloseTo(0.0003189647, 9);
+  expect(sent.chaser.velocityKmS[1]).toBeCloseTo(7.585398018, 8);
+  expect(sent.elapsedSeconds).toBe(1800);
+  expect(sent.epochTai).toBe('2000-01-01T12:00:00');
+  expect(sent.historySamples).toBe(21);
+});
+
+test('RPOD imports EME2000 mission states and forwards their TAI epoch', async ({ page }) => {
+  let requestBody: unknown;
+  await page.route('**/api/rpod/relative-state', async route => {
+    requestBody = route.request().postDataJSON();
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        valid: true,
+        engine: 'Orekit',
+        engineVersion: '13.1.9',
+        frame: 'EME2000 / target LVLH',
+        epoch: '2026-11-15T12:30:00.000',
+        elapsedSeconds: 1800,
+        target: { positionKm: [6928.137, 0, 0], velocityKmS: [0, 7.585, 0] },
+        chaser: { positionKm: [6928.237, -0.2, 0.05], velocityKmS: [0.0001, 7.585, 0] },
+        relativeLvlh: { positionKm: [0.1, -0.2, 0.05], velocityKmS: [0.0001, 0.0002, -0.00005] },
+        history: Array.from({ length: 21 }, (_, index) => ({
+          elapsedSeconds: index * 90,
+          relativeLvlh: { positionKm: [0.1, -0.2, 0.05], velocityKmS: [0.0001, 0.0002, -0.00005] }
+        })),
+        assumptions: ['Newtonian central gravity only'],
+        comparison: { engineAdapter: 'orekit-rpod-http', status: 'connected' }
+      })
+    });
+  });
+
+  const mission = {
+    epochTai: '2026-11-15T12:00:00',
+    frame: 'EME2000',
+    target: { positionKm: [6928.137, 0, 0], velocityKmS: [0, 7.585, 0] },
+    chaser: { positionKm: [6928.237, -0.2, 0.05], velocityKmS: [0.0001, 7.585, 0] }
+  };
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'RPOD Design', exact: true }).click();
+  await page.locator('#rpod-mission-file').setInputFiles({
+    name: 'mission-state.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(mission))
+  });
+  await expect(page.getByText(/Imported target and chaser Cartesian states in EME2000/)).toBeVisible();
+  await page.locator('#rpod-epoch-tai').fill('2026-11-15T12:05:00');
+  await expect(page.getByText(/at 2026-11-15T12:05:00 TAI/)).toBeVisible();
+  await page.getByRole('button', { name: 'Solve two-impulse rendezvous', exact: true }).click();
+  await expect(page.getByText('Inertial target / chaser history · EME2000')).toBeVisible();
+  await expect(page.getByText('41 samples each')).toBeVisible();
+  await expect(page.getByText(/two-body gravity \(RK4, maximum 10 s integration step\)/)).toBeVisible();
+  await page.getByRole('button', { name: 'Cross-check imported mission states against Orekit', exact: true }).click();
+
+  await expect(page.getByText('Orekit propagated LVLH position')).toBeVisible();
+  await expect(page.getByText('Orekit relative-state history')).toBeVisible();
+  await expect(page.getByText(/Imported mission: Orekit relative-state history is available/)).toBeVisible();
+  await expect(page.getByText('Orekit vs HCW position difference')).toHaveCount(0);
+  expect(requestBody).toMatchObject({
+    target: mission.target,
+    chaser: mission.chaser,
+    elapsedSeconds: 1800,
+    epochTai: '2026-11-15T12:05:00',
+    historySamples: 21
+  });
+  await expect(page.getByText('Orekit vs HCW position difference')).toHaveCount(0);
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export versioned engineering report (JSON)', exact: true }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^aryaksha-rpod-report-.*\.json$/);
+  const downloadPath = await download.path();
+  expect(downloadPath).not.toBeNull();
+  const report = JSON.parse(await readFile(downloadPath!, 'utf8'));
+  expect(report.schema).toBe('aryaksha.rpod-engineering-report/v1');
+  expect(report.mission).toMatchObject({
+    epochTai: '2026-11-15T12:05:00',
+    stateSource: 'manual-lvlh',
+    importedFrame: 'EME2000',
+    importedMissionState: { target: mission.target, chaser: mission.chaser }
+  });
+  expect(report.engineeringLimitations).toContain(
+    'HCW rendezvous design uses the manually entered LVLH state; imported EME2000 target/chaser states are retained as provenance and used only for the Orekit cross-check.'
+  );
+  expect(report.trajectory.length).toBe(41);
 });
 
 test('mobile navigation opens, changes section and closes after selection', async ({ page }) => {

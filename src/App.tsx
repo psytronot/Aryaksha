@@ -9,6 +9,7 @@ import AryakshaMark from './AryakshaMark';
 const ScientificCalculator = lazy(() => import('./ScientificCalculator'));
 const SatelliteTrackingView = lazy(() => import('./SatelliteTrackingView'));
 const MissionAnalysisView = lazy(() => import('./MissionAnalysisView'));
+const RpodView = lazy(() => import('./RpodView'));
 import { EARTH_RADIUS, orbitalSummary, propagateState, sampleOrbit, stateToLla } from './orbit';
 import { getGlossaryEntries, getGlossaryEntry, GlossaryEntry } from './glossary';
 import { generateContinuousGroundTrack, SubPoint } from './tracking';
@@ -36,7 +37,7 @@ const spacecraftDefaults: Spacecraft = {
   settlingTimeS: 5, thermalAreaM2: 1.2, absorptivity: 0.7, emissivity: 0.85, batteryEfficiencyPct: 90, batteryDoDPct: 80, solarDegradationPct: 15, thermalHotFactor: 1.25, thermalColdFactor: 0.9
 };
 
-type View = 'mission' | 'payload' | 'spacecraft' | 'orbit' | 'simulation' | 'tracking' | 'missionAnalysis' | 'analysis' | 'verification' | 'report' | 'instructions' | 'tools';
+type View = 'mission' | 'payload' | 'spacecraft' | 'orbit' | 'simulation' | 'tracking' | 'missionAnalysis' | 'rpod' | 'analysis' | 'verification' | 'report' | 'instructions' | 'tools';
 const nav: { id: View; label: string; icon: React.ReactNode; group: string }[] = [
   { id: 'mission', label: 'Mission', icon: <Target size={16} />, group: 'DESIGN' },
   { id: 'payload', label: 'Payload', icon: <Globe2 size={16} />, group: 'DESIGN' },
@@ -45,6 +46,7 @@ const nav: { id: View; label: string; icon: React.ReactNode; group: string }[] =
   { id: 'simulation', label: 'Simulation', icon: <Gauge size={16} />, group: 'RUN' },
   { id: 'tracking', label: 'Satellite Tracking', icon: <Radio size={16} />, group: 'RUN' },
   { id: 'missionAnalysis', label: 'Mission Analysis', icon: <Orbit size={16} />, group: 'RUN' },
+  { id: 'rpod', label: 'RPOD Design', icon: <Satellite size={16} />, group: 'RUN' },
   { id: 'analysis', label: 'Engineering Analysis', icon: <Layers3 size={16} />, group: 'RUN' },
   { id: 'verification', label: 'Verification', icon: <Check size={16} />, group: 'RUN' },
   { id: 'report', label: 'Design Report', icon: <Download size={16} />, group: 'OUTPUT' },
@@ -251,6 +253,7 @@ function App() {
           {view === 'simulation' && <SimulationView model={model} current={currentState} seconds={seconds} duration={duration} running={running} setRunning={setRunning} playback={playback} setPlayback={setPlayback} setSeconds={setSeconds} mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} footprintAngle={geometry.footprintDeg} applyPreset={applyPreset} selectedPreset={selectedPreset} updateOrbit={updateOrbit} go={setView} />}
           {view === 'tracking' && <SatelliteTrackingView />}
           {view === 'missionAnalysis' && <MissionAnalysisView initialAltitudeKm={orbit.altitudeKm} initialInclinationDeg={orbit.i} initialEccentricity={orbit.e} />}
+          {view === 'rpod' && <RpodView />}
           {view === 'analysis' && <AnalysisView mission={mission} orbit={orbit} geometry={geometry} power={power} thermal={thermal} comms={comms} adcs={adcs} propulsion={propulsion} />}
           {view === 'verification' && <VerificationView verification={verification} />}
           {view === 'report' && <ReportView mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} summary={summary} geometry={geometry} verification={verification} onExport={exportReport} />}

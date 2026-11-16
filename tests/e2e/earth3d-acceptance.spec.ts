@@ -723,19 +723,36 @@ test("Earth 3D mission timeline and scene gallery control the shared simulation 
   await expect(speed60).toBeInViewport();
   await expect(speed.getByRole("button", { name: "Set playback speed 60x" })).toHaveAttribute("aria-pressed", "true");
 
-  await timeline.getByRole("button", { name: "Moon scene", exact: true }).click();
+  const moonSceneButton = timeline.getByRole("button", { name: "Moon scene", exact: true });
+  await moonSceneButton.evaluate(button => button.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" }));
+  const moonSceneMetrics = await moonSceneButton.evaluate(button => {
+    const rect = button.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const hit = document.elementFromPoint(x, y);
+    return { x, y, receivesPointer: hit === button || button.contains(hit) };
+  });
+  expect(moonSceneMetrics.receivesPointer).toBe(true);
+  await page.mouse.click(moonSceneMetrics.x, moonSceneMetrics.y);
   await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "MOON", exact: true })).toHaveClass(/active/);
   await expect(timeline.getByRole("button", { name: "Moon scene", exact: true })).toHaveAttribute("aria-pressed", "true");
   const systemSceneButton = timeline.getByRole("button", { name: "Earth and Moon scene" });
-  await systemSceneButton.scrollIntoViewIfNeeded();
-  await expect(systemSceneButton).toBeInViewport();
-  const systemSceneHitTarget = await systemSceneButton.evaluate(button => {
+  // Gallery cards can continuously animate their transform; use an instant
+  // DOM scroll and a measured real pointer click rather than Playwright's
+  // animation-stability wait, which can time out on an otherwise reachable card.
+  await systemSceneButton.evaluate(button => button.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" }));
+  const systemSceneMetrics = await systemSceneButton.evaluate(button => {
     const rect = button.getBoundingClientRect();
-    const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
-    return hit === button || button.contains(hit);
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const hit = document.elementFromPoint(x, y);
+    return { x, y, inViewport: rect.left >= 0 && rect.top >= 0
+      && rect.right <= window.innerWidth && rect.bottom <= window.innerHeight,
+      receivesPointer: hit === button || button.contains(hit) };
   });
-  expect(systemSceneHitTarget).toBe(true);
-  await systemSceneButton.click();
+  expect(systemSceneMetrics.inViewport).toBe(true);
+  expect(systemSceneMetrics.receivesPointer).toBe(true);
+  await page.mouse.click(systemSceneMetrics.x, systemSceneMetrics.y);
   await expect(page.locator("[aria-label=\"Camera modes\"]").getByRole("button", { name: "SYSTEM", exact: true })).toHaveClass(/active/);
   await expect(timeline.getByRole("button", { name: "Earth and Moon scene" })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Hide mission timeline" }).click();
@@ -1084,6 +1101,37 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   const desktopEarthFit = fitCameraDistance(desktopEarthSize.width, desktopEarthSize.height, 5.15, 42, EARTH_CAMERA_MARGIN);
   await expect.poll(async () => Number(await canvas.getAttribute('data-camera-distance'))).toBeCloseTo(desktopEarthFit, 1);
   await expect(primaryNav).toBeVisible();
+  // Read the sticky navigation geometry and pointer target before the WebGL
+  // screenshot. Chromium can keep the canvas compositor busy after a large
+  // screenshot; retaining these measured coordinates avoids a second
+  // renderer-bound locator evaluation while preserving a real pointer click.
+  const groundTrackMetrics = await primaryNav.evaluate(nav => {
+    const button = Array.from(nav.querySelectorAll('button'))
+      .find(candidate => candidate.textContent?.trim() === 'Ground Track');
+    if (!button) return null;
+    const rect = button.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const hit = document.elementFromPoint(x, y);
+    const hitButton = hit?.closest('button');
+    return {
+      text: button.textContent?.trim(),
+      x: rect.left,
+      y: rect.top,
+      width: rect.width,
+      height: rect.height,
+      inViewport: rect.left >= 0 && rect.top >= 0
+        && rect.right <= window.innerWidth && rect.bottom <= window.innerHeight,
+      receivesPointer: hitButton === button
+        && hitButton.closest('[data-testid="simulation-primary-nav"]') === nav
+    };
+  });
+  expect(groundTrackMetrics).not.toBeNull();
+  expect(groundTrackMetrics!.text).toBe('Ground Track');
+  expect(groundTrackMetrics!.width).toBeGreaterThan(0);
+  expect(groundTrackMetrics!.height).toBeGreaterThan(0);
+  expect(groundTrackMetrics!.inViewport).toBe(true);
+  expect(groundTrackMetrics!.receivesPointer).toBe(true);
   await expect(primaryNav.getByRole('button', { name: 'Earth 3D', exact: true })).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('.sidebar')).toBeHidden();
   await expect(page.locator('.mission-strip')).toBeHidden();
@@ -1120,38 +1168,6 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   expect(bottomBounds!.y).toBeLessThan(850);
   expect(legendBounds!.x).toBeGreaterThanOrEqual(canvasBounds!.x);
   expect(legendBounds!.x + legendBounds!.width).toBeLessThanOrEqual(canvasBounds!.x + canvasBounds!.width + 1);
-
-  // Read the sticky navigation geometry and pointer target before the WebGL
-  // screenshot. Chromium can keep the canvas compositor busy after a large
-  // screenshot; retaining these measured coordinates avoids a second
-  // renderer-bound locator evaluation while preserving a real pointer click.
-  const groundTrackMetrics = await primaryNav.evaluate(nav => {
-    const button = Array.from(nav.querySelectorAll('button'))
-      .find(candidate => candidate.textContent?.trim() === 'Ground Track');
-    if (!button) return null;
-    const rect = button.getBoundingClientRect();
-    const x = rect.left + rect.width / 2;
-    const y = rect.top + rect.height / 2;
-    const hit = document.elementFromPoint(x, y);
-    const hitButton = hit?.closest('button');
-    return {
-      text: button.textContent?.trim(),
-      x: rect.left,
-      y: rect.top,
-      width: rect.width,
-      height: rect.height,
-      inViewport: rect.left >= 0 && rect.top >= 0
-        && rect.right <= window.innerWidth && rect.bottom <= window.innerHeight,
-      receivesPointer: hitButton === button
-        && hitButton.closest('[data-testid="simulation-primary-nav"]') === nav
-    };
-  });
-  expect(groundTrackMetrics).not.toBeNull();
-  expect(groundTrackMetrics!.text).toBe('Ground Track');
-  expect(groundTrackMetrics!.width).toBeGreaterThan(0);
-  expect(groundTrackMetrics!.height).toBeGreaterThan(0);
-  expect(groundTrackMetrics!.inViewport).toBe(true);
-  expect(groundTrackMetrics!.receivesPointer).toBe(true);
 
   // Use the previously measured visible hit target for a real pointer event.
   await page.mouse.click(
