@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 
 async function openSimulation(page: import('@playwright/test').Page, mobile: boolean) {
+  const startExploring = page.getByRole('button', { name: 'Start Exploring', exact: true });
+  if (await startExploring.count()) await startExploring.click();
   if (mobile) {
     await page.getByRole('button', { name: 'Open navigation' }).click();
     await page.getByRole('navigation', { name: 'Mobile navigation' })

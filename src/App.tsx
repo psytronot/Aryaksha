@@ -11,6 +11,7 @@ const SatelliteTrackingView = lazy(() => import('./SatelliteTrackingView'));
 const MissionAnalysisView = lazy(() => import('./MissionAnalysisView'));
 import { EARTH_RADIUS, orbitalSummary, propagateState, sampleOrbit, stateToLla } from './orbit';
 import { getGlossaryEntries, getGlossaryEntry, GlossaryEntry } from './glossary';
+import { parseBusinessCsv, serializeBusinessCsv } from './businessCsv';
 import { generateContinuousGroundTrack, SubPoint } from './tracking';
 import { computeDayNightBoundary, solarSubpoint } from './daynight';
 import {
@@ -36,20 +37,21 @@ const spacecraftDefaults: Spacecraft = {
   settlingTimeS: 5, thermalAreaM2: 1.2, absorptivity: 0.7, emissivity: 0.85, batteryEfficiencyPct: 90, batteryDoDPct: 80, solarDegradationPct: 15, thermalHotFactor: 1.25, thermalColdFactor: 0.9
 };
 
-type View = 'mission' | 'payload' | 'spacecraft' | 'orbit' | 'simulation' | 'tracking' | 'missionAnalysis' | 'analysis' | 'verification' | 'report' | 'instructions' | 'tools';
+type View = 'mission' | 'payload' | 'spacecraft' | 'orbit' | 'simulation' | 'tracking' | 'missionAnalysis' | 'analysis' | 'verification' | 'report' | 'instructions' | 'tools' | 'software';
 const nav: { id: View; label: string; icon: React.ReactNode; group: string }[] = [
-  { id: 'mission', label: 'Mission', icon: <Target size={16} />, group: 'DESIGN' },
-  { id: 'payload', label: 'Payload', icon: <Globe2 size={16} />, group: 'DESIGN' },
-  { id: 'spacecraft', label: 'Spacecraft', icon: <Satellite size={16} />, group: 'DESIGN' },
-  { id: 'orbit', label: 'Orbit & Maneuver', icon: <Orbit size={16} />, group: 'DESIGN' },
-  { id: 'simulation', label: 'Simulation', icon: <Gauge size={16} />, group: 'RUN' },
-  { id: 'tracking', label: 'Satellite Tracking', icon: <Radio size={16} />, group: 'RUN' },
-  { id: 'missionAnalysis', label: 'Mission Analysis', icon: <Orbit size={16} />, group: 'RUN' },
-  { id: 'analysis', label: 'Engineering Analysis', icon: <Layers3 size={16} />, group: 'RUN' },
-  { id: 'verification', label: 'Verification', icon: <Check size={16} />, group: 'RUN' },
-  { id: 'report', label: 'Design Report', icon: <Download size={16} />, group: 'OUTPUT' },
-  { id: 'instructions', label: 'Instructions & Glossary', icon: <BookOpen size={16} />, group: 'LEARN' },
-  { id: 'tools', label: 'Calculator & Reference', icon: <Calculator size={16} />, group: 'TOOLS' }
+  { id: 'mission', label: 'Mission', icon: <Target size={16} />, group: 'Design' },
+  { id: 'payload', label: 'Payload', icon: <Globe2 size={16} />, group: 'Design' },
+  { id: 'spacecraft', label: 'Spacecraft', icon: <Satellite size={16} />, group: 'Design' },
+  { id: 'orbit', label: 'Orbit & Maneuver', icon: <Orbit size={16} />, group: 'Design' },
+  { id: 'simulation', label: 'Simulation', icon: <Gauge size={16} />, group: 'Run' },
+  { id: 'tracking', label: 'Satellite Tracking', icon: <Radio size={16} />, group: 'Run' },
+  { id: 'missionAnalysis', label: 'Mission Analysis', icon: <Orbit size={16} />, group: 'Run' },
+  { id: 'analysis', label: 'Engineering Analysis', icon: <Layers3 size={16} />, group: 'Run' },
+  { id: 'verification', label: 'Verification', icon: <Check size={16} />, group: 'Run' },
+  { id: 'report', label: 'Design Report', icon: <Download size={16} />, group: 'Output' },
+  { id: 'instructions', label: 'Instructions & Glossary', icon: <BookOpen size={16} />, group: 'Learn' },
+  { id: 'tools', label: 'Calculator & Reference', icon: <Calculator size={16} />, group: 'Tools' },
+  { id: 'software', label: 'Software Products', icon: <Search size={16} />, group: 'Tools' }
 ];
 
 function App() {
@@ -207,6 +209,7 @@ function App() {
           <button className="welcome-feature" onClick={() => { setView('orbit'); document.querySelector('.shell')?.scrollIntoView({ behavior: 'smooth' }); }}><Globe2 size={26}/><span><b>Learn Orbital Science</b><small>Understand trajectories and orbital mechanics.</small></span><ArrowRight size={15}/></button>
           <button className="welcome-feature" onClick={() => { setView('simulation'); document.querySelector('.shell')?.scrollIntoView({ behavior: 'smooth' }); }}><Gauge size={26}/><span><b>Run Simulations</b><small>Experiment with mission and spacecraft concepts.</small></span><ArrowRight size={15}/></button>
           <button className="welcome-feature" onClick={() => { setView('mission'); document.querySelector('.shell')?.scrollIntoView({ behavior: 'smooth' }); }}><Cpu size={26}/><span><b>Build Projects</b><small>Turn curiosity into practical engineering work.</small></span><ArrowRight size={15}/></button>
+          <button className="welcome-feature" onClick={() => { setView('software'); document.querySelector('.shell')?.scrollIntoView({ behavior: 'smooth' }); }}><Search size={26}/><span><b>Explore Software Tools</b><small>Discover practical tools for research and customer discovery.</small></span><ArrowRight size={15}/></button>
         </div>
       </section>
       <section className="about-kakshiya" id="about-aryaksha"><div className="about-orbit-visual" aria-hidden="true"><div className="about-earth"><Globe2 size={82}/></div><div className="about-orbit-line"/><span className="about-mini-sat"><Satellite size={22}/></span><span className="about-visual-label">LEARN · EXPERIMENT · CREATE</span></div><div className="about-copy"><p className="welcome-kicker">ABOUT ARYAKSHA</p><h2>A Space Lab for the Next Generation</h2><p>Aryaksha brings space exploration and engineering tools into one accessible place. Explore satellite movement, investigate orbital mechanics, experiment with preliminary spacecraft mission design and understand the engineering trade-offs behind a mission.</p><p>Whether you are taking your first steps into space science or building practical aerospace skills, Aryaksha is designed to help you learn by doing.</p><div className="about-values"><span><Rocket size={19}/> Student focused</span><span><Globe2 size={19}/> Explore space data</span><span><Wrench size={19}/> Hands-on tools</span></div><small className="about-disclaimer">Some tools use public orbital data; simulations are educational models, not flight-certified systems.</small></div></section>
@@ -215,9 +218,9 @@ function App() {
         {mobileNavOpen && <div className="mobile-nav-backdrop" onClick={() => setMobileNavOpen(false)} />}
         <aside className={mobileNavOpen ? 'sidebar mobile-open' : 'sidebar'}>
           <div className="side-title">SPACECRAFT DESIGN</div>
-          {['DESIGN','RUN','OUTPUT','LEARN','TOOLS'].map(group => (
+          {['Design','Run','Output','Learn','Tools'].map(group => (
             <div key={group} className="nav-group">
-              <small>{group}</small>
+              <small>{group.toUpperCase()}</small>
               {nav.filter(item => item.group === group).map(item => (
                 <button key={item.id} data-context-label={item.label} className={view === item.id ? 'nav-item active' : 'nav-item'} onClick={() => { setView(item.id); setMobileNavOpen(false); }}>
                   {item.icon}<span>{item.label}</span>
@@ -226,7 +229,7 @@ function App() {
             </div>
           ))}
           <div className="side-health">
-            <small>SYSTEM HEALTH</small>
+            <small>System health</small>
             <div><span className="dot green" /> Physics engine</div>
             <div><span className="dot green" /> Mission model</div>
             <div><span className={verification.failCount ? 'dot amber' : 'dot green'} /> Verification {verification.failCount ? 'needs work' : 'clear'}</div>
@@ -238,8 +241,8 @@ function App() {
           <div className="mission-strip">
             <div><small>ACTIVE MISSION</small><b>{mission.name}</b><span>{mission.type} · {mission.target}</span></div>
             <div className="mission-strip-actions">
-              <button data-context-label="Reset Simulation" onClick={() => { setSeconds(0); setRunning(false); }}><RefreshCw size={14} /> RESET SIM</button>
-              <button data-context-label="Run Mission" className="run-button" onClick={() => { setRunning(true); setView('simulation'); }}><Play size={14} /> RUN MISSION</button>
+              <button data-context-label="Reset Simulation" onClick={() => { setSeconds(0); setRunning(false); }}><RefreshCw size={14} /> Reset simulation</button>
+              <button data-context-label="Run Mission" className="run-button" onClick={() => { setRunning(true); setView('simulation'); }}><Play size={14} /> Run mission</button>
             </div>
           </div>
 
@@ -256,13 +259,208 @@ function App() {
           {view === 'report' && <ReportView mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} summary={summary} geometry={geometry} verification={verification} onExport={exportReport} />}
           {view === 'instructions' && <InstructionsView />}
           {view === 'tools' && <ToolsView />}
+          {view === 'software' && <SoftwareProductsView />}
           </Suspense>
           {coachEnabled && <ContextCoach view={view} />}
         </main>
       </div>
-      {notice && <div className="toast"><Check size={15} /> {notice}</div>}
+      <footer className="app-footer">
+        <span>ARYAKSHA · SPACE EXPLORATION LAB</span>
+        <span>Educational engineering tools · Not flight-certified</span>
+        <span>© {new Date().getFullYear()} Aryaksha Space Exploration Lab</span>
+      </footer>
+      {notice && <div className="toast" role="status" aria-live="polite"><Check size={15} /> {notice}</div>}
     </div>
   );
+}
+
+function SoftwareProductsView() {
+  const [brief, setBrief] = useState<{ offer: string; customer: string; geography: string } | null>(null);
+  const [briefError, setBriefError] = useState('');
+  const [csvResult, setCsvResult] = useState<ReturnType<typeof parseBusinessCsv> | null>(null);
+  const [csvError, setCsvError] = useState('');
+  const csvReadId = useRef(0);
+
+  const handleCsvUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const requestId = ++csvReadId.current;
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    setCsvResult(null);
+    setCsvError('');
+    input.value = '';
+    if (!file) return;
+    if (file.size > 2_000_000) {
+      setCsvError('Choose a CSV smaller than 2 MB.');
+      return;
+    }
+    try {
+      const parsed = parseBusinessCsv(await file.text());
+      if (requestId !== csvReadId.current) return;
+      if (!parsed.records.length) throw new Error('No organisation names were found in the data rows.');
+      setCsvResult(parsed);
+    } catch (error) {
+      if (requestId !== csvReadId.current) return;
+      setCsvError(error instanceof Error ? error.message : 'Unable to read this CSV file.');
+    }
+  };
+
+  const downloadResearchBrief = () => {
+    if (!brief) return;
+    const markdown = [
+      '# First Customer Finder — Research Brief',
+      '',
+      '## Offer',
+      brief.offer,
+      '',
+      '## Intended customer',
+      brief.customer,
+      '',
+      '## Geography',
+      brief.geography,
+      '',
+      '## Execution status',
+      'This is a user-prepared brief only. No live research was run and no prospects were identified or verified.',
+      '',
+      '## Required before live research',
+      '- Approve an authorized research provider and its commercial-use terms.',
+      '- Confirm source permissions, account controls, retention and deletion policies.',
+      '- Review all evidence and prospect hypotheses before acting.',
+      ''
+    ].join('\n');
+    const url = URL.createObjectURL(new Blob([markdown], { type: 'text/markdown;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'first-customer-research-brief.md';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const downloadCleanCsv = () => {
+    if (!csvResult) return;
+    const url = URL.createObjectURL(new Blob([serializeBusinessCsv(csvResult.records)], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'cleaned-business-list.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  const downloadCsvTemplate = () => {
+    const url = URL.createObjectURL(new Blob(['Company,Website,City\r\n'], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'business-list-template.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+
+  const prepareBrief = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    const nextBrief = {
+      offer: String(values.get('offer') || '').trim(),
+      customer: String(values.get('customer') || '').trim(),
+      geography: String(values.get('geography') || '').trim()
+    };
+    if (!nextBrief.offer || !nextBrief.customer || !nextBrief.geography) {
+      setBriefError('Add your offer, intended customer and geography to continue.');
+      setBrief(null);
+      return;
+    }
+    setBriefError('');
+    setBrief(nextBrief);
+  };
+
+  return <div className="page software-hub-page">
+    <PageHeader eyebrow="10 · ARAKSHYA SOFTWARE HUB" title="Useful software. Open access. Practical outcomes." text="A separate Arakshya Space Lab initiative bringing accessible research, discovery and productivity tools to students, institutions, founders and individuals." />
+    <div className="software-hub-intro">
+      <div><span className="software-hub-kicker">ACCESS MODEL</span><strong>Free by default · Maximum ₹1 per user transaction</strong><p>We want useful tools to be easy to try and return to. Institutional sponsorships, workshops and custom support can help sustain free access.</p></div>
+      <div className="software-hub-payment"><span>PLANNED PAYMENT METHODS</span><b>UPI · Cards · Cash</b><small>Payments are not enabled yet. We will publish checkout only after secure verification and reconciliation are ready.</small></div>
+    </div>
+    <div className="software-hub-grid">
+      <article className="software-hub-card">
+        <div className="software-hub-card-top"><span className="software-hub-icon"><Globe2 size={22}/></span><span className="software-hub-status review">COMPLIANCE REVIEW</span></div>
+        <p className="software-hub-eyebrow">RESEARCH & BUSINESS DISCOVERY</p>
+        <h2>Google Maps Scrapper</h2>
+        <p>Explore the technical prototype for location-based business research. Public access is paused while we verify data-source permissions, privacy requirements and compliant alternatives.</p>
+        <ul><li>Python and Playwright prototype</li><li>CSV-based output workflow</li><li>Not available as a hosted extraction service</li></ul>
+        <a className="software-hub-link" href="https://github.com/zohaibbashir/Google-Maps-Scrapper" target="_blank" rel="noreferrer">Review upstream project <ArrowRight size={14}/></a>
+      </article>
+      <article className="software-hub-card">
+        <div className="software-hub-card-top"><span className="software-hub-icon"><Target size={22}/></span><span className="software-hub-status pilot">PILOT PREPARATION</span></div>
+        <p className="software-hub-eyebrow">STARTUP & CUSTOMER RESEARCH</p>
+        <h2>First Customer Finder</h2>
+        <p>Research public demand signals, identify potential early adopters and prepare evidence-backed next steps. Prospects are hypotheses—not confirmed buyers.</p>
+        <ul><li>Weighted prospect qualification</li><li>Markdown, CSV and HTML reports</li><li>Human-reviewed research; no automated outreach</li></ul>
+        <a className="software-hub-link" href="https://github.com/Kappaemme-git/codex-first-customer-finder-skill" target="_blank" rel="noreferrer">Review upstream project <ArrowRight size={14}/></a>
+      </article>
+    </div>
+    <section className="finder-intake" aria-labelledby="finder-intake-title">
+      <div className="software-demo-heading"><div><span className="software-hub-kicker">FIRST CUSTOMER FINDER · STEP 1</span><h2 id="finder-intake-title">Prepare your customer research brief</h2><p>Describe your offer and the people or organisations who may need it. This creates a structured brief only; it does not search the web or invent leads.</p></div><span className="software-demo-tag">LOCAL PREVIEW</span></div>
+      <form className="finder-intake-form" onSubmit={prepareBrief} noValidate>
+        <label>What are you offering?<textarea name="offer" aria-label="What are you offering?" rows={3} maxLength={1200} required placeholder="Describe the product, service or programme and the problem it solves." /></label>
+        <label>Who should benefit?<input name="customer" aria-label="Who should benefit?" maxLength={300} required placeholder="e.g. engineering colleges, clinics, small manufacturers" /></label>
+        <label>Where should we research?<input name="geography" aria-label="Where should we research?" maxLength={160} required placeholder="e.g. India, Bengaluru, or a specific region" /></label>
+        {briefError && <p className="finder-intake-error" role="alert">{briefError}</p>}
+        <button className="primary" type="submit">Prepare research brief <ArrowRight size={15}/></button>
+      </form>
+      {brief && <div className="finder-brief-result" aria-live="polite">
+        <div><span className="software-hub-kicker">BRIEF VALIDATED · NO LIVE SEARCH</span><h3>Research brief ready</h3></div>
+        <p><b>Offer:</b> {brief.offer}</p><p><b>Intended customer:</b> {brief.customer}</p><p><b>Geography:</b> {brief.geography}</p>
+        <p className="software-demo-note">No live research was run and no prospects have been invented. A live research provider, account controls and source-permission checks are still required.</p>
+        <button className="primary" type="button" onClick={downloadResearchBrief}>Download research brief <Download size={15}/></button>
+      </div>}
+    </section>
+    <section className="finder-intake" aria-labelledby="csv-cleanup-title">
+      <div className="software-demo-heading"><div><span className="software-hub-kicker">USER-SUPPLIED DATA · LOCAL ONLY</span><h2 id="csv-cleanup-title">Clean an existing business CSV</h2><p>Use data you already have permission to process. This tool does not scrape Google Maps, enrich private contacts or upload your file.</p></div><span className="software-demo-tag">NO SERVER UPLOAD</span></div>
+      <div className="finder-csv-controls">
+        <label htmlFor="business-csv-upload">Upload a business CSV</label>
+        <input id="business-csv-upload" aria-label="Upload a business CSV" aria-describedby="business-csv-help" type="file" accept=".csv,text/csv" onChange={handleCsvUpload} />
+        <button className="finder-template-button" type="button" onClick={downloadCsvTemplate}>Download blank CSV template <Download size={14}/></button>
+        <small id="business-csv-help">Maximum file size: 2 MB · 10,000 data rows · 50 columns · 4,096 characters per cell. Expected header: Company, Business Name or Name. Website and City are optional.</small>
+      </div>
+      {csvError && <p className="finder-intake-error" role="alert">{csvError}</p>}
+      {csvResult && <div className="finder-brief-result" aria-live="polite">
+        <div className="finder-csv-stats"><b>{csvResult.total} data rows found</b><b>{csvResult.records.length} unique organisations</b><b>{csvResult.duplicates} duplicate row{csvResult.duplicates === 1 ? '' : 's'} excluded</b></div>
+        <div className="finder-csv-preview" role="table" aria-label="Cleaned business list preview">
+          <div className="finder-csv-preview-row finder-csv-preview-head" role="row"><span role="columnheader">COMPANY</span><span role="columnheader">WEBSITE</span><span role="columnheader">CITY</span></div>
+          {csvResult.records.slice(0, 5).map((record, index) => <div className="finder-csv-preview-row" role="row" key={record.company.toLowerCase() + record.website.toLowerCase() + index}><span role="cell">{record.company}</span><span role="cell">{record.website || '—'}</span><span role="cell">{record.city || '—'}</span></div>)}
+        </div>
+        {csvResult.records.length > 5 && <p className="software-demo-note">Showing the first 5 of {csvResult.records.length} unique organisations.</p>}
+        <button className="primary" type="button" onClick={downloadCleanCsv}>Download cleaned CSV <Download size={15}/></button>
+        <p className="software-demo-note">Your file is processed in this browser only; it is not uploaded. Review the cleaned file before using it.</p>
+      </div>}
+    </section>
+    <section className="software-demo" aria-labelledby="software-demo-title">
+      <div className="software-demo-heading"><div><span className="software-hub-kicker">PRODUCT WALKTHROUGH</span><h2 id="software-demo-title">What a First Customer Finder report could look like</h2><p>Illustrative layout only. These fictional examples are not real companies, researched prospects or endorsements.</p></div><span className="software-demo-tag">SAMPLE DATA</span></div>
+      <div className="software-demo-table" role="table" aria-label="Illustrative prospect report">
+        <div className="software-demo-row software-demo-header" role="row"><span role="columnheader">FICTIONAL ORGANISATION</span><span role="columnheader">RESEARCH SIGNAL</span><span role="columnheader">PRIORITY</span></div>
+        <div className="software-demo-row" role="row"><b role="cell">Northstar Robotics (fictional)</b><span role="cell">Public pilot-program announcement</span><strong role="cell">High</strong></div>
+        <div className="software-demo-row" role="row"><b role="cell">Bluepeak Learning (fictional)</b><span role="cell">Published STEM-lab expansion plan</span><strong role="cell">Medium</strong></div>
+        <div className="software-demo-row" role="row"><b role="cell">Orbit Grove Systems (fictional)</b><span role="cell">General sector fit; no direct demand evidence</span><strong role="cell">Low</strong></div>
+      </div>
+      <div className="software-evidence-grid" aria-label="Evidence fields included in a real report">
+        <div><b>ORIGINAL SOURCE</b><span>Publisher and direct source URL</span></div>
+        <div><b>SOURCE & DATE</b><span>Publication date and last checked time</span></div>
+        <div><b>EVIDENCE QUALITY</b><span>Direct signal, indirect signal or missing proof</span></div>
+        <div><b>CONFIDENCE</b><span>Confidence level with uncertainty explained</span></div>
+        <div><b>FIT RATIONALE</b><span>Why the organisation matches the offer</span></div>
+        <div><b>HUMAN NEXT STEP</b><span>Review, validate and decide before outreach</span></div>
+      </div>
+      <p className="software-demo-note">These are the fields a real report must contain; this fictional sample has no real source records or verified prospects. A score is a research priority—not a promise of conversion.</p>
+    </section>
+    <div className="software-hub-bottom">
+      <div><span className="software-hub-kicker">WHO CAN USE IT?</span><b>Schools · Colleges · Students · Individuals · Startups · Small businesses</b><p>We plan guided demonstrations, simple tutorials and institution-friendly onboarding.</p></div>
+      <div><span className="software-hub-kicker">OUR RELEASE PROMISE</span><b>Useful, transparent and responsible access</b><p>Each tool will show its prerequisites, data handling, limitations and current availability before a user starts.</p></div>
+    </div>
+    <p className="software-hub-disclaimer">Arakshya Space Lab is independently managed and is not affiliated with the upstream repository owners. Product availability, pricing and payment features will be announced only after testing and compliance review.</p>
+  </div>;
 }
 
 function PageHeader({ eyebrow, title, text, action }: { eyebrow: string; title: string; text: string; action?: React.ReactNode }) {

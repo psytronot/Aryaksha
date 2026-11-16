@@ -12,7 +12,7 @@ permissions:
 jobs:
   web-build-and-tests:
     name: Web build and unit tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -55,7 +55,7 @@ jobs:
 
   browser-e2e:
     name: Browser smoke tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     needs: [web-build-and-tests]
     steps:
@@ -82,7 +82,7 @@ jobs:
 
   orekit-service:
     name: Orekit service build and tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
@@ -95,7 +95,7 @@ jobs:
   live-integration-smoke:
     name: Live Orekit integration smoke tests
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [web-build-and-tests, orekit-service]
     steps:
       - uses: actions/checkout@v7
@@ -262,7 +262,7 @@ jobs:
   live-browser-smoke:
     name: Live deployed UI smoke tests
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [browser-e2e, live-integration-smoke]
     env:
       PLAYWRIGHT_BASE_URL: https://aryaksha-web.onrender.com

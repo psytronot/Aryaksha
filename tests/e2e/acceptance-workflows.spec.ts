@@ -17,6 +17,9 @@ async function stubCelesTrak(page: Page) {
 test('primary engineering workflow connects design, simulation, analysis, verification and report', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Satellite tracking & pass planning' })).toBeVisible();
+  await page.getByRole('button', { name: 'Mission', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Start with the engineering problem.' })).toBeVisible();
 
   const workspaces = [
@@ -50,6 +53,7 @@ test('satellite tracking validates TLEs and exposes SGP4 look angles and Doppler
   await page.clock.install({ time: new Date('2024-01-01T12:00:00.000Z') });
   await stubCelesTrak(page);
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await page.getByRole('button', { name: 'Satellite Tracking', exact: true }).click();
 
   await expect(page.getByRole('heading', { name: 'Satellite tracking & pass planning' })).toBeVisible({ timeout: 15000 });
@@ -74,6 +78,7 @@ test('mobile tracking supports catalogue groups, name filtering and pass CSV exp
   await stubCelesTrak(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await page.getByRole('button', { name: 'Open navigation' }).click();
   await page.getByRole('navigation', { name: 'Mobile navigation' })
     .getByRole('button', { name: 'Satellite Tracking', exact: true }).click();

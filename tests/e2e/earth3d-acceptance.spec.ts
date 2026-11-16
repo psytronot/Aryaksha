@@ -45,6 +45,7 @@ test('Earth 3D exposes responsive camera modes and lunar layer controls', async 
   page.on('pageerror', error => pageErrors.push(error.message));
 
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await disableContextCoach(page);
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
 
@@ -84,6 +85,7 @@ test('Earth 3D exposes responsive camera modes and lunar layer controls', async 
 test('Earth 3D controls remain usable on a narrow mobile viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
 
   await page.getByRole('button', { name: 'Open navigation' }).click();
   const mobileNavigation = page.getByRole('navigation', { name: 'Mobile navigation' });
@@ -102,25 +104,19 @@ test('Earth 3D controls remain usable on a narrow mobile viewport', async ({ pag
 
 test('AppDeploy PWA install host cannot intercept Earth 3D camera controls', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.addInitScript(() => {
-    const appendInstallHost = () => {
-      const host = document.createElement('pwa-install');
-      host.id = 'pwa-install';
-      Object.assign(host.style, {
-        position: 'fixed',
-        inset: '0',
-        zIndex: '2147483647',
-        pointerEvents: 'auto'
-      });
-      document.body.append(host);
-    };
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', appendInstallHost, { once: true });
-    } else {
-      appendInstallHost();
-    }
-  });
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
+  await page.evaluate(() => {
+    const host = document.createElement('pwa-install');
+    host.id = 'pwa-install';
+    Object.assign(host.style, {
+      position: 'fixed',
+      inset: '0',
+      zIndex: '2147483647',
+      pointerEvents: 'auto'
+    });
+    document.body.append(host);
+  });
   await page.getByRole('button', { name: 'Open navigation' }).click();
   await page.getByRole('navigation', { name: 'Mobile navigation' })
     .getByRole('button', { name: 'Simulation', exact: true }).click();
@@ -144,6 +140,7 @@ test('Earth 3D camera controls are keyboard-operable and fit a mobile viewport',
   const pageErrors: string[] = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await page.getByRole('button', { name: 'Open navigation' }).click();
   await page.getByRole('navigation', { name: 'Mobile navigation' })
     .getByRole('button', { name: 'Simulation', exact: true }).click();
@@ -175,6 +172,7 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   const navigationStart = Date.now();
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await disableContextCoach(page);
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
@@ -265,6 +263,7 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
 
 test('Earth 3D reports a recoverable viewport state when WebGL context is lost', async ({ page }) => {
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
   const canvas = page.locator('.earth3d-canvas canvas');
   await expect(canvas).toBeVisible();
@@ -290,6 +289,7 @@ test('Earth 3D SYSTEM and MOON reset, pinch, resize and drag preserve fitted fra
   const pageErrors: string[] = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await page.getByRole('button', { name: 'Open navigation' }).click();
   await page.getByRole('navigation', { name: 'Mobile navigation' })
     .getByRole('button', { name: 'Simulation', exact: true }).click();
@@ -420,6 +420,7 @@ test('Earth 3D mission-control rails stay outside the globe and support full scr
   });
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await page.getByRole('button', { name: 'Open navigation' }).click();
   await page.getByRole('navigation', { name: 'Mobile navigation' })
     .getByRole('button', { name: 'Simulation', exact: true }).click();
@@ -483,6 +484,7 @@ test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without sh
   await page.setViewportSize({ width: 1536, height: 1024 });
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
   await page.locator('.earth3d-canvas canvas').scrollIntoViewIfNeeded();
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
@@ -583,6 +585,7 @@ test('Earth 3D uses deterministic local textures when NASA imagery is blocked by
   await page.route('**/api/imagery/**', route => route.abort('blockedbyclient'));
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
 
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
@@ -612,6 +615,7 @@ test('Earth 3D desktop timeline is opt-in and never overlays the globe', async (
   await page.setViewportSize({ width: 1536, height: 1024 });
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
 
   const workspace = page.locator('.earth3d-workspace');
@@ -647,6 +651,7 @@ test('Earth 3D releases its WebGL context on unmount and remounts cleanly', asyn
   const pageErrors: string[] = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
 
   const canvas = page.locator('.earth3d-canvas canvas');
@@ -799,6 +804,7 @@ test('Earth 3D Moon camera tracks the Earth-facing hemisphere on desktop and mob
   await page.setViewportSize({ width: 1536, height: 1024 });
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await disableContextCoach(page);
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
 
@@ -845,6 +851,7 @@ test('mobile Earth–Moon mission data panels collapse without hiding scale disc
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await page.getByRole('button', { name: 'Open navigation' }).click();
   await page.getByRole('navigation', { name: 'Mobile navigation' })
     .getByRole('button', { name: 'Simulation', exact: true }).click();
@@ -913,6 +920,7 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   const pageErrors: string[] = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await disableContextCoach(page);
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
 
@@ -1007,6 +1015,7 @@ test('Earth 3D reference dashboard reflows to a globe-first mobile layout', asyn
   const pageErrors: string[] = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await disableContextCoach(page);
   await page.getByRole('button', { name: 'Open navigation' }).click();
   await page.getByRole('navigation', { name: 'Mobile navigation' })
@@ -1071,6 +1080,7 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   const pageErrors: string[] = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await disableContextCoach(page);
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
 
@@ -1171,6 +1181,7 @@ test('Earth 3D mobile shell keeps the globe visible and retains navigation in th
   const pageErrors: string[] = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await disableContextCoach(page);
   await page.getByRole('button', { name: 'Open navigation' }).click();
   await page.getByRole('navigation', { name: 'Mobile navigation' })
@@ -1216,6 +1227,7 @@ test('Earth imagery provenance and physical-scale disclosures remain legible at 
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   await page.setViewportSize({ width: 1536, height: 1024 });
   await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await page.getByRole('button', { name: 'Simulation', exact: true }).click();
 
   const status = page.getByTestId('earth-imagery-status');
