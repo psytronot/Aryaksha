@@ -8,8 +8,8 @@ Source revision: main at the time this inventory was prepared. Re-check when rou
 |---|---|---|---|
 | GET | /api/_healthcheck | Legacy health response | Returns service marker. |
 | GET | /api/v1/health | Health check used by deploy smoke tests | Returns status ok and service aryaksha-api. |
-| POST | /api/mission-analysis/orbit | Validate orbit input and proxy to configured Orekit service | 120–100,000 km altitude, 0–180° inclination, 0 ≤ e < 1; rejects Earth-intersecting periapsis. Returns explicit Orekit engine metadata when upstream is configured; otherwise analytical baseline is returned with a different engine marker. |
-| GET | /api/live/iss | Fetch current ISS TLE from CelesTrak | Upstream/network failure returns a visible 502 error. |
+| POST | /api/mission-analysis/orbit | Validate orbit input and proxy to configured Orekit service | 120–100,000 km altitude, 0–180° inclination, 0 ≤ e < 1; rejects Earth-intersecting periapsis. Returns HTTP 503 if Orekit is not configured. Upstream response must be JSON, is capped at 64 KiB, and is normalized through an explicit response allowlist. |
+| GET | /api/live/iss | Fetch current ISS TLE from CelesTrak | Enforces a 10-second timeout, 16 KiB response cap, HTTPS CelesTrak redirect allowlist, text/plain response, 69-character TLE line checks and SGP4 parser validation. |
 | POST | /api/simulation/propagate | Propagate a TLE with SGP4 or use supported state inputs | Input mode and TLE parsing determine response; invalid inputs return structured errors. |
 
 The Express host serves the built SPA from dist and falls back to dist/index.html for client-side routes. JSON request bodies are capped at 64 KiB.

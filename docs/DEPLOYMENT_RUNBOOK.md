@@ -61,7 +61,8 @@ A rollback drill has not been performed. Treat this section as a runbook, not pr
 ## Known limitations and cautions
 
 - The current Orekit fidelity is numerical two-body propagation with Dormand–Prince 8(5,3) and Newtonian central gravity only. J2, drag, solar radiation pressure and third-body forces are not configured.
-- The in-memory rate limiter is per process, resets on restart and is not a distributed quota.
+- The in-memory rate limiter is per process, resets on restart and is not a distributed quota. It refuses new client keys when its bounded map is full rather than evicting active budgets. Before horizontal scaling or public high-volume exposure, configure a shared Redis/managed limiter or edge/WAF quota.
+- Express trusts one proxy hop by default for the Render topology. Set `TRUST_PROXY_HOPS` only after verifying the actual proxy chain; the application rejects values outside integer range 0–5.
 - Authentication/account authorization is not implemented.
 - A `Content-Security-Policy-Report-Only` policy now covers local assets and the audited CelesTrak connection. It is diagnostic only and reports violations to browser developer tools; there is no report collection endpoint. Review representative browser sessions before switching to enforcement.
 - The Render web service is pinned to Node.js 22.12.0 through `.nvmrc`, but its dashboard build command remains `npm install && npm run build` while CI uses `npm ci`. Production install-command parity remains PARTIAL until the dashboard is updated and verified.

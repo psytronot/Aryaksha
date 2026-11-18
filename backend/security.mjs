@@ -2,11 +2,23 @@ const DEFAULT_WINDOW_MS = 60_000;
 const DEFAULT_MAX_REQUESTS = 60;
 const DEFAULT_MAX_CLIENTS = 10_000;
 
-export function securityHeaders(_req, res, next) {
+export function securityHeaders(req, res, next) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+
+  // The hosting edge terminates TLS. Emit HSTS only when the trusted proxy
+  // reports an HTTPS request; never advertise HTTPS for local HTTP development.
+  if (req.secure) {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+
+  // Keep CSP in report-only mode until browser telemetry confirms every
+  // legitimate imagery, worker and API origin used by the production UI.
   res.setHeader('Content-Security-Policy-Report-Only', [
     "default-src 'self'",
     "base-uri 'self'",
@@ -44,9 +56,11 @@ export function createRateLimiter({
         if (currentTime - entry.windowStartedAt >= windowMs) clients.delete(clientKey);
         if (clients.size < maxClients) break;
       }
+      // Never evict an active client's budget: attackers could churn source IPs
+      // to erase another client's rate-limit state.
       if (clients.size >= maxClients) {
-        const oldestKey = clients.keys().next().value;
-        if (oldestKey !== undefined) clients.delete(oldestKey);
+        res.setHeader('Retry-After', String(Math.max(1, Math.ceil(windowMs / 1000))));
+        return res.status(503).json({ error: 'Rate limiter is at capacity. Retry after the current window.' });
       }
     }
 

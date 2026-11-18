@@ -28,9 +28,12 @@ function upstreamResponse(bytes, {
         return null;
       }
     },
-    async arrayBuffer() {
-      return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-    }
+    body: new ReadableStream({
+      start(controller) {
+        controller.enqueue(new Uint8Array(bytes));
+        controller.close();
+      }
+    })
   };
 }
 
