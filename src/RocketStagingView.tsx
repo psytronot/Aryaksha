@@ -153,7 +153,7 @@ export default function RocketStagingView() {
             <input aria-label="Maximum initial wet mass" type="number" min="1" value={maximumInitialMassKg} onChange={event => setMaximumInitialMassKg(Number(event.target.value))}/>
           </label>
         </div>}
-        {calculation.error ? <div className="aero-error" role="alert">{calculation.error}</div> : result && <>
+        {calculation.error ? <div className="aero-error" role="alert">{calculation.error}</div> : result && !result.feasible ? <div className="aero-error" role="alert">{result.terminationReason} No feasible target solution is being presented.</div> : result && <>
           <div className="aero-solver-status" role="status">
             <b>{result.status.toUpperCase().replace(/-/g, ' ')}</b>
             <span>{result.evaluations.toLocaleString('en-IN')} evaluations · {result.converged ? 'tolerance reached' : 'solution not confirmed converged'}</span>
