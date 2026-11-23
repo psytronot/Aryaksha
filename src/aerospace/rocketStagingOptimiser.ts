@@ -57,17 +57,17 @@ function resolveOptions(options: RocketOptimisationOptions) {
 function allocations(count: number, divisions: number, minimum: number): number[][] {
   const remaining = 1 - count * minimum;
   const output: number[][] = [];
-  const walk = (index: number, left: number, prefix: number[]) => {
+  const walk = (index: number, unitsLeft: number, prefix: number[]) => {
     if (index === count - 1) {
-      output.push([...prefix, minimum + left]);
+      output.push([...prefix, minimum + remaining * unitsLeft / divisions]);
       return;
     }
-    for (let part = 0; part <= divisions; part += 1) {
-      const amount = remaining * part / divisions;
-      walk(index + 1, left - amount, [...prefix, minimum + amount]);
+    for (let units = 0; units <= unitsLeft; units += 1) {
+      walk(index + 1, unitsLeft - units,
+        [...prefix, minimum + remaining * units / divisions]);
     }
   };
-  walk(0, remaining, []);
+  walk(0, divisions, []);
   return output;
 }
 
@@ -181,5 +181,123 @@ export function optimiseMaximumDeltaV(
     vehicle: finalVehicle,
     stagePropellantShares: [...best.shares],
     objectiveValue: finalVehicle.totalDeltaVMs
+  };
+}
+
+
+/**
+ * Finds the lowest sampled total propellant that reaches the ideal delta-v
+ * target without exceeding the initial wet-mass ceiling. Failure to find a
+ * candidate is reported as non-converged, not as a proof of infeasibility.
+ */
+export function optimiseMinimumPropellantForDeltaV(
+  configuration: RocketVehicleConfiguration,
+  targetDeltaVMs: number,
+  maximumInitialMassKg: number,
+  options: RocketOptimisationOptions = {}
+): RocketOptimisationResult {
+  const resolved = resolveOptions(options);
+  calculateRocketVehicle(configuration);
+  if (!Number.isFinite(targetDeltaVMs) || targetDeltaVMs <= 0) {
+    throw new Error('Target delta-v must be a finite number greater than zero.');
+  }
+  if (!Number.isFinite(maximumInitialMassKg) || maximumInitialMassKg <= configuration.payloadMassKg) {
+    throw new Error('Maximum initial wet mass must be finite and greater than payload mass.');
+  }
+
+  const count = configuration.stages.length;
+  const minimumShare = resolved.minimumStagePropellantShare;
+  if (minimumShare * count >= 1) throw new Error('Minimum stage propellant share leaves no feasible allocation.');
+  let evaluations = 0;
+  let best: { shares: number[]; vehicle: RocketVehicleMassBreakdown; configuration: RocketVehicleConfiguration } | undefined;
+  let anyCeilingFeasible = false;
+  const massCoefficients = configuration.stages.map(stage =>
+    1 / (1 - stage.structuralFraction)
+  );
+
+  const samples = allocations(count, resolved.initialGridDivisions, minimumShare);
+  for (const shares of samples) {
+    if (evaluations >= resolved.maxEvaluations) break;
+    const coefficient = shares.reduce((sum, share, index) => sum + share * massCoefficients[index], 0);
+    const maxPropellant = (maximumInitialMassKg - configuration.payloadMassKg) / coefficient;
+    if (!(maxPropellant > 0)) continue;
+    let low = 0;
+    let high = maxPropellant;
+    const makeAt = (total: number) => makeConfiguration(configuration, shares, total);
+    let highVehicle: RocketVehicleMassBreakdown;
+    try {
+      highVehicle = calculateRocketVehicle(makeAt(high));
+    } catch {
+      continue;
+    }
+    evaluations += 1;
+    if (highVehicle.initialMassKg > maximumInitialMassKg + resolved.constraintTolerance ||
+        highVehicle.totalDeltaVMs + resolved.constraintTolerance < targetDeltaVMs) continue;
+    anyCeilingFeasible = true;
+
+    for (let iteration = 0; iteration < 60 && evaluations < resolved.maxEvaluations; iteration += 1) {
+      const middle = (low + high) / 2;
+      const candidate = calculateRocketVehicle(makeAt(middle));
+      evaluations += 1;
+      if (candidate.totalDeltaVMs >= targetDeltaVMs) high = middle;
+      else low = middle;
+      if (high - low <= resolved.absoluteObjectiveTolerance +
+          high * resolved.relativeObjectiveTolerance) break;
+    }
+    const finalConfiguration = makeAt(high);
+    const vehicle = calculateRocketVehicle(finalConfiguration);
+    evaluations += 1;
+    if (vehicle.initialMassKg <= maximumInitialMassKg + resolved.constraintTolerance &&
+        vehicle.totalDeltaVMs + resolved.constraintTolerance >= targetDeltaVMs &&
+        (!best || vehicle.totalPropellantMassKg < best.vehicle.totalPropellantMassKg)) {
+      best = { shares, vehicle, configuration: finalConfiguration };
+    }
+  }
+
+  if (!best) {
+    const status: RocketSolverStatus = evaluations >= resolved.maxEvaluations
+      ? 'evaluation-limit' : 'non-converged';
+    const fallback = calculateRocketVehicle(configuration);
+    return {
+      objective: 'minimum-propellant',
+      status,
+      converged: false,
+      terminationReason: anyCeilingFeasible
+        ? 'A feasible candidate was found during exploration but no final solution met all constraints within the evaluation budget.'
+        : 'No sampled allocation met the target and wet-mass ceiling; continuous-domain infeasibility has not been proven.',
+      evaluations,
+      tolerances: {
+        relativeObjectiveTolerance: resolved.relativeObjectiveTolerance,
+        absoluteObjectiveTolerance: resolved.absoluteObjectiveTolerance,
+        constraintTolerance: resolved.constraintTolerance
+      },
+      method: 'Deterministic simplex allocation exploration with bounded bisection in total propellant',
+      configuration,
+      vehicle: fallback,
+      stagePropellantShares: configuration.stages.map(stage =>
+        stage.propellantMassKg / configuration.stages.reduce((sum, item) => sum + item.propellantMassKg, 0)),
+      objectiveValue: Number.POSITIVE_INFINITY
+    };
+  }
+
+  const converged = evaluations < resolved.maxEvaluations;
+  return {
+    objective: 'minimum-propellant',
+    status: converged ? 'converged' : 'evaluation-limit',
+    converged,
+    terminationReason: converged
+      ? 'Target delta-v and wet-mass ceiling met; minimum propellant selected from the bounded allocation exploration.'
+      : 'Maximum objective evaluations reached; feasible best candidate returned without a convergence claim.',
+    evaluations,
+    tolerances: {
+      relativeObjectiveTolerance: resolved.relativeObjectiveTolerance,
+      absoluteObjectiveTolerance: resolved.absoluteObjectiveTolerance,
+      constraintTolerance: resolved.constraintTolerance
+    },
+    method: 'Deterministic simplex allocation exploration with bounded bisection in total propellant',
+    configuration: best.configuration,
+    vehicle: best.vehicle,
+    stagePropellantShares: [...best.shares],
+    objectiveValue: best.vehicle.totalPropellantMassKg
   };
 }
