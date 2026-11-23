@@ -88,3 +88,28 @@
 .aero-public-showcase-foot a{display:flex;align-items:center;gap:6px;flex:none;color:var(--cyan);text-decoration:none;font:8px ui-monospace,monospace}
 .aero-public-showcase-foot a:hover{text-decoration:underline}
 @media(max-width:760px){.aero-public-product-grid{grid-template-columns:1fr}.aero-public-product-grid article{min-height:0}.aero-public-product-grid p{min-height:0}.aero-public-showcase-stamp{display:none}.aero-public-showcase-foot{align-items:flex-start;flex-direction:column}}
+
+/* Multistage rocket staging optimiser */
+.aero-staging-layout{display:grid;grid-template-columns:minmax(260px,.85fr) minmax(0,1.15fr);gap:12px}
+.aero-stage-fieldset{min-width:0;margin:13px 0;padding:10px;border:1px solid var(--line);border-radius:9px}
+.aero-stage-fieldset legend{padding:0 6px;color:var(--cyan);font:8px ui-monospace,monospace;letter-spacing:.7px}
+.aero-staging-workspace .aero-field select,.aero-staging-workspace .aero-field input{width:100%;min-height:40px;background:#070b10;border:1px solid var(--line);border-radius:8px;color:#fff;padding:0 10px;font:10px ui-monospace,monospace}
+.aero-objective-switch{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0 14px}
+.aero-objective-switch button{min-height:40px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.025);color:var(--muted);font:8px ui-monospace,monospace}
+.aero-objective-switch button.active{border-color:rgba(81,221,255,.4);background:rgba(81,221,255,.1);color:#fff}
+.aero-solver-status{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 16px;padding:10px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.025)}
+.aero-solver-status b{font:8px ui-monospace,monospace;color:var(--green)}
+.aero-solver-status span,.aero-solver-reason{font-size:8px;line-height:1.6;color:var(--muted)}
+.aero-stage-results{display:grid;gap:7px;margin-top:13px}
+.aero-stage-results>div{display:grid;grid-template-columns:auto 1fr;gap:5px 10px;padding:10px;border:1px solid var(--line);border-radius:8px}
+.aero-stage-results b{grid-row:span 2;color:var(--cyan);font:8px ui-monospace,monospace}
+.aero-stage-results span{justify-self:end;color:#fff;font:9px ui-monospace,monospace}
+.aero-stage-results small{grid-column:2;color:var(--muted);font-size:8px;line-height:1.5;text-align:right}
+.aero-sensitivity-table{display:grid;gap:8px}
+.aero-sensitivity-table>div{display:grid;grid-template-columns:70px minmax(40px,1fr) 90px;align-items:center;gap:10px;font:8px ui-monospace,monospace}
+.aero-sensitivity-table>div>span{color:var(--muted)}
+.aero-sensitivity-table b{color:#fff;text-align:right}
+.aero-sensitivity-track{height:7px;border-radius:9px;background:rgba(255,255,255,.07);overflow:hidden}
+.aero-sensitivity-track i{display:block;height:100%;border-radius:9px;background:var(--cyan)}
+@media(max-width:900px){.aero-staging-layout{grid-template-columns:1fr}}
+@media(max-width:520px){.aero-objective-switch{grid-template-columns:1fr}.aero-stage-results>div{grid-template-columns:1fr}.aero-stage-results b,.aero-stage-results small{grid-column:auto;grid-row:auto;text-align:left}.aero-stage-results span{justify-self:start}.aero-sensitivity-table>div{grid-template-columns:60px minmax(25px,1fr) 76px;gap:6px;font-size:7px}}
