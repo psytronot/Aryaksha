@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openWorkspace } from './helpers/navigation';
 
 async function openSimulation(page: import('@playwright/test').Page, mobile: boolean) {
   const startExploring = page.getByRole('button', { name: 'Start Exploring', exact: true });
@@ -8,7 +9,7 @@ async function openSimulation(page: import('@playwright/test').Page, mobile: boo
     await page.getByRole('navigation', { name: 'Mobile navigation' })
       .getByRole('button', { name: 'Simulation', exact: true }).click();
   } else {
-    await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+    await openWorkspace(page, 'Simulation');
   }
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible({ timeout: 15_000 });
 }
