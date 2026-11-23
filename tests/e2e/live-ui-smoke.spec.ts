@@ -68,6 +68,8 @@ test('live deployed UI renders mission analysis against the versioned response c
   await expect(page.getByText('95.65 min')).toBeVisible();
   await expect(page.getByText(/Epoch 2000-01-01T12:09:27\.816 TAI · Frame EME2000/)).toBeVisible();
   await expect(page.getByText('123.456, 456.789, 789.012')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Model assumptions returned by the service' })).toBeVisible();
+  await expect(page.getByText('No J2, drag, solar radiation pressure or third-body forces')).toBeVisible();
   expect(requestBodies).toHaveLength(1);
   expect(requestBodies[0]).toMatchObject({ elapsedSeconds: 600 });
   expect(pageErrors).toEqual([]);
