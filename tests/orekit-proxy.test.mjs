@@ -82,19 +82,6 @@ beforeAll(async () => {
 afterAll(async () => {
   if (apiProcess && apiProcess.exitCode === null) apiProcess.kill('SIGTERM');
   if (upstreamServer?.listening) await new Promise(resolve => upstreamServer.close(resolve));
-  it('converts upstream rate limiting into a retryable service-unavailable response', async () => {
-    const response = await fetch(`${apiUrl}/api/mission-analysis/orbit`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ altitudeKm: 550, inclinationDeg: 45, eccentricity: 0.001, elapsedSeconds: 124 })
-    });
-    const payload = await response.json();
-
-    expect(response.status).toBe(503);
-    expect(response.headers.get('retry-after')).toBe('30');
-    expect(payload.error).toContain('temporarily rate-limited');
-  });
-
 });
 
 describe('Orekit upstream proxy contract', () => {
@@ -122,5 +109,18 @@ describe('Orekit upstream proxy contract', () => {
 
     expect(response.status).toBe(502);
     expect(payload.error).toContain('The selected orbit intersects Earth at periapsis.');
+  });
+
+  it('converts upstream rate limiting into a retryable service-unavailable response', async () => {
+    const response = await fetch(`${apiUrl}/api/mission-analysis/orbit`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ altitudeKm: 550, inclinationDeg: 45, eccentricity: 0.001, elapsedSeconds: 124 })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get('retry-after')).toBe('30');
+    expect(payload.error).toContain('temporarily rate-limited');
   });
 });
