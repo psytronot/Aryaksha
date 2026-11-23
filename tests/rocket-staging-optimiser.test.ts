@@ -26,6 +26,7 @@ describe('bounded rocket staging optimiser', () => {
       const second = optimiseMaximumDeltaV(configuration, { initialGridDivisions: 8, maxEvaluations: 5000 });
       expect(first.stagePropellantShares).toEqual(second.stagePropellantShares);
       expect(first.vehicle.totalDeltaVMs).toBeCloseTo(second.vehicle.totalDeltaVMs, 10);
+      expect(first.feasible).toBe(true);
       expect(first.stagePropellantShares.reduce((sum, share) => sum + share, 0)).toBeCloseTo(1, 10);
       expect(first.stagePropellantShares.every(share => share >= 0.001)).toBe(true);
       expect(first.vehicle.massClosureErrorKg).toBeCloseTo(0, 8);
@@ -50,6 +51,7 @@ describe('bounded rocket staging optimiser', () => {
       { initialGridDivisions: 8, maxEvaluations: 10000 }
     );
     expect(result.objective).toBe('minimum-propellant');
+    expect(result.feasible).toBe(true);
     expect(result.vehicle.totalDeltaVMs).toBeGreaterThanOrEqual(reference.vehicle.totalDeltaVMs * 0.75 - 1e-5);
     expect(result.vehicle.initialMassKg).toBeLessThanOrEqual(ceiling + 1e-5);
     expect(result.objectiveValue).toBeCloseTo(result.vehicle.totalPropellantMassKg, 8);
