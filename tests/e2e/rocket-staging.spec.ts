@@ -27,7 +27,7 @@ test('rocket staging optimiser supports multistage objectives, validation and re
   await expect(page.getByLabel('Target ideal Δv')).toBeVisible();
   await page.getByLabel('Target ideal Δv').fill('1000');
   await page.getByLabel('Maximum initial wet mass').fill('200000');
-  await expect(page.getByText(/NON-CONVERGED|EVALUATION LIMIT/)).toBeVisible();
+  await expect(page.getByText(/NON CONVERGED|EVALUATION LIMIT/)).toBeVisible();
 
   await page.getByRole('button', { name: 'Maximise ideal Δv' }).click();
   await page.getByRole('button', { name: 'Run Stage 1 Isp sensitivity' }).click();
