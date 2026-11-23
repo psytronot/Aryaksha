@@ -26,6 +26,8 @@ test('engineering calculator evaluates expressions, angle mode and invalid opera
   await keys.getByRole('button', { name: '=', exact: true }).click();
   await expect(calculator.locator('.calculator-error')).toHaveText('Division by zero');
   await calculator.getByRole('button', { name: 'AC', exact: true }).click();
+  await expect(calculator.locator('.calculator-error')).toHaveCount(0);
+  await expect(display).toHaveText('N/A');
   await calculator.locator('.calculator-constants').getByRole('button', { name: /Earth μ/ }).click();
   await expect(display).toHaveText('398600.4418');
 });
