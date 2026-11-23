@@ -59,7 +59,7 @@ export default function RocketStagingView() {
   const changeStageCount = (count: number) => {
     setStageCount(count);
     setStages(current => Array.from({ length: count }, (_, index) => current[index] ?? {
-      name: \`Stage \${index + 1}\`,
+      name: 'Stage ' + (index + 1),
       propellantMassKg: Math.max(500, 18000 / (index + 1)),
       specificImpulseS: index === 0 ? 280 : 340,
       structuralFraction: index === 0 ? 0.08 : 0.1
@@ -117,23 +117,23 @@ export default function RocketStagingView() {
       <section className="card aero-input-card">
         <div className="card-head"><span><SlidersHorizontal size={17}/></span><b>Vehicle configuration</b></div>
         <label className="aero-field"><span>Number of stages<small>2–4</small></span>
-          <select value={stageCount} onChange={event => changeStageCount(Number(event.target.value))}>
+          <select aria-label="Number of stages" value={stageCount} onChange={event => changeStageCount(Number(event.target.value))}>
             {[2, 3, 4].map(count => <option key={count} value={count}>{count} stages</option>)}
           </select>
         </label>
         <label className="aero-field"><span>Payload mass<small>kg</small></span>
-          <input type="number" min="1" value={payloadMassKg} onChange={event => setPayloadMassKg(Number(event.target.value))}/>
+          <input aria-label="Payload mass" type="number" min="1" value={payloadMassKg} onChange={event => setPayloadMassKg(Number(event.target.value))}/>
         </label>
         {stages.map((stage, index) => <fieldset className="aero-stage-fieldset" key={index}>
           <legend>STAGE {index + 1} / {index === 0 ? 'FIRST TO FIRE' : index === stageCount - 1 ? 'FINAL STAGE' : 'UPPER STAGE'}</legend>
           <label className="aero-field"><span>Propellant mass<small>kg · reference allocation</small></span>
-            <input type="number" min="0.001" value={stage.propellantMassKg} onChange={event => updateStage(index, 'propellantMassKg', Number(event.target.value))}/>
+            <input aria-label={'Stage ' + (index + 1) + ' propellant mass'} type="number" min="0.001" value={stage.propellantMassKg} onChange={event => updateStage(index, 'propellantMassKg', Number(event.target.value))}/>
           </label>
           <label className="aero-field"><span>Specific impulse<small>s</small></span>
-            <input type="number" min="1" value={stage.specificImpulseS} onChange={event => updateStage(index, 'specificImpulseS', Number(event.target.value))}/>
+            <input aria-label={'Stage ' + (index + 1) + ' specific impulse'} type="number" min="1" value={stage.specificImpulseS} onChange={event => updateStage(index, 'specificImpulseS', Number(event.target.value))}/>
           </label>
           <label className="aero-field"><span>Structural fraction<small>0 ≤ ε &lt; 0.5</small></span>
-            <input type="number" min="0" max="0.499999" step="0.001" value={stage.structuralFraction} onChange={event => updateStage(index, 'structuralFraction', Number(event.target.value))}/>
+            <input aria-label={'Stage ' + (index + 1) + ' structural fraction'} type="number" min="0" max="0.499999" step="0.001" value={stage.structuralFraction} onChange={event => updateStage(index, 'structuralFraction', Number(event.target.value))}/>
           </label>
         </fieldset>)}
         <p className="aero-note"><FlaskConical size={15}/> Structural fraction is inert mass divided by stage wet mass (propellant + inert).</p>
@@ -147,18 +147,18 @@ export default function RocketStagingView() {
         </div>
         {objective === 'minimum-propellant' && <div className="aero-field-grid">
           <label className="aero-field"><span>Target ideal Δv<small>m/s</small></span>
-            <input type="number" min="1" value={targetDeltaVMs} onChange={event => setTargetDeltaVMs(Number(event.target.value))}/>
+            <input aria-label="Target ideal Δv" type="number" min="1" value={targetDeltaVMs} onChange={event => setTargetDeltaVMs(Number(event.target.value))}/>
           </label>
           <label className="aero-field"><span>Maximum initial wet mass<small>kg</small></span>
-            <input type="number" min="1" value={maximumInitialMassKg} onChange={event => setMaximumInitialMassKg(Number(event.target.value))}/>
+            <input aria-label="Maximum initial wet mass" type="number" min="1" value={maximumInitialMassKg} onChange={event => setMaximumInitialMassKg(Number(event.target.value))}/>
           </label>
         </div>}
         {calculation.error ? <div className="aero-error" role="alert">{calculation.error}</div> : result && <>
           <div className="aero-solver-status" role="status">
-            <b>{result.status.toUpperCase().replaceAll('-', ' ')}</b>
+            <b>{result.status.toUpperCase().replace(/-/g, ' ')}</b>
             <span>{result.evaluations.toLocaleString('en-IN')} evaluations · {result.converged ? 'tolerance reached' : 'solution not confirmed converged'}</span>
           </div>
-          <small className="aero-result-label">{objective === 'maximum-delta-v' ? 'BEST IDEAL VELOCITY INCREMENT FOUND' : 'PROPellant MASS FOR TARGET Δv'}</small>
+          <small className="aero-result-label">{objective === 'maximum-delta-v' ? 'BEST IDEAL VELOCITY INCREMENT FOUND' : 'PROPELLANT MASS FOR TARGET Δv'}</small>
           <div className="aero-big-result">{fmt(result.vehicle.totalDeltaVMs / 1000, 3)} <span>km/s</span></div>
           <div className="aero-result-grid">
             <div><small>Initial wet mass</small><b>{fmt(result.vehicle.initialMassKg)} kg</b></div>
@@ -188,8 +188,8 @@ export default function RocketStagingView() {
       <div className="aero-sensitivity-table">
         {sensitivity.samples.map((sample, index) => <div key={index}>
           <span>{fmt(sample.inputValue, 1)} s</span>
-          <div className="aero-sensitivity-track"><i style={{ width: sample.achievedDeltaVMs ? \`\${sample.achievedDeltaVMs / chartMax * 100}%\` : '0%' }}/></div>
-          <b>{sample.achievedDeltaVMs === null ? sample.status : \`\${fmt(sample.achievedDeltaVMs / 1000, 3)} km/s\`}</b>
+          <div className="aero-sensitivity-track"><i style={{ width: (sample.achievedDeltaVMs ? sample.achievedDeltaVMs / chartMax * 100 : 0) + '%' }}/></div>
+          <b>{sample.achievedDeltaVMs === null ? sample.status : fmt(sample.achievedDeltaVMs / 1000, 3) + ' km/s'}</b>
         </div>)}
       </div>
     </section>}
