@@ -66,7 +66,9 @@ describe('2D rocket ascent trajectory model', () => {
   it('increases burnout speed when specific impulse increases', () => {
     const baseline = calculateRocketAscent(reference);
     const improved = calculateRocketAscent({ ...reference, specificImpulseS: 310 });
-    expect(improved.burnoutSpeedMps).toBeGreaterThan(baseline.burnoutSpeedMps);
+    expect(baseline.burnoutSpeedMps).not.toBeNull();
+    expect(improved.burnoutSpeedMps).not.toBeNull();
+    expect(improved.burnoutSpeedMps!).toBeGreaterThan(baseline.burnoutSpeedMps!);
   });
 
 
