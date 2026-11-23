@@ -134,9 +134,6 @@ export function optimiseMaximumDeltaV(
   let step = (1 - count * resolved.minimumStagePropellantShare) /
     resolved.initialGridDivisions;
   let lastImprovement = Number.POSITIVE_INFINITY;
-  const tolerance = resolved.absoluteObjectiveTolerance +
-    Math.abs(best.vehicle.totalDeltaVMs) * resolved.relativeObjectiveTolerance;
-  void tolerance;
 
   while (evaluations < resolved.maxEvaluations && step > resolved.constraintTolerance) {
     const startValue = best.vehicle.totalDeltaVMs;
