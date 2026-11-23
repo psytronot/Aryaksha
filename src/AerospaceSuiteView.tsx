@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { Activity, ArrowRight, BookOpen, Compass, Orbit, Rocket, Satellite, Target } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { Activity, ArrowRight, BookOpen, Compass, Orbit, Rocket, Target } from 'lucide-react';
 import RocketStagingView from './RocketStagingView';
 import RocketAscentView from './RocketAscentView';
 import OrbitalTransferView from './OrbitalTransferView';
 import './aerospace.css';
 
 type Product = 'overview' | 'staging' | 'ascent' | 'transfer';
-const products: { id: Product; number: string; name: string; discipline: string; outcome: string; audience: string; icon: React.ReactNode }[] = [
+const products: { id: Product; number: string; name: string; discipline: string; outcome: string; audience: string; icon: ReactNode }[] = [
   { id: 'staging', number: '01', name: 'Rocket staging optimiser', discipline: 'Launch vehicle architecture', outcome: 'Optimise stage propellant allocation and ideal delta-v.', audience: 'Launch vehicle designers, propulsion students, early-stage teams', icon: <Rocket size={20}/> },
   { id: 'ascent', number: '02', name: 'Rocket ascent simulator', discipline: 'Flight mechanics & trajectory', outcome: 'Explore powered ascent, flight path, burnout and max-Q.', audience: 'Flight dynamics engineers, launch analysts, educators', icon: <Activity size={20}/> },
   { id: 'transfer', number: '03', name: 'Satellite orbital transfer', discipline: 'Astrodynamics & mission design', outcome: 'Estimate transfer delta-v, time of flight and propellant.', audience: 'Mission designers, spacecraft engineers, satellite students', icon: <Orbit size={20}/> }
