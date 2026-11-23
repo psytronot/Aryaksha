@@ -19,7 +19,7 @@ test('accessibility audit: critical and serious axe violations are absent in key
     } },
     { name: 'Satellite Tracking', open: async () => {
       await page.getByRole('button', { name: 'Satellite Tracking', exact: true }).click();
-      await expect(page.getByRole('heading', { name: 'Satellite tracking & pass planning' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Catalog-derived orbit estimates & pass planning' })).toBeVisible();
     } },
     { name: 'Mission Analysis', open: async () => {
       await page.getByRole('button', { name: 'Mission Analysis', exact: true }).click();

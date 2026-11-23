@@ -27,7 +27,7 @@ test('mobile navigation opens, changes section and closes after selection', asyn
   await expect(mobileNavigation).toBeVisible();
   await mobileNavigation.getByRole('button', { name: 'Satellite Tracking', exact: true }).click();
 
-  await expect(page.getByRole('heading', { name: /Satellite tracking & pass planning/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Catalog-derived orbit estimates & pass planning/i })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Open navigation' })).toHaveAttribute('aria-expanded', 'false');
 });
 
@@ -82,7 +82,7 @@ test('mission analysis submits numeric inputs and renders the engine result', as
   await expect(page.getByText(/Analysis completed · Orekit/)).toBeVisible();
   await expect(page.getByText('95.65 min')).toBeVisible();
   await expect(page.getByText('Connected: this result came from the Orekit numerical-propagation service.')).toBeVisible();
-  expect(requestBody).toEqual({ altitudeKm: 550, inclinationDeg: 97.6, eccentricity: 0.001, elapsedSeconds: 0 });
+  expect(requestBody).toEqual({ altitudeKm: 550, inclinationDeg: 97.6, eccentricity: 0.001, elapsedSeconds: 0, forceModel: 'TWO_BODY' });
   expect(pageErrors).toEqual([]);
 });
 

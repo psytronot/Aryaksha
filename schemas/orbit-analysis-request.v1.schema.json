@@ -3,7 +3,11 @@
   "title": "Aryaksha Orbit Analysis Request v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["altitudeKm", "inclinationDeg", "eccentricity"],
+  "required": [
+    "altitudeKm",
+    "inclinationDeg",
+    "eccentricity"
+  ],
   "properties": {
     "altitudeKm": {
       "type": "number",
@@ -29,6 +33,15 @@
       "maximum": 604800,
       "default": 0,
       "description": "Elapsed propagation time from the J2000 TAI epoch, in seconds. Maximum horizon is seven days."
+    },
+    "forceModel": {
+      "type": "string",
+      "enum": [
+        "TWO_BODY",
+        "J2"
+      ],
+      "default": "TWO_BODY",
+      "description": "TWO_BODY uses Newtonian central gravity only. J2 adds the constant WGS-84 J2 perturbation with fixed EME2000 +Z symmetry axis."
     }
   }
 }

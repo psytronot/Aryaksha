@@ -16,12 +16,12 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      testIgnore: /earth3d-touch\.spec\.ts/,
+      testIgnore: /(earth3d-touch|coach-touch)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] }
     },
     {
       name: 'chromium-mobile-touch',
-      testMatch: /earth3d-touch\.spec\.ts/,
+      testMatch: /(earth3d-touch|coach-touch)\.spec\.ts/,
       use: {
         browserName: 'chromium',
         viewport: { width: 390, height: 844 },

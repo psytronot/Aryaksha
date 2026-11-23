@@ -1,8 +1,11 @@
 import express from 'express';
 import path from 'node:path';
 import * as satellite from 'satellite.js';
-import { createRateLimiter, securityHeaders } from './security.mjs';
+import { rateLimit } from 'express-rate-limit';
+import { securityHeaders } from './security.mjs';
 import { createPlanetaryImageryHandler } from './planetaryImagery.mjs';
+import { createTelemetryStore, verifyAndParseTelemetry, verifyTelemetryReadToken, parseBearerToken } from './telemetry.mjs';
+import { fetchMoonStateAtTdbEpoch } from './horizonsEphemeris.mjs';
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -12,11 +15,60 @@ app.disable('x-powered-by');
 // Render terminates TLS and forwards requests through one trusted proxy hop.
 app.set('trust proxy', 1);
 app.use(securityHeaders);
-app.use(express.json({ limit: '64kb', strict: false }));
-const apiRateLimit = createRateLimiter({ windowMs: 60_000, maxRequests: 60 });
+app.use(express.json({ limit: '64kb', strict: false, verify: (req, _res, buffer) => { req.rawBody = Buffer.from(buffer); } }));
+const apiRateLimit = rateLimit({
+  windowMs: 60_000,
+  limit: 60,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Rate limit exceeded. Retry after the reset window.' }
+});
 const planetaryImageryHandler = createPlanetaryImageryHandler();
+const telemetryStore = createTelemetryStore({ maxRecords: 1000, storagePath: process.env.ARYAKSHA_TELEMETRY_STORE_PATH });
 app.get('/api/_healthcheck', (_req, res) => res.json({ message: 'Success', service: 'aryaksha-api' }));
 app.get('/api/v1/health', (_req, res) => res.json({ status: 'ok', service: 'aryaksha-api' }));
+app.get('/api/v1/ephemeris/moon', apiRateLimit, async (req, res) => {
+  const epochTdb = String(req.query.epochTdb ?? '');
+  if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]{1,9})?$/.test(epochTdb)) {
+    return res.status(400).json({ error: 'Provide epochTdb as YYYY-MM-DDTHH:mm:ss.sss without a timezone suffix.' });
+  }
+  try {
+    const state = await fetchMoonStateAtTdbEpoch(epochTdb);
+    return res.json(state);
+  } catch (error) {
+    return res.status(502).json({ error: error instanceof Error ? error.message : 'JPL Horizons ephemeris lookup failed.' });
+  }
+});
+app.post('/api/v1/telemetry/ingest', apiRateLimit, (req, res) => {
+  const secret = process.env.ARYAKSHA_TELEMETRY_HMAC_SECRET;
+  if (!secret) return res.status(503).json({ error: 'Telemetry ingestion is not configured.' });
+  const rawBody = req.rawBody;
+  if (!Buffer.isBuffer(rawBody)) return res.status(400).json({ error: 'Raw request body is required for signature verification.' });
+  const verified = verifyAndParseTelemetry({
+    rawBody,
+    timestamp: req.get('x-aryaksha-timestamp'),
+    signature: req.get('x-aryaksha-signature'),
+    secret
+  });
+  if (!verified.ok) return res.status(verified.status).json({ error: verified.error });
+  const accepted = telemetryStore.accept(verified.record);
+  if (!accepted.ok) return res.status(accepted.status).json({ error: accepted.error });
+  return res.status(202).json({
+    accepted: true,
+    persisted: telemetryStore.persisted,
+    storage: telemetryStore.storage,
+    record: accepted.record
+  });
+});
+app.get('/api/v1/telemetry/:spacecraftId/latest', apiRateLimit, (req, res) => {
+  const readToken = process.env.ARYAKSHA_TELEMETRY_READ_TOKEN;
+  if (!readToken) return res.status(503).json({ error: 'Telemetry read access is not configured.' });
+  const suppliedToken = parseBearerToken(req.get('authorization'));
+  if (!verifyTelemetryReadToken(suppliedToken, readToken)) return res.status(401).json({ error: 'Telemetry read authentication failed.' });
+  const record = telemetryStore.latest(req.params.spacecraftId);
+  if (!record) return res.status(404).json({ error: 'No telemetry record is available for this spacecraft in the current process.' });
+  return res.json({ record, persisted: telemetryStore.persisted, storage: telemetryStore.storage });
+});
 app.get('/api/imagery/:assetId', apiRateLimit, planetaryImageryHandler);
 
 app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
@@ -26,7 +78,7 @@ app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
   }
 
   const requiredFields = ['altitudeKm', 'inclinationDeg', 'eccentricity'];
-  const allowedFields = new Set([...requiredFields, 'elapsedSeconds']);
+  const allowedFields = new Set([...requiredFields, 'elapsedSeconds', 'forceModel']);
   const bodyFields = Object.keys(body);
   if (requiredFields.some(field => !Object.prototype.hasOwnProperty.call(body, field)) || bodyFields.some(field => !allowedFields.has(field))) {
     return res.status(400).json({ error: 'Request must contain altitudeKm, inclinationDeg, eccentricity, and optional elapsedSeconds only.' });
@@ -34,9 +86,11 @@ app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
 
   const { altitudeKm, inclinationDeg, eccentricity } = body;
   const elapsedSeconds = body.elapsedSeconds === undefined ? 0 : body.elapsedSeconds;
+  const forceModel = body.forceModel === undefined ? 'TWO_BODY' : body.forceModel;
   if (![altitudeKm, inclinationDeg, eccentricity, elapsedSeconds].every(value => typeof value === 'number' && Number.isFinite(value))) {
     return res.status(400).json({ error: 'Orbit parameters and elapsedSeconds must be finite JSON numbers.' });
   }
+  if (typeof forceModel !== 'string' || !['TWO_BODY', 'J2'].includes(forceModel)) return res.status(400).json({ error: 'forceModel must be TWO_BODY or J2.' });
   if (elapsedSeconds < 0 || elapsedSeconds > 604800) return res.status(400).json({ error: 'Elapsed time must be between 0 and 604,800 seconds (7 days).' });
   if (altitudeKm < 120 || altitudeKm > 100000) return res.status(400).json({ error: 'Altitude must be between 120 and 100,000 km for this preliminary model.' });
   if (inclinationDeg < 0 || inclinationDeg > 180) return res.status(400).json({ error: 'Inclination must be between 0 and 180 degrees.' });
@@ -50,6 +104,10 @@ app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
   if (!serviceUrl) {
     return res.status(503).json({ error: 'Orekit service is not configured. Mission analysis is unavailable until OREKIT_SERVICE_URL is set.' });
   }
+  const serviceToken = process.env.ARYAKSHA_OREKIT_SERVICE_TOKEN?.trim();
+  if (!serviceToken) {
+    return res.status(503).json({ error: 'Orekit service authentication is not configured. Mission analysis is temporarily unavailable.' });
+  }
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 90000);
@@ -57,8 +115,8 @@ app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
     try {
       upstream = await fetch(`${serviceUrl}/api/v1/orbit/analysis`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
-        body: JSON.stringify({ altitudeKm, inclinationDeg, eccentricity, elapsedSeconds }),
+        headers: { 'content-type': 'application/json', accept: 'application/json', 'x-aryaksha-service-token': serviceToken },
+        body: JSON.stringify({ altitudeKm, inclinationDeg, eccentricity, elapsedSeconds, forceModel }),
         signal: controller.signal
       });
     } finally { clearTimeout(timer); }
