@@ -91,7 +91,6 @@ export default function RocketStagingView() {
   };
 
   const result = calculation.result;
-  const success = result && result.status === 'converged';
   const chartMax = sensitivity
     ? Math.max(1, ...sensitivity.samples.map(sample => sample.achievedDeltaVMs ?? 0))
     : 1;
