@@ -37,7 +37,7 @@ const DEFAULTS = {
   relativeObjectiveTolerance: 1e-6,
   absoluteObjectiveTolerance: 1e-7,
   constraintTolerance: 1e-7,
-  initialGridDivisions: 20
+  initialGridDivisions: 8
 } as const;
 
 function resolveOptions(options: RocketOptimisationOptions) {
@@ -92,8 +92,8 @@ export function optimiseMaximumDeltaV(
 ): RocketOptimisationResult {
   const resolved = resolveOptions(options);
   // Validate baseline and establish the fixed total propellant budget.
-  calculateRocketVehicle(configuration);
-  const fixedInitialMassKg = calculateRocketVehicle(configuration).initialMassKg;
+  const baselineVehicle = calculateRocketVehicle(configuration);
+  const fixedInitialMassKg = baselineVehicle.initialMassKg;
   const count = configuration.stages.length;
   if (resolved.minimumStagePropellantShare * count >= 1) {
     throw new Error('Minimum stage propellant share leaves no feasible allocation.');
@@ -158,7 +158,7 @@ export function optimiseMaximumDeltaV(
   }
 
   const converged = evaluations < resolved.maxEvaluations &&
-    step <= resolved.constraintTolerance || lastImprovement <= tolerance;
+    (step <= resolved.constraintTolerance || lastImprovement <= tolerance);
   const finalMassCoefficient = best.shares.reduce((sum, share, index) =>
     sum + share / (1 - configuration.stages[index].structuralFraction), 0);
   const finalTotalPropellantKg = (fixedInitialMassKg - configuration.payloadMassKg) / finalMassCoefficient;
@@ -242,7 +242,7 @@ export function optimiseMinimumPropellantForDeltaV(
         highVehicle.totalDeltaVMs + resolved.constraintTolerance < targetDeltaVMs) continue;
     anyCeilingFeasible = true;
 
-    for (let iteration = 0; iteration < 60 && evaluations < resolved.maxEvaluations; iteration += 1) {
+    for (let iteration = 0; iteration < 48 && evaluations < resolved.maxEvaluations; iteration += 1) {
       const middle = (low + high) / 2;
       const candidate = calculateRocketVehicle(makeAt(middle));
       evaluations += 1;
@@ -251,6 +251,7 @@ export function optimiseMinimumPropellantForDeltaV(
       if (high - low <= resolved.absoluteObjectiveTolerance +
           high * resolved.relativeObjectiveTolerance) break;
     }
+    if (evaluations >= resolved.maxEvaluations) break;
     const finalConfiguration = makeAt(high);
     const vehicle = calculateRocketVehicle(finalConfiguration);
     evaluations += 1;
@@ -287,14 +288,14 @@ export function optimiseMinimumPropellantForDeltaV(
     };
   }
 
-  const converged = evaluations < resolved.maxEvaluations;
+  const converged = false;
   return {
     objective: 'minimum-propellant',
-    status: converged ? 'converged' : 'evaluation-limit',
+    status: evaluations >= resolved.maxEvaluations ? 'evaluation-limit' : 'non-converged',
     converged,
-    terminationReason: converged
-      ? 'Target delta-v and wet-mass ceiling met; minimum propellant selected from the bounded allocation exploration.'
-      : 'Maximum objective evaluations reached; feasible best candidate returned without a convergence claim.',
+    terminationReason: evaluations >= resolved.maxEvaluations
+      ? 'Maximum objective evaluations reached; feasible best candidate returned without a convergence claim.'
+      : 'A feasible target and mass-ceiling candidate was found by bounded allocation sampling and bisection; global allocation convergence is not established.',
     evaluations,
     tolerances: {
       relativeObjectiveTolerance: resolved.relativeObjectiveTolerance,
