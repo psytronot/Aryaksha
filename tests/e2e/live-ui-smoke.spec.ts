@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openWorkspace } from './helpers/navigation';
 
 test('live deployed UI serves the app shell and report-only CSP', async ({ page }) => {
   const pageErrors: string[] = [];
@@ -60,7 +61,7 @@ test('live deployed UI renders mission analysis against the versioned response c
 
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Mission Analysis', exact: true }).click();
+  await openWorkspace(page, 'Mission Analysis');
   await page.getByRole('spinbutton', { name: 'Propagation time in seconds' }).fill('600');
   await page.getByRole('button', { name: 'Run analysis', exact: true }).click();
 
@@ -85,15 +86,15 @@ test('live deployed UI loads the lazy simulation, tracking and calculator worksp
 
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await openWorkspace(page, 'Simulation');
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
   await expect.poll(() => loadedAssets.some(url => /Earth3DScene-[^/]+\.js/.test(url))).toBe(true);
 
-  await page.getByRole('button', { name: 'Satellite Tracking', exact: true }).click();
+  await openWorkspace(page, 'Satellite Tracking');
   await expect(page.getByRole('heading', { name: 'Satellite tracking & pass planning' })).toBeVisible();
   await expect.poll(() => loadedAssets.some(url => /SatelliteTrackingView-[^/]+\.js/.test(url))).toBe(true);
 
-  await page.getByRole('button', { name: 'Calculator & Reference', exact: true }).click();
+  await openWorkspace(page, 'Calculator & Reference');
   await expect(page.getByRole('heading', { name: 'Engineering tools without leaving the lab.' })).toBeVisible();
   await expect.poll(() => loadedAssets.some(url => /ScientificCalculator-[^/]+\.js/.test(url))).toBe(true);
   expect(pageErrors).toEqual([]);
@@ -111,7 +112,7 @@ test('CSP report-only audit records no blocked resources across key workspaces',
   });
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await openWorkspace(page, 'Simulation');
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Mission Analysis', exact: true }).click({ force: true });
   await expect(page.getByRole('heading', { name: 'Orbital Mission Analysis' })).toBeVisible();
@@ -123,7 +124,7 @@ test('CSP report-only audit records no blocked resources across key workspaces',
 test('Earth 3D visible controls expose accessible names and labelled inputs', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await openWorkspace(page, 'Simulation');
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
 
   const audit = await page.evaluate(() => {
@@ -192,7 +193,7 @@ test('Aerospace Workbench guides users to the three engineering products', async
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Aerospace Workbench', exact: true }).click();
+  await openWorkspace(page, 'Aerospace Workbench');
 
   await expect(page.getByRole('heading', { name: 'Aerospace Engineering Workbench' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Engineering products' })).toBeVisible();
