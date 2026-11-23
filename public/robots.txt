@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://aryaksha-web.onrender.com/sitemap.xml

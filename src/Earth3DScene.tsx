@@ -397,8 +397,11 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       const sceneFog = new THREE.Fog('#01040a', 24, 52);
       scene.fog = sceneFog;
       const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 3500);
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
-      const pixelRatioForViewport = () => Math.min(window.devicePixelRatio || 1, window.matchMedia('(max-width: 720px)').matches ? 1.25 : 1.75);
+      const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: 'high-performance' });
+      // Large Earth imagery plus several transparent orbital layers can saturate
+      // software/virtualized GPUs at high DPR. Bound the backing buffer while
+      // retaining crisp rendering on standard and high-density displays.
+      const pixelRatioForViewport = () => Math.min(window.devicePixelRatio || 1, window.matchMedia('(max-width: 720px)').matches ? 1 : 1.25);
       renderer.setPixelRatio(pixelRatioForViewport());
       renderer.setSize(Math.max(container.clientWidth, 1), Math.max(container.clientHeight, 1), false);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -752,8 +755,17 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
       };
       updateOrbit();
 
-      const animate = () => {
+      // Cap expensive WebGL scene updates at 30 Hz. The UI remains interactive at
+      // browser refresh rates while avoiding a continuous 60+ Hz GPU/CPU workload.
+      let lastRenderAt = 0;
+      const animate = (now = performance.now()) => {
         if (!mounted) return;
+        if (now - lastRenderAt < 1000 / 30) {
+          frameRef.current = requestAnimationFrame(animate);
+          return;
+        }
+        const deltaSeconds = lastRenderAt === 0 ? 1 / 30 : Math.min((now - lastRenderAt) / 1000, 0.1);
+        lastRenderAt = now;
         const state = currentRef.current;
         const markerVector = scenePosition(state.r, scale);
         const radial = markerVector.clone().normalize();
@@ -779,7 +791,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         }
         satellite.root.position.copy(markerVector);
         satellite.root.quaternion.setFromRotationMatrix(basis);
-        satellite.root.rotation.y += 0.008;
+        satellite.root.rotation.y += 0.48 * deltaSeconds;
         (satellite.beacon.material as THREE.MeshBasicMaterial).opacity = 0.5 + 0.5 * (0.5 + 0.5 * Math.sin(performance.now() * 0.008));
 
         const ground = radial.clone().multiplyScalar(earthRadius * 1.012);
@@ -807,7 +819,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
         const earthRotation = -greenwichMeanSiderealAngle(date);
         earth.rotation.y = earthRotation;
         clouds.rotation.y = cloudRelativeRotation(earthRotation);
-        starField.rotation.y += 0.00002;
+        starField.rotation.y += 0.0012 * deltaSeconds;
 
         const sunVector = solarEciDirection(date);
         // Keep solar illumination in the same scene frame as ECI-to-scene spacecraft coordinates.
