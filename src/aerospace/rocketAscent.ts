@@ -93,11 +93,11 @@ function derivative(
   state: State,
   timeS: number,
   burnoutTimeS: number,
-  massFlowKgS: number
+  massFlowKgS: number,
+  powered: boolean
 ): Derivative {
   const altitudeM = state.radiusM - EARTH_RADIUS_M;
   const massKg = Math.max(input.dryMassKg, input.initialMassKg - massFlowKgS * timeS);
-  const powered = timeS < burnoutTimeS - 1e-9;
   const thrustN = powered ? input.thrustN : 0;
   const speedMps = Math.hypot(state.radialVelocityMps, state.horizontalVelocityMps);
   const density = atmosphereDensity(altitudeM);
@@ -137,12 +137,13 @@ function rk4Step(
   timeS: number,
   stepS: number,
   burnoutTimeS: number,
-  massFlowKgS: number
+  massFlowKgS: number,
+  powered: boolean
 ): State {
-  const k1 = derivative(input, state, timeS, burnoutTimeS, massFlowKgS);
-  const k2 = derivative(input, addScaled(state, k1, stepS / 2), timeS + stepS / 2, burnoutTimeS, massFlowKgS);
-  const k3 = derivative(input, addScaled(state, k2, stepS / 2), timeS + stepS / 2, burnoutTimeS, massFlowKgS);
-  const k4 = derivative(input, addScaled(state, k3, stepS), timeS + stepS, burnoutTimeS, massFlowKgS);
+  const k1 = derivative(input, state, timeS, burnoutTimeS, massFlowKgS, powered);
+  const k2 = derivative(input, addScaled(state, k1, stepS / 2), timeS + stepS / 2, burnoutTimeS, massFlowKgS, powered);
+  const k3 = derivative(input, addScaled(state, k2, stepS / 2), timeS + stepS / 2, burnoutTimeS, massFlowKgS, powered);
+  const k4 = derivative(input, addScaled(state, k3, stepS), timeS + stepS, burnoutTimeS, massFlowKgS, powered);
   return {
     radiusM: state.radiusM + stepS / 6 * (k1.radiusM + 2 * k2.radiusM + 2 * k3.radiusM + k4.radiusM),
     angleRad: state.angleRad + stepS / 6 * (k1.angleRad + 2 * k2.angleRad + 2 * k3.angleRad + k4.angleRad),
@@ -215,7 +216,7 @@ export function calculateRocketAscent(input: RocketAscentInputs): RocketAscentRe
     if (timeS < predictedBurnoutTimeS) {
       stepS = Math.min(stepS, predictedBurnoutTimeS - timeS);
     }
-    const next = rk4Step(input, state, timeS, stepS, predictedBurnoutTimeS, massFlowKgS);
+    const next = rk4Step(input, state, timeS, stepS, predictedBurnoutTimeS, massFlowKgS, timeS < predictedBurnoutTimeS - 1e-9);
     timeS += stepS;
     Object.assign(state, next);
     const impact = state.radiusM <= EARTH_RADIUS_M && timeS > 0;
