@@ -88,7 +88,7 @@ describe('2D rocket ascent trajectory model', () => {
 
   it('rejects non-physical mass, propulsion, aerodynamic and integration inputs', () => {
     expect(() => calculateRocketAscent({ ...reference, dryMassKg: reference.initialMassKg }))
-      .toThrow(/dry mass/);
+      .toThrow(/dry mass/i);
     expect(() => calculateRocketAscent({ ...reference, thrustN: 0 }))
       .toThrow(/thrust/);
     expect(() => calculateRocketAscent({ ...reference, referenceAreaM2: -1 }))
