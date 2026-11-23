@@ -1,0 +1,29 @@
+{
+  "name": "Aryaksha cloud development",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "postCreateCommand": "bash -lc 'nvm install 22.12.0 && nvm alias default 22.12.0 && nvm use 22.12.0 && npm install --global npm@10.9.0 && npm ci'",
+  "forwardPorts": [3000, 5173],
+  "portsAttributes": {
+    "3000": {
+      "label": "Aryaksha API",
+      "onAutoForward": "notify"
+    },
+    "5173": {
+      "label": "Aryaksha web app",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-playwright.playwright"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "files.eol": "\n"
+      }
+    }
+  }
+}
