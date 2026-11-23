@@ -1,3 +1,60 @@
 
 /* Aerospace engineering suite */
 .aerospace-page{padding-bottom:40px}.aero-page-header{align-items:center}.aero-engine-status{white-space:nowrap;color:var(--muted);font:8px ui-monospace,monospace;letter-spacing:.7px}.aero-engine-status span{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:7px;box-shadow:0 0 9px rgba(66,223,130,.5)}.aero-project-intro{display:flex;align-items:center;gap:15px;padding:17px 19px;margin-bottom:13px;border:1px solid rgba(81,221,255,.2);border-radius:13px;background:linear-gradient(100deg,rgba(81,221,255,.07),rgba(255,255,255,.015))}.aero-intro-icon{width:46px;height:46px;flex:none;border:1px solid rgba(81,221,255,.25);border-radius:11px;display:grid;place-items:center;color:var(--cyan)}.aero-project-intro>div:nth-child(2){flex:1}.aero-project-intro small,.aero-section-heading small{font:8px ui-monospace,monospace;letter-spacing:1px;color:var(--cyan)}.aero-project-intro h2{font-size:17px;margin:5px 0}.aero-project-intro p{font-size:9px;color:var(--muted);margin:0;line-height:1.5}.aero-project-chip{display:flex;align-items:center;gap:6px;color:var(--green);font:8px ui-monospace,monospace;white-space:nowrap}.aero-workspace{display:grid;grid-template-columns:1fr 1fr;gap:12px}.aero-field-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px 12px}.aero-field{display:block;margin:6px 0}.aero-field>span{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font:8px ui-monospace,monospace;margin-bottom:6px}.aero-field small{color:rgba(255,255,255,.32)}.aero-field input{width:100%;height:39px;background:#070b10;border:1px solid var(--line);border-radius:8px;color:#fff;padding:0 10px;font:10px ui-monospace,monospace}.aero-reset-button{margin-top:10px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.04);color:var(--muted);padding:9px 11px;font:8px ui-monospace,monospace}.aero-note{display:flex;gap:8px;align-items:flex-start;margin-top:13px;padding:10px;border-left:2px solid var(--cyan);background:rgba(81,221,255,.035);color:var(--muted);font-size:8px;line-height:1.5}.aero-note svg{flex:none;color:var(--cyan)}.aero-result-label{font:8px ui-monospace,monospace;letter-spacing:.8px;color:var(--cyan)}.aero-big-result{font:700 42px ui-monospace,monospace;color:#fff;margin:8px 0 15px}.aero-big-result span{font-size:13px;color:var(--muted)}.aero-result-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.aero-result-grid>div{padding:10px;border:1px solid var(--line);border-radius:9px;background:rgba(255,255,255,.02)}.aero-result-grid small{display:block;color:var(--muted);font:7px ui-monospace,monospace}.aero-result-grid b{display:block;margin-top:6px;font:11px ui-monospace,monospace;color:#fff}.aero-mass-breakdown{margin-top:12px}.aero-mass-breakdown>div{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:8px;color:var(--muted)}.aero-mass-breakdown b{font:8px ui-monospace,monospace;color:#fff}.aero-error{padding:12px;border:1px solid rgba(255,104,118,.3);border-radius:8px;color:#ff9da6;font-size:9px}.aero-chart-card,.aero-theory-card{margin-top:12px}.aero-chart-card .card-head small{margin-left:auto;color:var(--muted);font:7px ui-monospace,monospace}.aero-chart-wrap svg{width:100%;height:auto;display:block}.aero-chart-legend{display:flex;gap:18px;flex-wrap:wrap;color:var(--muted);font:8px ui-monospace,monospace}.aero-chart-legend span{display:flex;align-items:center;gap:7px}.aero-chart-legend i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--cyan)}.aero-chart-legend span+span i{background:var(--green)}.aero-theory-toggle{width:100%;display:flex;justify-content:space-between;align-items:center;border:0;background:none;color:#fff;padding:0;text-align:left;font:9px ui-monospace,monospace}.aero-theory-toggle span:first-child{display:flex;align-items:center;gap:9px}.aero-theory-toggle svg{color:var(--cyan)}.aero-theory-toggle span+span{color:var(--cyan);font-size:7px}.aero-theory-content{padding-top:13px;color:var(--muted);font-size:9px;line-height:1.65}.aero-equation{padding:15px;text-align:center;border:1px solid rgba(81,221,255,.18);border-radius:9px;background:rgba(81,221,255,.035);font:17px ui-monospace,monospace;color:#fff}.aero-theory-content ul{padding-left:18px}.aero-theory-content li{margin:6px 0}.aero-caution{padding:10px;border-left:2px solid var(--amber);background:rgba(255,191,90,.04);color:#e8c98f}.aero-roadmap-section{margin-top:25px}.aero-section-heading{display:flex;justify-content:space-between;align-items:end;margin-bottom:12px}.aero-section-heading h2{font-size:19px;margin:5px 0 0}.aero-section-heading>span{color:var(--muted);font:8px ui-monospace,monospace}.aero-roadmap-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.aero-roadmap-card{padding:14px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.02)}.aero-roadmap-card>small{color:var(--cyan);font:7px ui-monospace,monospace;letter-spacing:.8px}.aero-roadmap-card h3{font-size:11px;margin:8px 0 5px}.aero-roadmap-card p{min-height:28px;margin:0 0 10px;color:var(--muted);font-size:8px}.aero-roadmap-card>span{color:var(--muted);font:7px ui-monospace,monospace;letter-spacing:.6px}.aero-roadmap-card:first-child>span{color:var(--green)}@media(max-width:1100px){.aero-workspace{grid-template-columns:1fr}}@media(max-width:800px){.aero-project-intro{align-items:flex-start;flex-wrap:wrap}.aero-project-chip{margin-left:61px}.aero-roadmap-grid{grid-template-columns:1fr 1fr}.aero-page-header{display:block}.aero-engine-status{margin-top:12px}.aero-field-grid{grid-template-columns:1fr 1fr}}@media(max-width:500px){.aero-roadmap-grid{grid-template-columns:1fr}.aero-field-grid{grid-template-columns:1fr}.aero-big-result{font-size:34px}.aero-chart-card .card-head{flex-wrap:wrap}.aero-chart-card .card-head small{width:100%;margin-left:26px}}
+
+
+/* Aerospace product suite navigation and discovery */
+.aero-tabs{display:flex;gap:6px;overflow-x:auto;padding:5px;margin:0 0 14px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.02)}
+.aero-tabs button{display:flex;align-items:center;gap:8px;flex:none;padding:10px 13px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--muted);font:8px ui-monospace,monospace;white-space:nowrap}
+.aero-tabs button.active{color:#fff;background:rgba(81,221,255,.09);border-color:rgba(81,221,255,.25)}
+.aero-tab-number{color:var(--cyan)}
+.aero-suite-hero{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:26px 28px;margin-bottom:24px;border:1px solid rgba(81,221,255,.2);border-radius:15px;background:radial-gradient(ellipse at 85% 40%,rgba(81,221,255,.12),transparent 45%),linear-gradient(115deg,rgba(81,221,255,.055),rgba(255,255,255,.015))}
+.aero-suite-hero small,.aero-suite-principles small{font:8px ui-monospace,monospace;letter-spacing:1px;color:var(--cyan)}
+.aero-suite-hero h2{font-size:clamp(22px,3vw,34px);line-height:1.15;margin:10px 0}
+.aero-suite-hero p{max-width:620px;color:var(--muted);font-size:10px;line-height:1.7;margin:0}
+.aero-suite-hero-mark{display:flex;align-items:center;gap:10px;color:var(--cyan);opacity:.75;padding:15px}
+.aero-product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.aero-product-card{display:flex;flex-direction:column;min-height:280px;padding:17px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02)}
+.aero-product-card-top{display:flex;align-items:center;justify-content:space-between}
+.aero-product-icon{width:38px;height:38px;display:grid;place-items:center;border:1px solid rgba(81,221,255,.22);border-radius:9px;color:var(--cyan);background:rgba(81,221,255,.05)}
+.aero-product-card-top>small{font:8px ui-monospace,monospace;color:var(--cyan);letter-spacing:.8px}
+.aero-product-card h3{font-size:15px;margin:15px 0 5px;color:#fff}
+.aero-product-discipline{font:8px ui-monospace,monospace;color:var(--cyan)}
+.aero-product-card>p{font-size:9px;line-height:1.6;color:var(--muted);min-height:42px}
+.aero-product-audience{margin-top:auto;padding:10px 0;color:var(--muted);font-size:8px;line-height:1.5}
+.aero-product-audience small{display:block;font:7px ui-monospace,monospace;letter-spacing:.8px;color:rgba(255,255,255,.4);margin-bottom:4px}
+.aero-primary-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 13px;border:1px solid rgba(81,221,255,.32);border-radius:8px;background:rgba(81,221,255,.09);color:#e8faff;font:8px ui-monospace,monospace;cursor:pointer}
+.aero-primary-button:hover{background:rgba(81,221,255,.16)}
+.aero-product-card .aero-primary-button{width:100%;margin-top:8px}
+.aero-needs-card{margin-bottom:18px}
+.aero-body-copy{font-size:9px;line-height:1.7;color:var(--muted)}
+.aero-need-selector{display:grid;gap:6px}
+.aero-need-selector button{display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.015);color:var(--muted);font-size:9px}
+.aero-need-selector button.selected{border-color:rgba(81,221,255,.35);background:rgba(81,221,255,.06);color:#fff}
+.aero-need-selector button span{flex:none;font:7px ui-monospace,monospace;color:var(--cyan)}
+.aero-need-answer{display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-left:2px solid var(--cyan);background:rgba(81,221,255,.04);color:var(--muted);font-size:9px;line-height:1.6}
+.aero-need-answer>svg{flex:none;color:var(--cyan)}
+.aero-need-answer>span{flex:1}
+.aero-need-answer button{display:flex;align-items:center;gap:5px;flex:none;border:0;background:transparent;color:var(--cyan);font:8px ui-monospace,monospace}
+.aero-suite-principles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}
+.aero-suite-principles>div{display:flex;flex-direction:column;gap:7px;padding:14px;border:1px solid var(--line);border-radius:10px}
+.aero-suite-principles b{font-size:10px;color:#fff}
+.aero-suite-principles span{font-size:8px;line-height:1.6;color:var(--muted)}
+.aero-overview-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.aero-full-card{grid-column:1/-1}
+.aero-usecase-list,.aero-need-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+.aero-usecase-list>div,.aero-need-grid>div{padding:11px;border:1px solid var(--line);border-radius:8px}
+.aero-usecase-list b,.aero-need-grid b{display:block;font-size:9px;color:#fff;margin-bottom:5px}
+.aero-usecase-list span,.aero-need-grid span{display:block;font-size:8px;line-height:1.55;color:var(--muted)}
+.aero-transfer-visual{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:20px 8px;border:1px solid var(--line);border-radius:9px;background:rgba(81,221,255,.03)}
+.aero-transfer-visual>div{display:flex;flex-direction:column;gap:8px}
+.aero-transfer-visual small{font:7px ui-monospace,monospace;color:var(--muted)}
+.aero-transfer-visual b{font:17px ui-monospace,monospace;color:#fff}
+.aero-transfer-arrow{color:var(--cyan);font-size:20px}
+.aero-action-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px}
+.aero-transfer-kpis{margin-bottom:12px}
+.aero-transfer-kpis>div{padding:15px;border:1px solid var(--line);border-radius:9px;background:rgba(81,221,255,.035)}
+.aero-transfer-kpis small{display:block;font:7px ui-monospace,monospace;color:var(--muted)}
+.aero-transfer-kpis b{display:block;margin-top:8px;font:15px ui-monospace,monospace;color:#fff}
+@media(max-width:900px){.aero-product-grid{grid-template-columns:1fr 1fr}.aero-suite-principles{grid-template-columns:1fr}.aero-suite-hero-mark{display:none}}
+@media(max-width:620px){.aero-product-grid,.aero-overview-grid,.aero-usecase-list,.aero-need-grid{grid-template-columns:1fr}.aero-full-card{grid-column:auto}.aero-suite-hero{padding:20px}.aero-need-answer{align-items:flex-start;flex-wrap:wrap}.aero-need-answer>span{flex-basis:calc(100% - 32px)}.aero-need-answer button{margin-left:26px}}
