@@ -18,6 +18,7 @@ export function buildRocketStagingMarkdownReport(
     ...(result.targetDeltaVMs === undefined ? [] : ['- Required target delta-v: ' + n(result.targetDeltaVMs) + ' m/s']),
     ...(result.maximumInitialMassKg === undefined ? [] : ['- Maximum initial wet mass: ' + n(result.maximumInitialMassKg) + ' kg']),
     '- Solver status: ' + result.status,
+    '- Feasible: ' + (result.feasible ? 'Yes' : 'No'),
     '- Converged: ' + (result.converged ? 'Yes' : 'No'),
     '- Method: ' + result.method,
     '- Evaluations: ' + result.evaluations,
