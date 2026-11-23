@@ -240,7 +240,7 @@ test('desktop navigation groups expose every destination, including Aerospace Wo
     await expect(sidebar.locator('details').filter({ has: page.locator('summary', { hasText: group }) })).toHaveCount(1);
   }
 
-  await sidebar.locator('details').filter({ has: page.locator('summary', { hasText: 'Explore' }) }).locator('summary').click();
+  await expect(sidebar.getByRole('button', { name: 'Aerospace Workbench' })).toBeVisible();
   await sidebar.getByRole('button', { name: 'Aerospace Workbench' }).click();
   await expect(page.getByRole('heading', { name: 'Aerospace Engineering Workbench' })).toBeVisible();
 });
@@ -254,7 +254,6 @@ test('mobile navigation uses the same expandable task groups', async ({ page }) 
   const mobileNav = page.locator('#mobile-navigation');
   await expect(mobileNav).toBeVisible();
   await expect(mobileNav.locator('details')).toHaveCount(6);
-  await mobileNav.locator('details').filter({ has: page.locator('summary', { hasText: 'Explore' }) }).locator('summary').click();
   await expect(mobileNav.getByRole('button', { name: 'Aerospace Workbench' })).toBeVisible();
   await mobileNav.getByRole('button', { name: 'Aerospace Workbench' }).click();
   await expect(page.getByRole('heading', { name: 'Aerospace Engineering Workbench' })).toBeVisible();
