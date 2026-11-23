@@ -92,7 +92,6 @@ function derivative(
   input: RocketAscentInputs,
   state: State,
   timeS: number,
-  burnoutTimeS: number,
   massFlowKgS: number,
   powered: boolean
 ): Derivative {
@@ -136,14 +135,13 @@ function rk4Step(
   state: State,
   timeS: number,
   stepS: number,
-  burnoutTimeS: number,
   massFlowKgS: number,
   powered: boolean
 ): State {
-  const k1 = derivative(input, state, timeS, burnoutTimeS, massFlowKgS, powered);
-  const k2 = derivative(input, addScaled(state, k1, stepS / 2), timeS + stepS / 2, burnoutTimeS, massFlowKgS, powered);
-  const k3 = derivative(input, addScaled(state, k2, stepS / 2), timeS + stepS / 2, burnoutTimeS, massFlowKgS, powered);
-  const k4 = derivative(input, addScaled(state, k3, stepS), timeS + stepS, burnoutTimeS, massFlowKgS, powered);
+  const k1 = derivative(input, state, timeS, massFlowKgS, powered);
+  const k2 = derivative(input, addScaled(state, k1, stepS / 2), timeS + stepS / 2, massFlowKgS, powered);
+  const k3 = derivative(input, addScaled(state, k2, stepS / 2), timeS + stepS / 2, massFlowKgS, powered);
+  const k4 = derivative(input, addScaled(state, k3, stepS), timeS + stepS, massFlowKgS, powered);
   return {
     radiusM: state.radiusM + stepS / 6 * (k1.radiusM + 2 * k2.radiusM + 2 * k3.radiusM + k4.radiusM),
     angleRad: state.angleRad + stepS / 6 * (k1.angleRad + 2 * k2.angleRad + 2 * k3.angleRad + k4.angleRad),
@@ -216,7 +214,7 @@ export function calculateRocketAscent(input: RocketAscentInputs): RocketAscentRe
     if (timeS < predictedBurnoutTimeS) {
       stepS = Math.min(stepS, predictedBurnoutTimeS - timeS);
     }
-    const next = rk4Step(input, state, timeS, stepS, predictedBurnoutTimeS, massFlowKgS, timeS < predictedBurnoutTimeS - 1e-9);
+    const next = rk4Step(input, state, timeS, stepS, massFlowKgS, timeS < predictedBurnoutTimeS - 1e-9);
     timeS += stepS;
     Object.assign(state, next);
     const impact = state.radiusM <= EARTH_RADIUS_M && timeS > 0;
