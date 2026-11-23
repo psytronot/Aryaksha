@@ -58,3 +58,12 @@
 .aero-transfer-kpis b{display:block;margin-top:8px;font:15px ui-monospace,monospace;color:#fff}
 @media(max-width:900px){.aero-product-grid{grid-template-columns:1fr 1fr}.aero-suite-principles{grid-template-columns:1fr}.aero-suite-hero-mark{display:none}}
 @media(max-width:620px){.aero-product-grid,.aero-overview-grid,.aero-usecase-list,.aero-need-grid{grid-template-columns:1fr}.aero-full-card{grid-column:auto}.aero-suite-hero{padding:20px}.aero-need-answer{align-items:flex-start;flex-wrap:wrap}.aero-need-answer>span{flex-basis:calc(100% - 32px)}.aero-need-answer button{margin-left:26px}}
+
+
+.aero-module-overview{margin-bottom:14px}
+.aero-module-overview>.aero-primary-button{margin-top:14px}
+.aero-detail-tabs{margin-top:4px}
+.aero-detail-tabs button{padding:9px 12px}
+.aero-suite-page .aero-page-header{margin-bottom:14px}
+.aero-product-card .aero-primary-button{margin-top:auto}
+.orbital-transfer-page .aero-note{font-size:9px}
