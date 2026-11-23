@@ -199,6 +199,8 @@ test('Aerospace Workbench guides users to the three engineering products', async
   await expect(page.getByRole('heading', { name: 'Satellite orbital transfer' })).toBeVisible();
 
   await page.getByRole('button', { name: /Open workspace/ }).nth(2).click();
+  await expect(page.getByRole('heading', { name: /Satellite orbital transfer \/ Product brief/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Engineering workspace' }).click();
   await expect(page.getByRole('heading', { name: 'Satellite orbital transfer designer' })).toBeVisible();
   await page.getByRole('button', { name: 'Mission setup' }).click();
   await page.getByRole('spinbutton', { name: 'Target orbit altitude' }).fill('900');
