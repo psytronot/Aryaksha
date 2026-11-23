@@ -1,6 +1,6 @@
 import './aerospace.css';
 import { useMemo, useState } from 'react';
-import { Activity, ArrowRight, BookOpen, CheckCircle2, FlaskConical, Rocket, SlidersHorizontal } from 'lucide-react';
+import { Activity, BookOpen, CheckCircle2, FlaskConical, Rocket, SlidersHorizontal } from 'lucide-react';
 import { optimiseRocketStaging, type RocketStagingInputs } from './aerospace/rocketStaging';
 
 const defaults: RocketStagingInputs = {
