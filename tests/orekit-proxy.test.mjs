@@ -47,6 +47,12 @@ beforeAll(async () => {
       return;
     }
 
+    if (lastRequest.elapsedSeconds === 124) {
+      response.writeHead(429, { 'content-type': 'application/json', 'retry-after': '30' });
+      response.end(JSON.stringify({ error: 'Too Many Requests' }));
+      return;
+    }
+
     response.writeHead(200, { 'content-type': 'application/json' });
     response.end(JSON.stringify({
       valid: true,
@@ -76,6 +82,19 @@ beforeAll(async () => {
 afterAll(async () => {
   if (apiProcess && apiProcess.exitCode === null) apiProcess.kill('SIGTERM');
   if (upstreamServer?.listening) await new Promise(resolve => upstreamServer.close(resolve));
+  it('converts upstream rate limiting into a retryable service-unavailable response', async () => {
+    const response = await fetch(`${apiUrl}/api/mission-analysis/orbit`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ altitudeKm: 550, inclinationDeg: 45, eccentricity: 0.001, elapsedSeconds: 124 })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get('retry-after')).toBe('30');
+    expect(payload.error).toContain('temporarily rate-limited');
+  });
+
 });
 
 describe('Orekit upstream proxy contract', () => {
