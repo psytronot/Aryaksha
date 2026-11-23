@@ -113,3 +113,32 @@ test('mobile tracking supports catalogue groups, name filtering and pass CSV exp
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe('orbital-lab-pass-predictions.csv');
 });
+
+
+test('mobile spacecraft design journey remains navigable without horizontal overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
+
+  const steps = [
+    { name: 'Mission', heading: 'Start with the engineering problem.' },
+    { name: 'Payload', heading: 'Turn the payload into spacecraft constraints.' },
+    { name: 'Spacecraft', heading: 'Build the vehicle around the mission.' },
+    { name: 'Orbit & Maneuver', heading: 'Make the orbital mechanics visible.' },
+    { name: 'Engineering Analysis', heading: 'See where the spacecraft succeeds or fails.' },
+    { name: 'Verification', heading: 'Prove the design meets the requirements.' }
+  ];
+
+  for (const step of steps) {
+    await page.getByRole('button', { name: 'Open navigation' }).click();
+    await page.getByRole('navigation', { name: 'Mobile navigation' })
+      .getByRole('button', { name: step.name, exact: true }).click();
+    await expect(page.getByRole('heading', { name: step.heading, exact: true })).toBeVisible();
+    const dimensions = await page.evaluate(() => ({
+      viewport: document.documentElement.clientWidth,
+      document: document.documentElement.scrollWidth
+    }));
+    expect(dimensions.document, `horizontal overflow in ${step.name} at 375px`).toBeLessThanOrEqual(dimensions.viewport + 1);
+  }
+});
