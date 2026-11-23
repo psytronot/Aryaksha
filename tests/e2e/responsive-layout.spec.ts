@@ -33,7 +33,15 @@ test('Earth 3D pauses offscreen rendering and resumes when brought back into vie
   await page.locator('.sidebar').getByRole('button', { name: 'Simulation', exact: true }).click();
   const canvas = page.locator('.earth3d-canvas');
   await expect(canvas).toHaveAttribute('data-rendering-state', 'active');
-  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  // Add enough document height to move the entire canvas outside the viewport;
+  // otherwise the short workspace can remain partially visible at max scroll.
+  await page.evaluate(() => {
+    const spacer = document.createElement('div');
+    spacer.dataset.testScrollSpacer = 'true';
+    spacer.style.height = `${window.innerHeight * 2}px`;
+    document.body.append(spacer);
+    window.scrollTo(0, document.documentElement.scrollHeight);
+  });
   await expect(canvas).toHaveAttribute('data-rendering-state', 'paused');
   await page.evaluate(() => window.scrollTo(0, 0));
   await expect(canvas).toHaveAttribute('data-rendering-state', 'active');
