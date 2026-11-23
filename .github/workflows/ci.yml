@@ -275,3 +275,39 @@ jobs:
       - name: Install Chromium for Playwright
         run: npx playwright install chromium
       - run: npx playwright test tests/e2e/live-ui-smoke.spec.ts
+
+
+  isolated-preview-integration:
+    name: Isolated preview integration
+    if: github.event_name == 'pull_request' && github.head_ref == 'feature/aryaksha-ux-simplification'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Verify isolated preview health
+        shell: bash
+        env:
+          PREVIEW_URL: https://aryaksha-ux-preview.onrender.com
+        run: |
+          for attempt in $(seq 1 12); do
+            status=$(curl --silent --show-error --max-time 15 -o /tmp/preview-health.json -w '%{http_code}' "$PREVIEW_URL/api/_healthcheck" || true)
+            if [ "$status" = "200" ] && node -e 'const p=require("/tmp/preview-health.json"); if (p.service !== "aryaksha-api") process.exit(1);'; then
+              cat /tmp/preview-health.json
+              break
+            fi
+            echo "Isolated preview is not ready (attempt $attempt/12; HTTP ${status:-000})"
+            sleep 5
+          done
+          test "${status:-000}" = "200"
+
+      - name: Verify preview Orekit integration and print upstream rejection reason
+        shell: bash
+        env:
+          PREVIEW_URL: https://aryaksha-ux-preview.onrender.com
+        run: |
+          status=$(curl --silent --show-error --max-time 90 -o /tmp/preview-orbit.json -w '%{http_code}' -H 'content-type: application/json' -d '{"altitudeKm":550,"inclinationDeg":97.6,"eccentricity":0.001,"elapsedSeconds":0}' "$PREVIEW_URL/api/mission-analysis/orbit" || true)
+          cat /tmp/preview-orbit.json
+          if [ "$status" != "200" ]; then
+            echo "Isolated preview mission analysis failed with HTTP ${status:-000}; upstream detail is shown above."
+            exit 1
+          fi
+          node -e 'const p=require("/tmp/preview-orbit.json"); if (p.valid!==true || p.engine!=="Orekit" || p.comparison?.engineAdapter!=="orekit-http" || !Number.isFinite(p.orbit?.periodMinutes) || p.state?.frame!=="EME2000") process.exit(1);'
