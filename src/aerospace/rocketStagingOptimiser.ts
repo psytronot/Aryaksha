@@ -29,6 +29,8 @@ export type RocketOptimisationResult = {
   vehicle: RocketVehicleMassBreakdown;
   stagePropellantShares: number[];
   objectiveValue: number;
+  targetDeltaVMs?: number;
+  maximumInitialMassKg?: number;
 };
 
 const DEFAULTS = {
@@ -280,7 +282,9 @@ export function optimiseMinimumPropellantForDeltaV(
       vehicle: fallback,
       stagePropellantShares: configuration.stages.map(stage =>
         stage.propellantMassKg / configuration.stages.reduce((sum, item) => sum + item.propellantMassKg, 0)),
-      objectiveValue: Number.POSITIVE_INFINITY
+      objectiveValue: Number.POSITIVE_INFINITY,
+      targetDeltaVMs,
+      maximumInitialMassKg
     };
   }
 
@@ -302,6 +306,8 @@ export function optimiseMinimumPropellantForDeltaV(
     configuration: best.configuration,
     vehicle: best.vehicle,
     stagePropellantShares: [...best.shares],
-    objectiveValue: best.vehicle.totalPropellantMassKg
+    objectiveValue: best.vehicle.totalPropellantMassKg,
+    targetDeltaVMs,
+    maximumInitialMassKg
   };
 }
