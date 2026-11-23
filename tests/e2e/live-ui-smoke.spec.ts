@@ -141,3 +141,26 @@ test('Earth 3D visible controls expose accessible names and labelled inputs', as
   });
   expect(audit).toEqual({ unnamedButtons: [], unlabeledInputs: [], imagesWithoutAlt: [] });
 });
+
+
+test('Aerospace Engineering workspace runs the rocket staging optimisation interactively', async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
+  await page.getByRole('button', { name: 'Aerospace Engineering', exact: true }).click();
+
+  await expect(page.getByRole('heading', { name: 'Aerospace Engineering Suite' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Rocket staging optimisation' })).toBeVisible();
+  await expect(page.getByText('7.465', { exact: false }).first()).toBeVisible();
+  await expect(page.getByText('77.0%', { exact: true })).toBeVisible();
+
+  const initialResult = await page.locator('.aero-big-result').innerText();
+  await page.getByRole('spinbutton', { name: /Stage 2 specific impulse/ }).fill('360');
+  await expect.poll(() => page.locator('.aero-big-result').innerText()).not.toBe(initialResult);
+
+  await page.getByRole('button', { name: /Engineering model & assumptions/ }).click();
+  await expect(page.getByText(/finite-burn losses/)).toBeVisible();
+  expect(pageErrors).toEqual([]);
+});

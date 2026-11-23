@@ -9,6 +9,7 @@ import AryakshaMark from './AryakshaMark';
 const ScientificCalculator = lazy(() => import('./ScientificCalculator'));
 const SatelliteTrackingView = lazy(() => import('./SatelliteTrackingView'));
 const MissionAnalysisView = lazy(() => import('./MissionAnalysisView'));
+import RocketStagingView from './RocketStagingView';
 import { EARTH_RADIUS, orbitalSummary, propagateState, sampleOrbit, stateToLla } from './orbit';
 import { getGlossaryEntries, getGlossaryEntry, GlossaryEntry } from './glossary';
 import { parseBusinessCsv, serializeBusinessCsv } from './businessCsv';
@@ -37,7 +38,7 @@ const spacecraftDefaults: Spacecraft = {
   settlingTimeS: 5, thermalAreaM2: 1.2, absorptivity: 0.7, emissivity: 0.85, batteryEfficiencyPct: 90, batteryDoDPct: 80, solarDegradationPct: 15, thermalHotFactor: 1.25, thermalColdFactor: 0.9
 };
 
-type View = 'mission' | 'payload' | 'spacecraft' | 'orbit' | 'simulation' | 'tracking' | 'missionAnalysis' | 'analysis' | 'verification' | 'report' | 'instructions' | 'tools' | 'software';
+type View = 'mission' | 'payload' | 'spacecraft' | 'orbit' | 'simulation' | 'tracking' | 'missionAnalysis' | 'analysis' | 'verification' | 'report' | 'instructions' | 'tools' | 'software' | 'aerospace';
 const nav: { id: View; label: string; icon: React.ReactNode; group: string }[] = [
   { id: 'mission', label: 'Mission', icon: <Target size={16} />, group: 'Design' },
   { id: 'payload', label: 'Payload', icon: <Globe2 size={16} />, group: 'Design' },
@@ -51,6 +52,7 @@ const nav: { id: View; label: string; icon: React.ReactNode; group: string }[] =
   { id: 'report', label: 'Design Report', icon: <Download size={16} />, group: 'Output' },
   { id: 'instructions', label: 'Instructions & Glossary', icon: <BookOpen size={16} />, group: 'Learn' },
   { id: 'tools', label: 'Calculator & Reference', icon: <Calculator size={16} />, group: 'Tools' },
+  { id: 'aerospace', label: 'Aerospace Engineering', icon: <Rocket size={16} />, group: 'Engineering' },
   { id: 'software', label: 'Software Products', icon: <Search size={16} />, group: 'Tools' }
 ];
 
@@ -259,6 +261,7 @@ function App() {
           {view === 'report' && <ReportView mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} summary={summary} geometry={geometry} verification={verification} onExport={exportReport} />}
           {view === 'instructions' && <InstructionsView />}
           {view === 'tools' && <ToolsView />}
+          {view === 'aerospace' && <RocketStagingView />}
           {view === 'software' && <SoftwareProductsView />}
           </Suspense>
           {coachEnabled && <ContextCoach view={view} />}
