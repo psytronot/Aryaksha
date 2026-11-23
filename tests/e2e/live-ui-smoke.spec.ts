@@ -238,8 +238,9 @@ test('desktop navigation groups expose every destination, including Aerospace Wo
 
   const sidebar = page.locator('aside.sidebar');
   await expect(sidebar.getByText('WORKSPACES')).toBeVisible();
+  await expect(sidebar.locator('details')).toHaveCount(6);
   for (const group of ['Plan', 'Design', 'Analyse', 'Explore', 'Output', 'Learn & Tools']) {
-    await expect(sidebar.locator('details').filter({ has: page.locator('summary', { hasText: group }) })).toHaveCount(1);
+    await expect(sidebar.locator('summary').filter({ hasText: group })).toHaveCount(1);
   }
 
   const exploreGroup = sidebar.locator('details').filter({ hasText: 'EXPLORE' });
