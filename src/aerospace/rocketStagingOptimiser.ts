@@ -20,6 +20,7 @@ export type RocketOptimisationResult = {
   objective: RocketOptimisationObjective;
   status: RocketSolverStatus;
   converged: boolean;
+  feasible: boolean;
   terminationReason: string;
   evaluations: number;
   tolerances: Required<Pick<RocketOptimisationOptions,
@@ -168,6 +169,7 @@ export function optimiseMaximumDeltaV(
     objective: 'maximum-delta-v',
     status,
     converged,
+    feasible: true,
     terminationReason: status === 'converged'
       ? 'Local refinement reached the configured objective or allocation tolerance; best bounded-search candidate returned.'
       : status === 'evaluation-limit'
@@ -266,6 +268,7 @@ export function optimiseMinimumPropellantForDeltaV(
       objective: 'minimum-propellant',
       status,
       converged: false,
+      feasible: false,
       terminationReason: anyCeilingFeasible
         ? 'A feasible candidate was found during exploration but no final solution met all constraints within the evaluation budget.'
         : 'No sampled allocation met the target and wet-mass ceiling; continuous-domain infeasibility has not been proven.',
@@ -291,6 +294,7 @@ export function optimiseMinimumPropellantForDeltaV(
     objective: 'minimum-propellant',
     status: evaluations >= resolved.maxEvaluations ? 'evaluation-limit' : 'non-converged',
     converged,
+    feasible: true,
     terminationReason: evaluations >= resolved.maxEvaluations
       ? 'Maximum objective evaluations reached; feasible best candidate returned without a convergence claim.'
       : 'A feasible target and mass-ceiling candidate was found by bounded allocation sampling and bisection; global allocation convergence is not established.',
