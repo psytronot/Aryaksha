@@ -139,6 +139,8 @@ export function optimiseMaximumDeltaV(
 
   while (evaluations < resolved.maxEvaluations && step > resolved.constraintTolerance) {
     const startValue = best.vehicle.totalDeltaVMs;
+    const objectiveTolerance = resolved.absoluteObjectiveTolerance +
+      Math.abs(startValue) * resolved.relativeObjectiveTolerance;
     let improved = false;
     for (let from = 0; from < count; from += 1) {
       for (let to = 0; to < count; to += 1) {
@@ -149,7 +151,7 @@ export function optimiseMaximumDeltaV(
         candidate[from] -= transfer;
         candidate[to] += transfer;
         evaluate(candidate);
-        if (best.vehicle.totalDeltaVMs > startValue + resolved.absoluteObjectiveTolerance) improved = true;
+        if (best.vehicle.totalDeltaVMs > startValue + objectiveTolerance) improved = true;
       }
     }
     if (!improved) step /= 2;
