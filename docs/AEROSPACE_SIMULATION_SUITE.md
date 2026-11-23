@@ -23,7 +23,7 @@ This is an idealised staging trade study. It excludes gravity and atmospheric dr
 ## Planned modules
 
 1. Rocket staging optimisation
-2. Rocket ascent trajectory
+2. Rocket ascent trajectory — 2D radial/tangential point-mass model with central gravity, exponential atmosphere, drag, thrust/mass depletion and RK4 integration
 3. Satellite orbital transfer (reuse and extend existing orbital mechanics only where justified)
 4. Atmospheric re-entry
 5. Rocket engine nozzle
