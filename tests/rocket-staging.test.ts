@@ -55,4 +55,17 @@ describe('two-stage rocket staging model', () => {
     expect(() => optimiseRocketStaging({ ...reference, stage2SpecificImpulseS: Number.NaN }))
       .toThrow(/finite numbers/);
   });
+
+  it('matches the independently checked reference-case optimum', () => {
+    const result = optimiseRocketStaging(reference);
+    expect(result.optimum.stage1PropellantFraction).toBeCloseTo(0.77, 10);
+    expect(result.optimum.totalDeltaVMs).toBeCloseTo(7464.67299, 3);
+  });
+
+  it('increases ideal delta-v when a stage specific impulse is increased at a fixed split', () => {
+    const baseline = calculateStagingPoint(reference, 0.55);
+    const improved = calculateStagingPoint({ ...reference, stage2SpecificImpulseS: 360 }, 0.55);
+    expect(improved.totalDeltaVMs).toBeGreaterThan(baseline.totalDeltaVMs);
+  });
+
 });
