@@ -227,3 +227,35 @@ test('public homepage showcases aerospace products and opens the workbench', asy
   await expect(feedback).toHaveAttribute('href', 'https://github.com/psytronot/Aryaksha/issues/new');
   expect(errors).toEqual([]);
 });
+
+
+test('desktop navigation groups expose every destination, including Aerospace Workbench', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
+
+  const sidebar = page.locator('aside.sidebar');
+  await expect(sidebar.getByText('WORKSPACES')).toBeVisible();
+  for (const group of ['Plan', 'Design', 'Analyse', 'Explore', 'Output', 'Learn & Tools']) {
+    await expect(sidebar.locator('details').filter({ has: page.locator('summary', { hasText: group }) })).toHaveCount(1);
+  }
+
+  await sidebar.locator('details').filter({ has: page.locator('summary', { hasText: 'Explore' }) }).locator('summary').click();
+  await sidebar.getByRole('button', { name: 'Aerospace Workbench' }).click();
+  await expect(page.getByRole('heading', { name: 'Aerospace Engineering Workbench' })).toBeVisible();
+});
+
+test('mobile navigation uses the same expandable task groups', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+
+  const mobileNav = page.locator('#mobile-navigation');
+  await expect(mobileNav).toBeVisible();
+  await expect(mobileNav.locator('details')).toHaveCount(6);
+  await mobileNav.locator('details').filter({ has: page.locator('summary', { hasText: 'Explore' }) }).locator('summary').click();
+  await expect(mobileNav.getByRole('button', { name: 'Aerospace Workbench' })).toBeVisible();
+  await mobileNav.getByRole('button', { name: 'Aerospace Workbench' }).click();
+  await expect(page.getByRole('heading', { name: 'Aerospace Engineering Workbench' })).toBeVisible();
+});
