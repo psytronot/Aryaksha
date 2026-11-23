@@ -67,3 +67,24 @@
 .aero-suite-page .aero-page-header{margin-bottom:14px}
 .aero-product-card .aero-primary-button{margin-top:auto}
 .orbital-transfer-page .aero-note{font-size:9px}
+
+
+/* Public-facing Aerospace product showcase */
+.aero-public-showcase{position:relative;overflow:hidden;margin:26px auto 34px;padding:clamp(20px,4vw,38px);max-width:1240px;border:1px solid rgba(81,221,255,.22);border-radius:16px;background:radial-gradient(ellipse at 92% 0%,rgba(81,221,255,.12),transparent 34%),linear-gradient(135deg,rgba(81,221,255,.045),rgba(255,255,255,.012))}
+.aero-public-showcase-head{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:22px}
+.aero-public-showcase-head h2{font-size:clamp(24px,3.5vw,38px);line-height:1.12;letter-spacing:-.7px;margin:9px 0}
+.aero-public-showcase-head p:not(.welcome-kicker){max-width:670px;color:var(--muted);font-size:11px;line-height:1.75}
+.aero-public-showcase-stamp{display:flex;align-items:center;gap:10px;padding:15px;border:1px solid rgba(81,221,255,.2);border-radius:10px;color:var(--cyan)}
+.aero-public-showcase-stamp span{font:8px/1.7 ui-monospace,monospace;letter-spacing:1px}
+.aero-public-product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.aero-public-product-grid article{display:flex;flex-direction:column;padding:17px;border:1px solid var(--line);border-radius:11px;background:rgba(7,13,20,.45);min-height:220px}
+.aero-public-product-grid article>small{font:8px ui-monospace,monospace;letter-spacing:.7px;color:var(--cyan)}
+.aero-public-product-grid h3{font-size:15px;margin:14px 0 5px;color:#fff}
+.aero-public-product-grid p{font-size:10px;line-height:1.65;color:var(--muted);min-height:48px}
+.aero-public-product-grid article>span{font-size:8px;line-height:1.6;color:rgba(255,255,255,.52);margin-top:auto;padding:8px 0}
+.aero-public-product-grid button{display:flex;align-items:center;gap:8px;align-self:flex-start;border:1px solid rgba(81,221,255,.3);border-radius:7px;padding:9px 11px;background:rgba(81,221,255,.07);color:#e8faff;font:8px ui-monospace,monospace;cursor:pointer}
+.aero-public-showcase-foot{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:17px;padding-top:14px;border-top:1px solid var(--line);font-size:9px;line-height:1.6;color:var(--muted)}
+.aero-public-showcase-foot b{color:#fff}
+.aero-public-showcase-foot a{display:flex;align-items:center;gap:6px;flex:none;color:var(--cyan);text-decoration:none;font:8px ui-monospace,monospace}
+.aero-public-showcase-foot a:hover{text-decoration:underline}
+@media(max-width:760px){.aero-public-product-grid{grid-template-columns:1fr}.aero-public-product-grid article{min-height:0}.aero-public-product-grid p{min-height:0}.aero-public-showcase-stamp{display:none}.aero-public-showcase-foot{align-items:flex-start;flex-direction:column}}
