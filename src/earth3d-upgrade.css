@@ -731,3 +731,16 @@ html.earth3d-active pwa-install {
     font: 8px/1.35 ui-monospace, monospace;
   }
 }
+
+
+/* The optional timeline is a fourth grid row. Let the workspace grow to its
+   content height so the row is not clipped by the legacy desktop overflow. */
+@media (min-width: 1351px) {
+  .app-shell.simulation-active .earth3d-workspace[data-timeline-open="true"] {
+    height: auto;
+    min-height: 760px;
+    max-height: none;
+    grid-template-rows: auto minmax(560px, auto) auto auto;
+    overflow: visible;
+  }
+}
