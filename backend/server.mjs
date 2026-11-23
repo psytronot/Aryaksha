@@ -62,7 +62,22 @@ app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
         signal: controller.signal
       });
     } finally { clearTimeout(timer); }
-    if (!upstream.ok) return res.status(502).json({ error: `Orekit service returned HTTP ${upstream.status}.` });
+    if (!upstream.ok) {
+      const responseText = await upstream.text();
+      let upstreamMessage = '';
+      try {
+        const upstreamPayload = JSON.parse(responseText);
+        if (typeof upstreamPayload?.error === 'string') upstreamMessage = upstreamPayload.error.slice(0, 300);
+      } catch {
+        upstreamMessage = responseText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);
+      }
+      console.error('Orekit service rejected orbit analysis', { status: upstream.status, reason: upstreamMessage || 'No error detail returned' });
+      return res.status(502).json({
+        error: upstreamMessage
+          ? `Orekit service rejected the analysis request: ${upstreamMessage}`
+          : `Orekit service returned HTTP ${upstream.status}.`
+      });
+    }
     const payload = await upstream.json();
     if (payload.valid !== true || payload.engine !== 'Orekit' || payload.comparison?.engineAdapter !== 'orekit-http' || !payload.orbit || !payload.state) {
       return res.status(502).json({ error: 'Orekit service returned an invalid analysis response.' });
