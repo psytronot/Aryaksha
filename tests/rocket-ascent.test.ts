@@ -90,13 +90,13 @@ describe('2D rocket ascent trajectory model', () => {
     expect(() => calculateRocketAscent({ ...reference, dryMassKg: reference.initialMassKg }))
       .toThrow(/dry mass/i);
     expect(() => calculateRocketAscent({ ...reference, thrustN: 0 }))
-      .toThrow(/thrust/);
+      .toThrow(/thrust/i);
     expect(() => calculateRocketAscent({ ...reference, referenceAreaM2: -1 }))
-      .toThrow(/reference area/);
+      .toThrow(/reference area/i);
     expect(() => calculateRocketAscent({ ...reference, timeStepS: 0 }))
-      .toThrow(/time step/);
+      .toThrow(/time step/i);
     expect(() => calculateRocketAscent({ ...reference, pitchEndTimeS: reference.pitchStartTimeS }))
-      .toThrow(/pitch schedule/);
+      .toThrow(/pitch schedule/i);
   });
 
   it('rejects non-finite values', () => {
