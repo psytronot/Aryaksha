@@ -164,3 +164,22 @@ test('Aerospace Engineering workspace runs the rocket staging optimisation inter
   await expect(page.getByText(/finite-burn losses/)).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
+
+
+test('Rocket Ascent workspace calculates a trajectory and responds to propulsion changes', async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
+  await page.getByRole('button', { name: 'Rocket Ascent', exact: true }).click();
+
+  await expect(page.getByRole('heading', { name: 'Rocket ascent trajectory' })).toBeVisible();
+  await expect(page.getByText('MAXIMUM SIMULATED ALTITUDE')).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Rocket altitude versus downrange trajectory plot' })).toBeVisible();
+
+  const baseline = await page.locator('.aero-big-result').innerText();
+  await page.getByRole('spinbutton', { name: 'Engine thrust' }).fill('700000');
+  await expect(page.locator('.aero-big-result')).not.toHaveText(baseline);
+  expect(pageErrors).toEqual([]);
+});
