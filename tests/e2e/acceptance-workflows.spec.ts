@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openWorkspace } from './helpers/navigation';
 
 const issTle = [
   'ISS (ZARYA)',
@@ -19,7 +20,7 @@ test('primary engineering workflow connects design, simulation, analysis, verifi
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Satellite tracking & pass planning' })).toBeVisible();
-  await page.getByRole('button', { name: 'Mission', exact: true }).click();
+  await openWorkspace(page, 'Mission');
   await expect(page.getByRole('heading', { name: 'Start with the engineering problem.' })).toBeVisible();
 
   const workspaces = [
@@ -54,7 +55,7 @@ test('satellite tracking validates TLEs and exposes SGP4 look angles and Doppler
   await stubCelesTrak(page);
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Satellite Tracking', exact: true }).click();
+  await openWorkspace(page, 'Satellite Tracking');
 
   await expect(page.getByRole('heading', { name: 'Satellite tracking & pass planning' })).toBeVisible({ timeout: 15000 });
   await expect(page.getByText('Live data loaded · 1 objects · Space stations')).toBeVisible();
