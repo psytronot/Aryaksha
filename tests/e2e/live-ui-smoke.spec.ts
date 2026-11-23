@@ -210,3 +210,20 @@ test('Aerospace Workbench guides users to the three engineering products', async
   await expect(page.getByText(/ideal instantaneous impulses/i)).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
+
+
+test('public homepage showcases aerospace products and opens the workbench', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: /From engineering question/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Rocket staging optimiser' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Rocket ascent simulator' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Satellite orbital transfer' })).toBeVisible();
+  await page.getByRole('button', { name: 'Explore orbit tool' }).click();
+  await expect(page.getByRole('heading', { name: 'Aerospace Engineering Workbench' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Engineering products' })).toBeVisible();
+  const feedback = page.getByRole('link', { name: /Report an issue or suggest a feature/ });
+  await expect(feedback).toHaveAttribute('href', 'https://github.com/psytronot/Aryaksha/issues/new');
+  expect(errors).toEqual([]);
+});
