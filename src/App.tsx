@@ -40,21 +40,22 @@ const spacecraftDefaults: Spacecraft = {
 
 type View = 'mission' | 'payload' | 'spacecraft' | 'orbit' | 'simulation' | 'tracking' | 'missionAnalysis' | 'analysis' | 'verification' | 'report' | 'instructions' | 'tools' | 'software' | 'aerospace' | 'rocketAscent';
 const nav: { id: View; label: string; icon: React.ReactNode; group: string }[] = [
-  { id: 'mission', label: 'Mission', icon: <Target size={16} />, group: 'Design' },
+  { id: 'mission', label: 'Mission', icon: <Target size={16} />, group: 'Plan' },
   { id: 'payload', label: 'Payload', icon: <Globe2 size={16} />, group: 'Design' },
   { id: 'spacecraft', label: 'Spacecraft', icon: <Satellite size={16} />, group: 'Design' },
   { id: 'orbit', label: 'Orbit & Maneuver', icon: <Orbit size={16} />, group: 'Design' },
-  { id: 'simulation', label: 'Simulation', icon: <Gauge size={16} />, group: 'Run' },
-  { id: 'tracking', label: 'Satellite Tracking', icon: <Radio size={16} />, group: 'Run' },
-  { id: 'missionAnalysis', label: 'Mission Analysis', icon: <Orbit size={16} />, group: 'Run' },
-  { id: 'analysis', label: 'Engineering Analysis', icon: <Layers3 size={16} />, group: 'Run' },
-  { id: 'verification', label: 'Verification', icon: <Check size={16} />, group: 'Run' },
+  { id: 'simulation', label: 'Simulation', icon: <Gauge size={16} />, group: 'Analyse' },
+  { id: 'tracking', label: 'Satellite Tracking', icon: <Radio size={16} />, group: 'Explore' },
+  { id: 'missionAnalysis', label: 'Mission Analysis', icon: <Orbit size={16} />, group: 'Analyse' },
+  { id: 'analysis', label: 'Engineering Analysis', icon: <Layers3 size={16} />, group: 'Analyse' },
+  { id: 'verification', label: 'Verification', icon: <Check size={16} />, group: 'Analyse' },
   { id: 'report', label: 'Design Report', icon: <Download size={16} />, group: 'Output' },
-  { id: 'instructions', label: 'Instructions & Glossary', icon: <BookOpen size={16} />, group: 'Learn' },
-  { id: 'tools', label: 'Calculator & Reference', icon: <Calculator size={16} />, group: 'Tools' },
-  { id: 'aerospace', label: 'Aerospace Workbench', icon: <Rocket size={16} />, group: 'Engineering' },
-  { id: 'software', label: 'Software Products', icon: <Search size={16} />, group: 'Tools' }
+  { id: 'instructions', label: 'Instructions & Glossary', icon: <BookOpen size={16} />, group: 'Learn & Tools' },
+  { id: 'tools', label: 'Calculator & Reference', icon: <Calculator size={16} />, group: 'Learn & Tools' },
+  { id: 'aerospace', label: 'Aerospace Workbench', icon: <Rocket size={16} />, group: 'Explore' },
+  { id: 'software', label: 'Software Products', icon: <Search size={16} />, group: 'Learn & Tools' }
 ];
+const navGroups = ['Plan', 'Design', 'Analyse', 'Explore', 'Output', 'Learn & Tools'];
 
 function App() {
   const [mission, setMission] = useState(missionDefaults);
@@ -231,17 +232,19 @@ function App() {
       <div className="shell">
         {mobileNavOpen && <div className="mobile-nav-backdrop" onClick={() => setMobileNavOpen(false)} />}
         <aside className={mobileNavOpen ? 'sidebar mobile-open' : 'sidebar'}>
-          <div className="side-title">SPACECRAFT DESIGN</div>
-          {['Design','Run','Output','Learn','Tools'].map(group => (
-            <div key={group} className="nav-group">
-              <small>{group.toUpperCase()}</small>
-              {nav.filter(item => item.group === group).map(item => (
-                <button key={item.id} data-context-label={item.label} className={view === item.id ? 'nav-item active' : 'nav-item'} onClick={() => { setView(item.id); setMobileNavOpen(false); }}>
-                  {item.icon}<span>{item.label}</span>
-                </button>
-              ))}
-            </div>
-          ))}
+          <div className="side-title">WORKSPACES</div>
+          <div className="nav-groups">
+            {navGroups.map(group => (
+              <details key={group} className="nav-group" open={nav.some(item => item.id === view && item.group === group)}>
+                <summary>{group.toUpperCase()}<span>{nav.filter(item => item.group === group).length}</span></summary>
+                {nav.filter(item => item.group === group).map(item => (
+                  <button key={item.id} data-context-label={item.label} aria-current={view === item.id ? 'page' : undefined} className={view === item.id ? 'nav-item active' : 'nav-item'} onClick={() => { setView(item.id); setMobileNavOpen(false); }}>
+                    {item.icon}<span>{item.label}</span>
+                  </button>
+                ))}
+              </details>
+            ))}
+          </div>
           <div className="side-health">
             <small>System health</small>
             <div><span className="dot green" /> Physics engine</div>
@@ -251,7 +254,7 @@ function App() {
         </aside>
 
         <main className="main">
-          <nav id="mobile-navigation" aria-label="Mobile navigation" aria-hidden={!mobileNavOpen} className={mobileNavOpen ? 'mobile-nav-panel is-open' : 'mobile-nav-panel'}>{nav.map(item => <button key={item.id} aria-current={view === item.id ? 'page' : undefined} className={view === item.id ? 'nav-item active' : 'nav-item'} onClick={() => { setView(item.id); setMobileNavOpen(false); }}>{item.icon}<span>{item.label}</span></button>)}</nav>
+          <nav id="mobile-navigation" aria-label="Mobile navigation" aria-hidden={!mobileNavOpen} className={mobileNavOpen ? 'mobile-nav-panel is-open' : 'mobile-nav-panel'}>{navGroups.map(group => <details key={group} className="mobile-nav-group" open={nav.some(item => item.id === view && item.group === group)}><summary>{group}<span>{nav.filter(item => item.group === group).length}</span></summary>{nav.filter(item => item.group === group).map(item => <button key={item.id} aria-current={view === item.id ? 'page' : undefined} className={view === item.id ? 'nav-item active' : 'nav-item'} onClick={() => { setView(item.id); setMobileNavOpen(false); }}>{item.icon}<span>{item.label}</span></button>)}</details>)}</nav>
           <div className="mission-strip">
             <div><small>ACTIVE MISSION</small><b>{mission.name}</b><span>{mission.type} · {mission.target}</span></div>
             <div className="mission-strip-actions">
