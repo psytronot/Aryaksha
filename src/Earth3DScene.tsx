@@ -1025,6 +1025,16 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
     }
   }, [cameraMode, selectedBody, earthMoonTrueScale]);
 
+  // Keep accessible state diagnostics synchronized even while the WebGL loop is
+  // paused offscreen. The scene renderer remains the source of visual updates.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    container.dataset.cameraMode = cameraMode;
+    container.dataset.planetaryVisible = String(showPlanets && cameraMode === 'PLANETS');
+    container.dataset.planetarySelectedBody = selectedBody;
+  }, [cameraMode, showPlanets, selectedBody]);
+
   const toggleFullscreen = async () => {
     const workspace = workspaceRef.current;
     if (!workspace) return;
@@ -1164,7 +1174,7 @@ export default function Earth3DScene({ model, current, seconds, name, propagator
           <div className="earth3d-hud-card"><small>EARTH–MOON SYSTEM</small>{cameraMode === 'SYSTEM' && <span className="earth3d-scale-warning">SCHEMATIC VIEW · 44.4× DISTANCE COMPRESSION</span>}<label><input type="checkbox" checked={showSpaceEnvironment} onChange={e => setShowSpaceEnvironment(e.target.checked)} /> <span>Show Moon and lunar orbit</span></label><div className="earth3d-planet-select"><span>SPACECRAFT MODEL</span><select aria-label="Choose spacecraft model" value={selectedSatellite} onChange={e => setSelectedSatellite(e.target.value)}><option value="design">Current mission design</option><option value="cubesat1u">CubeSat 1U · 10 cm</option><option value="cubesat3u">CubeSat 3U · 34 cm</option><option value="cubesat6u">CubeSat 6U</option><option value="microsat">Microsatellite · reference</option><option value="iss">ISS · reference silhouette</option></select></div><span>Model choice changes the 3D silhouette only; orbit and telemetry remain the selected mission state.</span></div>
           <div className="earth3d-hud-card earth3d-planetary-controls" data-testid="earth3d-planetary-controls">
             <small>PLANETARY OVERVIEW</small>
-            <label><input type="checkbox" checked={showPlanets} onChange={event => { const enabled = event.currentTarget.checked; setShowPlanets(enabled); if (enabled) { setSelectedBody('Overview'); setCameraMode('PLANETS'); } else if (cameraMode === 'PLANETS') setCameraMode('EARTH'); }} /> <span>Enable schematic solar system</span></label>
+            <label><input type="checkbox" checked={showPlanets} onChange={event => { const enabled = event.currentTarget.checked; setShowPlanets(enabled); if (enabled) { setSelectedBody('Overview'); selectCameraMode('PLANETS'); } else if (cameraMode === 'PLANETS') selectCameraMode('EARTH'); }} /> <span>Enable schematic solar system</span></label>
             <div className="earth3d-planet-select"><span>CAMERA TARGET</span><select aria-label="Choose planetary camera target" value={selectedBody} onChange={event => { const body = event.currentTarget.value as PlanetaryTarget; setSelectedBody(body); if (body === 'Moon') { setShowSpaceEnvironment(true); setCameraMode('MOON'); } else { setShowPlanets(true); setCameraMode('PLANETS'); } }}>
               <option value="Overview">Solar system overview</option><option value="Sun">Sun</option><option value="Mercury">Mercury</option><option value="Venus">Venus</option><option value="Earth">Earth · schematic</option><option value="Moon">Moon · Earth-facing</option><option value="Mars">Mars</option><option value="Jupiter">Jupiter</option><option value="Saturn">Saturn · rings</option><option value="Uranus">Uranus</option><option value="Neptune">Neptune</option>
             </select></div>
