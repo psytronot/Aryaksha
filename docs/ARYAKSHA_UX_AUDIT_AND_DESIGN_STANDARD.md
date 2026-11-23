@@ -140,3 +140,30 @@ Do not force every tool into identical layouts when its engineering task require
 This pass does not claim a complete visual redesign of every engineering workspace. The next implementation pass should inspect and improve individual forms, result panels, chart hierarchy, contextual help, error states and narrow-screen layouts. Those changes must be driven by the actual component implementations and protected by workflow-specific tests.
 
 The numerical models remain preliminary educational and trade-study models unless their respective documentation and validation evidence establish otherwise.
+
+
+## 8. Follow-up implementation and release evidence
+
+### Engineering workspace improvements
+- Mission Analysis: explicit label/input associations, busy state semantics, live completion announcement and a visible list of model assumptions returned by the service.
+- Satellite Tracking: catalogue refresh and pass-prediction status are announced through polite live regions; prediction action exposes its busy state.
+- Orekit proxy: upstream validation detail is sanitized and surfaced in the API response and server logs rather than being hidden behind a generic HTTP 502.
+- Regression coverage: a mocked upstream integration test checks numeric request forwarding, propagation-time forwarding, successful Orekit result rendering and sanitized upstream rejection handling.
+- Responsive coverage: added a mobile mission-to-verification journey at 375 px and viewport overflow assertions at 320, 375, 768 and 1440 px.
+
+### Production issue discovered during health review
+The existing AppDeploy Aryaksha service has repeated backend errors for `POST /api/mission-analysis/orbit`: the proxy reports HTTP 502 after the Orekit service returns HTTP 400. The deployed AppDeploy snapshot is separate from the Git branch source, so the live app has not been changed. The branch now captures the upstream error body in a bounded, sanitized form so the exact validation reason can be diagnosed in the isolated preview.
+
+### Isolated preview
+- Render service: `aryaksha-ux-preview`
+- Branch: `feature/aryaksha-ux-simplification`
+- Auto-deploy: disabled; subsequent commits require an intentional manual deploy.
+- Build and service startup: successful.
+- Preview URL: https://aryaksha-ux-preview.onrender.com
+- Existing AppDeploy app and production Render services were not modified.
+
+### Remaining release gates
+- Browser smoke suite on the latest branch head must complete successfully.
+- Review the isolated preview at desktop and mobile sizes.
+- Submit a real mission-analysis request through the isolated preview and inspect the returned upstream reason before deciding whether the Orekit service itself requires a code or configuration change.
+- Do not publish to production until the live numerical-propagation check and the full release acceptance checklist pass.
