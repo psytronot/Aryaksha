@@ -123,3 +123,36 @@ All three modules are educational and preliminary trade-study tools. They are no
 - Visual QA on desktop and mobile widths.
 - Accessibility check for keyboard navigation, labels, focus states and semantic headings.
 - Confirm no production deployment or merge without explicit approval.
+
+
+## Public showcase and feedback
+
+The public Aryaksha homepage includes an Aerospace Engineering Products section with one card per module, audience-specific positioning and a direct call to action into the workbench. The cards describe the engineering question each product addresses rather than promising certification or operational performance.
+
+Users can start with the default reference scenario in each module:
+- Project 01 uses the built-in two-stage reference vehicle and a reset-to-reference control.
+- Project 02 uses a built-in ascent reference vehicle and a reset-to-reference control.
+- Project 03 opens with a 400 km to 800 km reference orbit transfer, a 500 kg spacecraft and 320 s effective Isp; its mission setup view can be restored to reference values.
+
+Feedback and bug reports are routed to the Aryaksha GitHub issue tracker at https://github.com/psytronot/Aryaksha/issues/new. This is an issue-submission route and requires a GitHub account.
+
+## Demonstration script (5 minutes)
+
+1. Start at the homepage and explain the three user problems represented by the product cards.
+2. Ask the visitor which task they need to solve and use the matching product card.
+3. Open Module overview and explain intended users and outcomes.
+4. Open Engineering workspace and run the default reference scenario before changing one parameter.
+5. Compare the updated output and explain the model assumptions.
+6. Open Use cases & users to map the module to the visitor's role.
+7. Open Method & limitations and explicitly distinguish preliminary estimates from operational engineering analysis.
+8. Invite the visitor to submit a bug report or feature request through the issue tracker.
+
+## Feedback to capture during user interviews
+
+- User role and organisation type (student, university, startup, engineering team, research lab).
+- The engineering task they were trying to complete.
+- Whether they found the correct module without assistance.
+- Whether input names, units and validation were clear.
+- Whether outputs were understandable and useful.
+- Which missing model capability blocks real use in their workflow.
+- Whether they would use the tool again and what evidence they would need before trusting it.
