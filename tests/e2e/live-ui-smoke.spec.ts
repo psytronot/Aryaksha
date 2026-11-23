@@ -258,3 +258,17 @@ test('mobile navigation uses the same expandable task groups', async ({ page }) 
   await mobileNav.getByRole('button', { name: 'Aerospace Workbench' }).click();
   await expect(page.getByRole('heading', { name: 'Aerospace Engineering Workbench' })).toBeVisible();
 });
+
+
+test('primary application shell avoids horizontal overflow at supported viewport widths', async ({ page }) => {
+  for (const width of [320, 375, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
+    const dimensions = await page.evaluate(() => ({
+      viewport: document.documentElement.clientWidth,
+      document: document.documentElement.scrollWidth
+    }));
+    expect(dimensions.document, `horizontal overflow at viewport width ${width}px`).toBeLessThanOrEqual(dimensions.viewport + 1);
+  }
+});
