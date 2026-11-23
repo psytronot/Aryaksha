@@ -301,7 +301,7 @@ export default function SatelliteTrackingView() {
       setSelectedName(preferred.name);
       setPasses([]);
       setSelectedPassIndex(0);
-      setCatalogStatus('Catalog elements fetched · ' + rows.length.toLocaleString() + ' objects · ' + GROUPS.find(item => item.value === group)?.label);
+      setCatalogStatus('Live data loaded · ' + rows.length.toLocaleString() + ' objects · ' + GROUPS.find(item => item.value === group)?.label);
     } catch (reason) {
       setCatalogStatus('Live data unavailable. Manual TLE import is still available.');
       setError(reason instanceof Error ? reason.message : 'Unable to fetch current orbital elements.');
