@@ -103,8 +103,8 @@ export function compareRocketStageCounts(
   base: Omit<RocketVehicleConfiguration, 'stages'> & { stageTemplates: RocketVehicleConfiguration['stages'] },
   options: RocketOptimisationOptions = {}
 ): Array<{ stageCount: number; result: RocketOptimisationResult }> {
-  if (base.stageTemplates.length < 2 || base.stageTemplates.length > 4) {
-    throw new Error('Stage-count comparison requires between 2 and 4 stage templates.');
+  if (base.stageTemplates.length !== 4) {
+    throw new Error('Stage-count comparison requires exactly 4 ordered stage templates.');
   }
   return [2, 3, 4].map(stageCount => {
     const templates = base.stageTemplates.slice(0, stageCount);
