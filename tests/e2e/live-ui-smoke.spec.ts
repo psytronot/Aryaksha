@@ -183,3 +183,47 @@ test('Rocket Ascent workspace calculates a trajectory and responds to propulsion
   await expect(page.locator('.aero-big-result')).not.toHaveText(baseline);
   expect(pageErrors).toEqual([]);
 });
+
+
+test('Aerospace Workbench guides users to the three engineering products', async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
+  await page.getByRole('button', { name: 'Aerospace Workbench', exact: true }).click();
+
+  await expect(page.getByRole('heading', { name: 'Aerospace Engineering Workbench' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Engineering products' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Rocket staging optimiser' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Rocket ascent simulator' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Satellite orbital transfer' })).toBeVisible();
+
+  await page.getByRole('button', { name: /Open workspace/ }).nth(2).click();
+  await expect(page.getByRole('heading', { name: /Satellite orbital transfer \/ Product brief/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Engineering workspace' }).click();
+  await expect(page.getByRole('heading', { name: 'Satellite orbital transfer designer' })).toBeVisible();
+  await page.getByRole('button', { name: 'Mission setup' }).click();
+  await page.getByRole('spinbutton', { name: 'Target orbit altitude' }).fill('900');
+  await page.getByRole('button', { name: 'Calculate transfer' }).click();
+  await expect(page.getByText('TOTAL DELTA-V')).toBeVisible();
+  await page.getByRole('button', { name: 'Methodology' }).click();
+  await expect(page.getByText(/ideal instantaneous impulses/i)).toBeVisible();
+  expect(pageErrors).toEqual([]);
+});
+
+
+test('public homepage showcases aerospace products and opens the workbench', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: /From engineering question/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Rocket staging optimiser' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Rocket ascent simulator' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Satellite orbital transfer' })).toBeVisible();
+  await page.getByRole('button', { name: 'Explore orbit tool' }).click();
+  await expect(page.getByRole('heading', { name: 'Aerospace Engineering Workbench' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Engineering products' })).toBeVisible();
+  const feedback = page.getByRole('link', { name: /Report an issue or suggest a feature/ });
+  await expect(feedback).toHaveAttribute('href', 'https://github.com/psytronot/Aryaksha/issues/new');
+  expect(errors).toEqual([]);
+});
