@@ -167,3 +167,10 @@ The existing AppDeploy Aryaksha service has repeated backend errors for `POST /a
 - Review the isolated preview at desktop and mobile sizes.
 - Submit a real mission-analysis request through the isolated preview and inspect the returned upstream reason before deciding whether the Orekit service itself requires a code or configuration change.
 - Do not publish to production until the live numerical-propagation check and the full release acceptance checklist pass.
+
+
+### Rate-limit handling update
+- The Orekit proxy now maps upstream HTTP 429 to HTTP 503 with a clear retry message and forwards `Retry-After` when supplied.
+- Regression coverage verifies the 503 mapping and retry header.
+- The isolated preview's Render service was manually redeployed with this handling; automatic deploys remain disabled.
+- Live Orekit calculations remain blocked by upstream rate limiting / edge challenge responses. No paid-plan upgrade or production service change has been made.
