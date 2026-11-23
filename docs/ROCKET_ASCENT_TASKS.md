@@ -6,7 +6,7 @@
 | 02 | Define the model contract and fidelity boundary | Spherical radial/tangential state, central gravity, exponential atmosphere, drag, thrust/mass flow, pitch schedule, RK4 and limitations documented | DONE |
 | 03 | Define behavioral tests before the engine | Unit tests cover SI outputs, time ordering, burnout/dry mass, max-Q, Isp sensitivity and invalid inputs | DONE — CI execution pending |
 | 04 | Implement the pure ascent engine | RK4 integration, atmosphere, gravity, drag, pitch and powered/coast phases | DONE — CI execution pending |
-| 05 | Add a deterministic reference case | Fixed reference inputs and independently reproduced burnout/max-altitude/max-Q values | IN PROGRESS |
+| 05 | Add a deterministic reference case | Independent numerical spot-check: 107.496 s burnout, 3,463.862 m/s burnout speed, 82,831.64 m max altitude, 99,207.17 Pa sampled max-Q; 0.5 s vs 0.25 s altitude convergence within 1 m | DONE — CI pending |
 | 06 | Build the interactive engineering workspace | Editable vehicle/aero/guidance inputs and live trajectory summary | DONE — CI execution pending |
 | 07 | Add trajectory visualisation and max-Q reporting | Altitude/downrange plot, burnout and max-Q metrics | DONE — CI execution pending |
 | 08 | Integrate navigation and preserve Project 01 | Existing Aerospace Engineering workspace remains reachable; Rocket Ascent has its own route | DONE — CI execution pending |
