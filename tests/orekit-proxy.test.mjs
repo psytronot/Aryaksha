@@ -41,7 +41,7 @@ beforeAll(async () => {
     for await (const chunk of request) chunks.push(chunk);
     lastRequest = JSON.parse(Buffer.concat(chunks).toString('utf8'));
 
-    if (lastRequest.altitudeKm === 120) {
+    if (lastRequest.elapsedSeconds === 123) {
       response.writeHead(400, { 'content-type': 'application/json' });
       response.end(JSON.stringify({ error: 'The selected orbit intersects Earth at periapsis.' }));
       return;
@@ -97,7 +97,7 @@ describe('Orekit upstream proxy contract', () => {
     const response = await fetch(`${apiUrl}/api/mission-analysis/orbit`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ altitudeKm: 120, inclinationDeg: 45, eccentricity: 0.02, elapsedSeconds: 0 })
+      body: JSON.stringify({ altitudeKm: 550, inclinationDeg: 45, eccentricity: 0.001, elapsedSeconds: 123 })
     });
     const payload = await response.json();
 
