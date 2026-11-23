@@ -101,6 +101,11 @@ export const handler = router({
         } finally {
           clearTimeout(timeout);
         }
+        if (response.status === 429) {
+          const retryAfter = response.headers.get('retry-after');
+          console.warn('Orekit service rate-limited orbit analysis', { retryAfter: retryAfter || 'not provided' });
+          return error('Orekit service is temporarily rate-limited. Please retry shortly.', 503);
+        }
         if (!response.ok) {
           const responseText = await response.text();
           let upstreamMessage = '';
