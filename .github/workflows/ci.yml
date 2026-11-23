@@ -299,15 +299,35 @@ jobs:
           done
           test "${status:-000}" = "200"
 
-      - name: Verify preview Orekit integration and print upstream rejection reason
+      - name: Verify preview Orekit integration with bounded rate-limit retries
         shell: bash
+        timeout-minutes: 7
         env:
           PREVIEW_URL: https://aryaksha-ux-preview.onrender.com
         run: |
-          status=$(curl --silent --show-error --max-time 90 -o /tmp/preview-orbit.json -w '%{http_code}' -H 'content-type: application/json' -d '{"altitudeKm":550,"inclinationDeg":97.6,"eccentricity":0.001,"elapsedSeconds":0}' "$PREVIEW_URL/api/mission-analysis/orbit" || true)
-          cat /tmp/preview-orbit.json
-          if [ "$status" != "200" ]; then
-            echo "Isolated preview mission analysis failed with HTTP ${status:-000}; upstream detail is shown above."
+          verified=false
+          for attempt in 1 2 3; do
+            status=$(curl --silent --show-error --max-time 90 -D /tmp/preview-orbit-headers.txt -o /tmp/preview-orbit.json -w '%{http_code}' -H 'content-type: application/json' -d '{"altitudeKm":550,"inclinationDeg":97.6,"eccentricity":0.001,"elapsedSeconds":0}' "$PREVIEW_URL/api/mission-analysis/orbit" || true)
+            echo "Orekit integration attempt $attempt/3 returned HTTP ${status:-000}"
+            cat /tmp/preview-orbit.json
+            if [ "$status" = "200" ] && node -e 'const p=require("/tmp/preview-orbit.json"); if (p.valid!==true || p.engine!=="Orekit" || p.comparison?.engineAdapter!=="orekit-http" || !Number.isFinite(p.orbit?.periodMinutes) || p.state?.frame!=="EME2000") process.exit(1);'; then
+              verified=true
+              break
+            fi
+            if [ "$status" != "503" ] && [ "$status" != "429" ]; then
+              echo "Non-retryable isolated preview mission-analysis failure."
+              exit 1
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              retry_after=$(awk 'BEGIN{IGNORECASE=1} /^retry-after:/ {gsub("\\r",""); print $2}' /tmp/preview-orbit-headers.txt | tail -n 1)
+              if ! [[ "${retry_after:-}" =~ ^[0-9]+$ ]] || [ "$retry_after" -gt 60 ]; then
+                retry_after=$((attempt * 15))
+              fi
+              echo "Orekit upstream is rate-limited; retrying after ${retry_after}s."
+              sleep "$retry_after"
+            fi
+          done
+          if [ "$verified" != true ]; then
+            echo "Orekit remained rate-limited after three attempts; no numerical result was fabricated."
             exit 1
           fi
-          node -e 'const p=require("/tmp/preview-orbit.json"); if (p.valid!==true || p.engine!=="Orekit" || p.comparison?.engineAdapter!=="orekit-http" || !Number.isFinite(p.orbit?.periodMinutes) || p.state?.frame!=="EME2000") process.exit(1);'
