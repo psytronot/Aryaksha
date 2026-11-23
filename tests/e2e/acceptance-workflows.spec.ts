@@ -122,18 +122,22 @@ test('mobile spacecraft design journey remains navigable without horizontal over
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
 
   const steps = [
-    { name: 'Mission', heading: 'Start with the engineering problem.' },
-    { name: 'Payload', heading: 'Turn the payload into spacecraft constraints.' },
-    { name: 'Spacecraft', heading: 'Build the vehicle around the mission.' },
-    { name: 'Orbit & Maneuver', heading: 'Make the orbital mechanics visible.' },
-    { name: 'Engineering Analysis', heading: 'See where the spacecraft succeeds or fails.' },
-    { name: 'Verification', heading: 'Prove the design meets the requirements.' }
+    { name: 'Mission', heading: 'Start with the engineering problem.', groupIndex: 0 },
+    { name: 'Payload', heading: 'Turn the payload into spacecraft constraints.', groupIndex: 1 },
+    { name: 'Spacecraft', heading: 'Build the vehicle around the mission.', groupIndex: 1 },
+    { name: 'Orbit & Maneuver', heading: 'Make the orbital mechanics visible.', groupIndex: 1 },
+    { name: 'Engineering Analysis', heading: 'See where the spacecraft succeeds or fails.', groupIndex: 2 },
+    { name: 'Verification', heading: 'Prove the design meets the requirements.', groupIndex: 2 }
   ];
 
   for (const step of steps) {
     await page.getByRole('button', { name: 'Open navigation' }).click();
-    await page.getByRole('navigation', { name: 'Mobile navigation' })
-      .getByRole('button', { name: step.name, exact: true }).click();
+    const mobileNavigation = page.getByRole('navigation', { name: 'Mobile navigation' });
+    const targetGroup = mobileNavigation.locator('details').nth(step.groupIndex);
+    if (!(await targetGroup.evaluate(element => element.open))) {
+      await targetGroup.locator('summary').click();
+    }
+    await mobileNavigation.getByRole('button', { name: step.name, exact: true }).click();
     await expect(page.getByRole('heading', { name: step.heading, exact: true })).toBeVisible();
     const dimensions = await page.evaluate(() => ({
       viewport: document.documentElement.clientWidth,
