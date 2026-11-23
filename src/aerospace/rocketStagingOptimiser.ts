@@ -93,7 +93,7 @@ export function optimiseMaximumDeltaV(
   const resolved = resolveOptions(options);
   // Validate baseline and establish the fixed total propellant budget.
   calculateRocketVehicle(configuration);
-  const totalPropellantKg = configuration.stages.reduce((sum, stage) => sum + stage.propellantMassKg, 0);
+  const fixedInitialMassKg = calculateRocketVehicle(configuration).initialMassKg;
   const count = configuration.stages.length;
   if (resolved.minimumStagePropellantShare * count >= 1) {
     throw new Error('Minimum stage propellant share leaves no feasible allocation.');
@@ -105,7 +105,11 @@ export function optimiseMaximumDeltaV(
     if (evaluations >= resolved.maxEvaluations) return;
     evaluations += 1;
     try {
-      const vehicle = calculateRocketVehicle(makeConfiguration(configuration, shares, totalPropellantKg));
+      const massCoefficient = shares.reduce((sum, share, index) =>
+        sum + share / (1 - configuration.stages[index].structuralFraction), 0);
+      const totalPropellantKg = (fixedInitialMassKg - configuration.payloadMassKg) / massCoefficient;
+      const vehicleConfiguration = makeConfiguration(configuration, shares, totalPropellantKg);
+      const vehicle = calculateRocketVehicle(vehicleConfiguration);
       if (!best || vehicle.totalDeltaVMs > best.vehicle.totalDeltaVMs) best = { shares, vehicle };
     } catch {
       // Invalid physical candidates are excluded from the feasible set.
@@ -155,7 +159,10 @@ export function optimiseMaximumDeltaV(
 
   const converged = evaluations < resolved.maxEvaluations &&
     step <= resolved.constraintTolerance || lastImprovement <= tolerance;
-  const finalConfiguration = makeConfiguration(configuration, best.shares, totalPropellantKg);
+  const finalMassCoefficient = best.shares.reduce((sum, share, index) =>
+    sum + share / (1 - configuration.stages[index].structuralFraction), 0);
+  const finalTotalPropellantKg = (fixedInitialMassKg - configuration.payloadMassKg) / finalMassCoefficient;
+  const finalConfiguration = makeConfiguration(configuration, best.shares, finalTotalPropellantKg);
   const finalVehicle = calculateRocketVehicle(finalConfiguration);
   const status: RocketSolverStatus = evaluations >= resolved.maxEvaluations
     ? 'evaluation-limit'
