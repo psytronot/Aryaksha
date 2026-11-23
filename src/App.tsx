@@ -9,8 +9,7 @@ import AryakshaMark from './AryakshaMark';
 const ScientificCalculator = lazy(() => import('./ScientificCalculator'));
 const SatelliteTrackingView = lazy(() => import('./SatelliteTrackingView'));
 const MissionAnalysisView = lazy(() => import('./MissionAnalysisView'));
-import RocketStagingView from './RocketStagingView';
-import RocketAscentView from './RocketAscentView';
+import AerospaceSuiteView from './AerospaceSuiteView';
 import { EARTH_RADIUS, orbitalSummary, propagateState, sampleOrbit, stateToLla } from './orbit';
 import { getGlossaryEntries, getGlossaryEntry, GlossaryEntry } from './glossary';
 import { parseBusinessCsv, serializeBusinessCsv } from './businessCsv';
@@ -53,8 +52,7 @@ const nav: { id: View; label: string; icon: React.ReactNode; group: string }[] =
   { id: 'report', label: 'Design Report', icon: <Download size={16} />, group: 'Output' },
   { id: 'instructions', label: 'Instructions & Glossary', icon: <BookOpen size={16} />, group: 'Learn' },
   { id: 'tools', label: 'Calculator & Reference', icon: <Calculator size={16} />, group: 'Tools' },
-  { id: 'aerospace', label: 'Aerospace Engineering', icon: <Rocket size={16} />, group: 'Engineering' },
-  { id: 'rocketAscent', label: 'Rocket Ascent', icon: <Activity size={16} />, group: 'Engineering' },
+  { id: 'aerospace', label: 'Aerospace Workbench', icon: <Rocket size={16} />, group: 'Engineering' },
   { id: 'software', label: 'Software Products', icon: <Search size={16} />, group: 'Tools' }
 ];
 
@@ -263,8 +261,7 @@ function App() {
           {view === 'report' && <ReportView mission={mission} payload={payload} spacecraft={spacecraft} orbit={orbit} summary={summary} geometry={geometry} verification={verification} onExport={exportReport} />}
           {view === 'instructions' && <InstructionsView />}
           {view === 'tools' && <ToolsView />}
-          {view === 'aerospace' && <RocketStagingView />}
-          {view === 'rocketAscent' && <RocketAscentView />}
+          {view === 'aerospace' && <AerospaceSuiteView />}
           {view === 'software' && <SoftwareProductsView />}
           </Suspense>
           {coachEnabled && <ContextCoach view={view} />}
