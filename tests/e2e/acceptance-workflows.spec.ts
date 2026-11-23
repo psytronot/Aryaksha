@@ -134,7 +134,7 @@ test('mobile spacecraft design journey remains navigable without horizontal over
     await page.getByRole('button', { name: 'Open navigation' }).click();
     const mobileNavigation = page.getByRole('navigation', { name: 'Mobile navigation' });
     const targetGroup = mobileNavigation.locator('details').nth(step.groupIndex);
-    if (!(await targetGroup.evaluate(element => element.open))) {
+    if (!(await targetGroup.evaluate(element => (element as HTMLDetailsElement).open))) {
       await targetGroup.locator('summary').click();
     }
     await mobileNavigation.getByRole('button', { name: step.name, exact: true }).click();
