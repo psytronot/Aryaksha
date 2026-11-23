@@ -62,6 +62,12 @@ app.post('/api/mission-analysis/orbit', apiRateLimit, async (req, res) => {
         signal: controller.signal
       });
     } finally { clearTimeout(timer); }
+    if (upstream.status === 429) {
+      const retryAfter = upstream.headers.get('retry-after');
+      console.warn('Orekit service rate-limited orbit analysis', { retryAfter: retryAfter || 'not provided' });
+      if (retryAfter) res.setHeader('Retry-After', retryAfter);
+      return res.status(503).json({ error: 'Orekit service is temporarily rate-limited. Please retry shortly.' });
+    }
     if (!upstream.ok) {
       const responseText = await upstream.text();
       let upstreamMessage = '';
