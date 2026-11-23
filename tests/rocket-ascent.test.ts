@@ -63,10 +63,25 @@ describe('2D rocket ascent trajectory model', () => {
     expect(result.maxDynamicPressureTimeS).toBeGreaterThanOrEqual(0);
   });
 
-  it('increases ideal burnout delta-v when specific impulse increases', () => {
+  it('increases burnout speed when specific impulse increases', () => {
     const baseline = calculateRocketAscent(reference);
     const improved = calculateRocketAscent({ ...reference, specificImpulseS: 310 });
     expect(improved.burnoutSpeedMps).toBeGreaterThan(baseline.burnoutSpeedMps);
+  });
+
+
+  it('matches an independently integrated reference trajectory', () => {
+    const result = calculateRocketAscent(reference);
+    expect(result.burnoutTimeS).toBeCloseTo(107.49597115, 6);
+    expect(result.burnoutSpeedMps).toBeCloseTo(3463.86223, 2);
+    expect(result.maxAltitudeM).toBeCloseTo(82831.639, 0);
+    expect(result.maxDynamicPressurePa).toBeCloseTo(99207.17, 0);
+  });
+
+  it('converges in maximum altitude when the integration step is halved', () => {
+    const coarse = calculateRocketAscent({ ...reference, timeStepS: 0.5 });
+    const fine = calculateRocketAscent({ ...reference, timeStepS: 0.25 });
+    expect(Math.abs(coarse.maxAltitudeM - fine.maxAltitudeM)).toBeLessThan(1);
   });
 
   it('rejects non-physical mass, propulsion, aerodynamic and integration inputs', () => {
