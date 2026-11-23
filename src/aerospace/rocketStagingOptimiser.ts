@@ -136,9 +136,9 @@ export function optimiseMaximumDeltaV(
   let lastImprovement = Number.POSITIVE_INFINITY;
   const tolerance = resolved.absoluteObjectiveTolerance +
     Math.abs(best.vehicle.totalDeltaVMs) * resolved.relativeObjectiveTolerance;
+  void tolerance;
 
-  while (evaluations < resolved.maxEvaluations && step > resolved.constraintTolerance &&
-    lastImprovement > tolerance) {
+  while (evaluations < resolved.maxEvaluations && step > resolved.constraintTolerance) {
     const startValue = best.vehicle.totalDeltaVMs;
     let improved = false;
     for (let from = 0; from < count; from += 1) {
@@ -157,8 +157,7 @@ export function optimiseMaximumDeltaV(
     if (!improved) step /= 2;
   }
 
-  const converged = evaluations < resolved.maxEvaluations &&
-    (step <= resolved.constraintTolerance || lastImprovement <= tolerance);
+  const converged = evaluations < resolved.maxEvaluations && step <= resolved.constraintTolerance;
   const finalMassCoefficient = best.shares.reduce((sum, share, index) =>
     sum + share / (1 - configuration.stages[index].structuralFraction), 0);
   const finalTotalPropellantKg = (fixedInitialMassKg - configuration.payloadMassKg) / finalMassCoefficient;
