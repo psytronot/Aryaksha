@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openWorkspace } from './helpers/navigation';
 
 type DrawMetric = { durationMs: number; method: string };
 declare global {
@@ -15,20 +16,20 @@ test('accessibility audit: critical and serious axe violations are absent in key
     { name: 'Simulation / Earth 3D', open: async () => {
       await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-      await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+      await openWorkspace(page, 'Simulation');
       await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
     } },
     { name: 'Software Products', open: async () => {
       await page.goto('/');
-      await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+      await openWorkspace(page, 'Software Products');
       await expect(page.getByRole('heading', { name: 'Useful software. Open access. Practical outcomes.', exact: true })).toBeVisible();
     } },
     { name: 'Satellite Tracking', open: async () => {
-      await page.getByRole('button', { name: 'Satellite Tracking', exact: true }).click();
+      await openWorkspace(page, 'Satellite Tracking');
       await expect(page.getByRole('heading', { name: 'Satellite tracking & pass planning' })).toBeVisible();
     } },
     { name: 'Mission Analysis', open: async () => {
-      await page.getByRole('button', { name: 'Mission Analysis', exact: true }).click();
+      await openWorkspace(page, 'Mission Analysis');
       await expect(page.getByRole('heading', { name: 'Orbital Mission Analysis' })).toBeVisible();
     } }
   ];
@@ -102,7 +103,7 @@ test('Earth 3D desktop profiling records WebGL draw submission timings and resou
   const start = Date.now();
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await openWorkspace(page, 'Simulation');
   const canvas = page.locator('.earth3d-canvas canvas');
   await expect(canvas).toBeVisible();
   await page.waitForTimeout(5000);
@@ -138,7 +139,7 @@ test('Earth 3D desktop profiling records WebGL draw submission timings and resou
 test('Spacecraft engineering inputs expose explicit accessible labels', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Spacecraft', exact: true }).click();
+  await openWorkspace(page, 'Spacecraft');
 
   for (const label of ['TX POWER', 'FREQUENCY', 'THRUST', 'THERMAL AREA', 'BATTERY EFFICIENCY', 'BATTERY DoD']) {
     await expect(page.getByLabel(label, { exact: true })).toBeVisible();
