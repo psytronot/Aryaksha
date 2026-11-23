@@ -1,157 +1,215 @@
 import './aerospace.css';
 import { useMemo, useState } from 'react';
-import { Activity, BookOpen, CheckCircle2, FlaskConical, Rocket, SlidersHorizontal } from 'lucide-react';
-import { optimiseRocketStaging, type RocketStagingInputs } from './aerospace/rocketStaging';
+import { Activity, BookOpen, Download, FlaskConical, Rocket, SlidersHorizontal } from 'lucide-react';
+import type { RocketVehicleConfiguration } from './aerospace/rocketStagingModel';
+import {
+  optimiseMaximumDeltaV,
+  optimiseMinimumPropellantForDeltaV,
+  type RocketOptimisationResult
+} from './aerospace/rocketStagingOptimiser';
+import {
+  runRocketStagingSensitivityStudy,
+  type RocketSensitivityStudy
+} from './aerospace/rocketStagingStudies';
+import { buildRocketStagingMarkdownReport } from './aerospace/rocketStagingReport';
 
-const defaults: RocketStagingInputs = {
-  totalInitialMassKg: 100000,
-  payloadMassKg: 5000,
-  stage1SpecificImpulseS: 280,
-  stage2SpecificImpulseS: 340,
-  stage1StructuralFraction: 0.08,
-  stage2StructuralFraction: 0.10
-};
-
-const upcoming = [
-  { number: '02', name: 'Rocket ascent trajectory', discipline: 'Launch vehicle flight mechanics', status: 'NEXT' },
-  { number: '03', name: 'Satellite orbital transfer', discipline: 'Astrodynamics and manoeuvre design', status: 'PLANNED' },
-  { number: '04', name: 'Atmospheric re-entry', discipline: 'Entry dynamics and deceleration', status: 'PLANNED' },
-  { number: '05', name: 'Rocket engine nozzle', discipline: 'Compressible flow and propulsion', status: 'PLANNED' },
-  { number: '06', name: 'UAV conceptual sizing', discipline: 'Aircraft design and mass estimation', status: 'PLANNED' },
-  { number: '07', name: 'Aircraft autopilot', discipline: 'Flight dynamics and control', status: 'PLANNED' }
+const initialStages = [
+  { name: 'Stage 1', propellantMassKg: 65000, specificImpulseS: 280, structuralFraction: 0.08 },
+  { name: 'Stage 2', propellantMassKg: 25000, specificImpulseS: 340, structuralFraction: 0.1 }
 ];
 
-function format(value: number, digits = 0) {
-  return value.toLocaleString('en-IN', { maximumFractionDigits: digits, minimumFractionDigits: digits });
-}
-
-function NumberField({ label, unit, value, min, max, step, onChange }: {
-  label: string; unit: string; value: number; min: number; max: number; step: number; onChange: (value: number) => void;
-}) {
-  return <label className="aero-field">
-    <span>{label}<small>{unit}</small></span>
-    <input type="number" value={value} min={min} max={max} step={step}
-      onChange={event => onChange(Number(event.target.value))} />
-  </label>;
-}
+const fmt = (value: number, digits = 2) => Number.isFinite(value)
+  ? value.toLocaleString('en-IN', { maximumFractionDigits: digits, minimumFractionDigits: digits })
+  : '—';
 
 export default function RocketStagingView() {
-  const [inputs, setInputs] = useState(defaults);
-  const [showTheory, setShowTheory] = useState(true);
-  const result = useMemo(() => {
+  const [stageCount, setStageCount] = useState(2);
+  const [payloadMassKg, setPayloadMassKg] = useState(5000);
+  const [stages, setStages] = useState(initialStages);
+  const [objective, setObjective] = useState<'maximum-delta-v' | 'minimum-propellant'>('maximum-delta-v');
+  const [targetDeltaVMs, setTargetDeltaVMs] = useState(8500);
+  const [maximumInitialMassKg, setMaximumInitialMassKg] = useState(120000);
+  const [sensitivity, setSensitivity] = useState<RocketSensitivityStudy | null>(null);
+  const [showMethod, setShowMethod] = useState(true);
+
+  const configuration: RocketVehicleConfiguration = useMemo(() => ({
+    payloadMassKg,
+    stages: stages.map(stage => ({ ...stage }))
+  }), [payloadMassKg, stages]);
+
+  const calculation = useMemo(() => {
     try {
-      return { value: optimiseRocketStaging(inputs), error: '' };
+      const result = objective === 'maximum-delta-v'
+        ? optimiseMaximumDeltaV(configuration)
+        : optimiseMinimumPropellantForDeltaV(configuration, targetDeltaVMs, maximumInitialMassKg);
+      return { result, error: '' };
     } catch (error) {
-      return { value: null, error: error instanceof Error ? error.message : 'Unable to calculate this design.' };
+      return {
+        result: null,
+        error: error instanceof Error ? error.message : 'Unable to calculate this staging configuration.'
+      };
     }
-  }, [inputs]);
+  }, [configuration, objective, targetDeltaVMs, maximumInitialMassKg]);
 
-  const update = (key: keyof RocketStagingInputs, value: number) =>
-    setInputs(current => ({ ...current, [key]: value }));
+  const updateStage = (index: number, key: 'propellantMassKg' | 'specificImpulseS' | 'structuralFraction', value: number) => {
+    setStages(current => current.map((stage, stageIndex) =>
+      stageIndex === index ? { ...stage, [key]: value } : stage));
+  };
 
-  const points = result.value?.points ?? [];
-  const max = points.length ? Math.max(...points.map(point => point.totalDeltaVMs)) : 1;
-  const min = points.length ? Math.min(...points.map(point => point.totalDeltaVMs)) : 0;
-  const chartPath = points.map((point, index) => {
-    const x = 18 + index / Math.max(1, points.length - 1) * 564;
-    const y = 150 - ((point.totalDeltaVMs - min) / Math.max(1, max - min)) * 112;
-    return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
-  }).join(' ');
-  const optimum = result.value?.optimum;
+  const changeStageCount = (count: number) => {
+    setStageCount(count);
+    setStages(current => Array.from({ length: count }, (_, index) => current[index] ?? {
+      name: 'Stage ' + (index + 1),
+      propellantMassKg: Math.max(500, 18000 / (index + 1)),
+      specificImpulseS: index === 0 ? 280 : 340,
+      structuralFraction: index === 0 ? 0.08 : 0.1
+    }));
+    setSensitivity(null);
+  };
 
-  return <div className="page aerospace-page">
+  const runSensitivity = () => {
+    try {
+      setSensitivity(runRocketStagingSensitivityStudy(configuration, {
+        kind: 'stage-isp', stageIndex: 0,
+        minimum: Math.max(100, stages[0].specificImpulseS * 0.8),
+        maximum: stages[0].specificImpulseS * 1.2
+      }, 9));
+    } catch {
+      setSensitivity(null);
+    }
+  };
+
+  const downloadReport = (result: RocketOptimisationResult) => {
+    const markdown = buildRocketStagingMarkdownReport(result, configuration, sensitivity ? [sensitivity] : []);
+    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'aryaksha-rocket-staging-study.md';
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const result = calculation.result;
+  const chartMax = sensitivity
+    ? Math.max(1, ...sensitivity.samples.map(sample => sample.achievedDeltaVMs ?? 0))
+    : 1;
+
+  return <div className="page aerospace-page aero-staging-workspace">
     <header className="page-header aero-page-header">
       <div>
         <small>ARYAKSHA / ENGINEERING / LAUNCH VEHICLES</small>
-        <h1>Aerospace Engineering Suite</h1>
-        <p>Interactive engineering studies for launch vehicles, spacecraft and aircraft. Configure a model, run the calculation and inspect its assumptions.</p>
+        <h1>Rocket staging optimiser</h1>
+        <p>Explore two-to-four-stage mass allocation using a bounded ideal rocket-equation model.</p>
       </div>
-      <div className="aero-engine-status"><span /> LOCAL ANALYTICAL ENGINE</div>
+      <div className="aero-engine-status"><span/> LOCAL ANALYTICAL ENGINE</div>
     </header>
 
     <section className="aero-project-intro">
-      <div className="aero-intro-icon"><Rocket size={24} /></div>
-      <div><small>PROJECT 01 · LAUNCH VEHICLE ENGINEERING</small><h2>Rocket staging optimisation</h2>
-        <p>Find the two-stage propellant split that maximises ideal velocity increment for a fixed initial mass and payload.</p></div>
-      <div className="aero-project-chip"><CheckCircle2 size={14}/> WORKING MODULE</div>
+      <div className="aero-intro-icon"><Rocket size={24}/></div>
+      <div><small>LAUNCH VEHICLE ARCHITECTURE / PRELIMINARY TRADE STUDY</small>
+        <h2>Configure the vehicle. Compare the staging trade.</h2>
+        <p>Every stage exposes propellant, specific impulse and structural fraction. Solver status and mass accounting remain visible.</p>
+      </div>
     </section>
 
-    <div className="aero-workspace">
+    <div className="aero-staging-layout">
       <section className="card aero-input-card">
-        <div className="card-head"><span><SlidersHorizontal size={17}/></span><b>Vehicle design inputs</b></div>
-        <div className="aero-field-grid">
-          <NumberField label="Initial vehicle mass" unit="kg" value={inputs.totalInitialMassKg} min={1000} max={10000000} step={1000} onChange={v=>update('totalInitialMassKg',v)}/>
-          <NumberField label="Payload mass" unit="kg" value={inputs.payloadMassKg} min={1} max={9999999} step={100} onChange={v=>update('payloadMassKg',v)}/>
-          <NumberField label="Stage 1 specific impulse" unit="s" value={inputs.stage1SpecificImpulseS} min={1} max={600} step={1} onChange={v=>update('stage1SpecificImpulseS',v)}/>
-          <NumberField label="Stage 2 specific impulse" unit="s" value={inputs.stage2SpecificImpulseS} min={1} max={600} step={1} onChange={v=>update('stage2SpecificImpulseS',v)}/>
-          <NumberField label="Stage 1 structural fraction" unit="0–0.49" value={inputs.stage1StructuralFraction} min={0} max={0.49} step={0.01} onChange={v=>update('stage1StructuralFraction',v)}/>
-          <NumberField label="Stage 2 structural fraction" unit="0–0.49" value={inputs.stage2StructuralFraction} min={0} max={0.49} step={0.01} onChange={v=>update('stage2StructuralFraction',v)}/>
-        </div>
-        <button type="button" className="aero-reset-button" onClick={()=>setInputs(defaults)}>Reset reference vehicle</button>
-        <div className="aero-note"><FlaskConical size={15}/><span>Change any input to recalculate all 91 candidate stage splits immediately.</span></div>
+        <div className="card-head"><span><SlidersHorizontal size={17}/></span><b>Vehicle configuration</b></div>
+        <label className="aero-field"><span>Number of stages<small>2–4</small></span>
+          <select aria-label="Number of stages" value={stageCount} onChange={event => changeStageCount(Number(event.target.value))}>
+            {[2, 3, 4].map(count => <option key={count} value={count}>{count} stages</option>)}
+          </select>
+        </label>
+        <label className="aero-field"><span>Payload mass<small>kg</small></span>
+          <input aria-label="Payload mass" type="number" min="1" value={payloadMassKg} onChange={event => setPayloadMassKg(Number(event.target.value))}/>
+        </label>
+        {stages.map((stage, index) => <fieldset className="aero-stage-fieldset" key={index}>
+          <legend>STAGE {index + 1} / {index === 0 ? 'FIRST TO FIRE' : index === stageCount - 1 ? 'FINAL STAGE' : 'UPPER STAGE'}</legend>
+          <label className="aero-field"><span>Propellant mass<small>kg · reference allocation</small></span>
+            <input aria-label={'Stage ' + (index + 1) + ' propellant mass'} type="number" min="0.001" value={stage.propellantMassKg} onChange={event => updateStage(index, 'propellantMassKg', Number(event.target.value))}/>
+          </label>
+          <label className="aero-field"><span>Specific impulse<small>s</small></span>
+            <input aria-label={'Stage ' + (index + 1) + ' specific impulse'} type="number" min="1" value={stage.specificImpulseS} onChange={event => updateStage(index, 'specificImpulseS', Number(event.target.value))}/>
+          </label>
+          <label className="aero-field"><span>Structural fraction<small>0 ≤ ε &lt; 0.5</small></span>
+            <input aria-label={'Stage ' + (index + 1) + ' structural fraction'} type="number" min="0" max="0.499999" step="0.001" value={stage.structuralFraction} onChange={event => updateStage(index, 'structuralFraction', Number(event.target.value))}/>
+          </label>
+        </fieldset>)}
+        <p className="aero-note"><FlaskConical size={15}/> Structural fraction is inert mass divided by stage wet mass (propellant + inert).</p>
       </section>
 
       <section className="card aero-result-card">
-        <div className="card-head"><span><Activity size={17}/></span><b>Optimisation result</b></div>
-        {result.error ? <div className="aero-error" role="alert">{result.error}</div> : optimum && <>
-          <small className="aero-result-label">MAXIMUM IDEAL VELOCITY INCREMENT</small>
-          <div className="aero-big-result">{format(optimum.totalDeltaVMs / 1000, 3)} <span>km/s</span></div>
-          <div className="aero-result-grid">
-            <div><small>Stage 1 propellant</small><b>{format(optimum.stage1PropellantFraction * 100, 1)}%</b></div>
-            <div><small>Stage 2 propellant</small><b>{format((1 - optimum.stage1PropellantFraction) * 100, 1)}%</b></div>
-            <div><small>Stage 1 Δv</small><b>{format(optimum.stage1DeltaVMs / 1000, 3)} km/s</b></div>
-            <div><small>Stage 2 Δv</small><b>{format(optimum.stage2DeltaVMs / 1000, 3)} km/s</b></div>
+        <div className="card-head"><span><Activity size={17}/></span><b>Optimisation objective</b></div>
+        <div className="aero-objective-switch">
+          <button className={objective === 'maximum-delta-v' ? 'active' : ''} onClick={() => setObjective('maximum-delta-v')}>Maximise ideal Δv</button>
+          <button className={objective === 'minimum-propellant' ? 'active' : ''} onClick={() => setObjective('minimum-propellant')}>Meet target Δv</button>
+        </div>
+        {objective === 'minimum-propellant' && <div className="aero-field-grid">
+          <label className="aero-field"><span>Target ideal Δv<small>m/s</small></span>
+            <input aria-label="Target ideal Δv" type="number" min="1" value={targetDeltaVMs} onChange={event => setTargetDeltaVMs(Number(event.target.value))}/>
+          </label>
+          <label className="aero-field"><span>Maximum initial wet mass<small>kg</small></span>
+            <input aria-label="Maximum initial wet mass" type="number" min="1" value={maximumInitialMassKg} onChange={event => setMaximumInitialMassKg(Number(event.target.value))}/>
+          </label>
+        </div>}
+        {calculation.error ? <div className="aero-error" role="alert">{calculation.error}</div> : result && !result.feasible ? <div className="aero-error" role="alert">{result.terminationReason} No feasible target solution is being presented.</div> : result && <>
+          <div className="aero-solver-status" role="status">
+            <b>{result.status.toUpperCase().replace(/-/g, ' ')}</b>
+            <span>{result.evaluations.toLocaleString('en-IN')} evaluations · {result.converged ? 'tolerance reached' : 'solution not confirmed converged'}</span>
           </div>
-          <div className="aero-mass-breakdown">
-            <div><span>Stage 1 propellant</span><b>{format(optimum.stage1PropellantKg)} kg</b></div>
-            <div><span>Stage 1 inert mass</span><b>{format(optimum.stage1DryMassKg)} kg</b></div>
-            <div><span>Stage 2 propellant</span><b>{format(optimum.stage2PropellantKg)} kg</b></div>
-            <div><span>Stage 2 inert mass</span><b>{format(optimum.stage2DryMassKg)} kg</b></div>
-            <div><span>Payload</span><b>{format(inputs.payloadMassKg)} kg</b></div>
+          <small className="aero-result-label">{objective === 'maximum-delta-v' ? 'BEST IDEAL VELOCITY INCREMENT FOUND' : 'PROPELLANT MASS FOR TARGET Δv'}</small>
+          <div className="aero-big-result">{fmt(result.vehicle.totalDeltaVMs / 1000, 3)} <span>km/s</span></div>
+          <div className="aero-result-grid">
+            <div><small>Initial wet mass</small><b>{fmt(result.vehicle.initialMassKg)} kg</b></div>
+            <div><small>Total propellant</small><b>{fmt(result.vehicle.totalPropellantMassKg)} kg</b></div>
+            <div><small>Total inert mass</small><b>{fmt(result.vehicle.totalInertMassKg)} kg</b></div>
+            <div><small>Mass closure error</small><b>{fmt(result.vehicle.massClosureErrorKg, 8)} kg</b></div>
+          </div>
+          <p className="aero-solver-reason">{result.terminationReason}</p>
+          <div className="aero-stage-results">
+            {result.vehicle.stages.map((stage, index) => <div key={index}>
+              <b>STAGE {index + 1}</b>
+              <span>{fmt(stage.deltaVMs)} m/s Δv</span>
+              <small>Propellant {fmt(stage.propellantMassKg)} kg · inert {fmt(stage.inertMassKg)} kg</small>
+              <small>Ignition {fmt(stage.ignitionMassKg)} kg · burnout {fmt(stage.burnoutMassKg)} kg · separation {fmt(stage.separationMassKg)} kg</small>
+            </div>)}
+          </div>
+          <div className="aero-action-row">
+            <button className="aero-primary-button" onClick={() => downloadReport(result)}><Download size={14}/> Export Markdown report</button>
+            <button className="aero-primary-button" onClick={runSensitivity}>Run Stage 1 Isp sensitivity</button>
           </div>
         </>}
       </section>
     </div>
 
-    <section className="card aero-chart-card">
-      <div className="card-head"><span><Activity size={17}/></span><b>Stage split sensitivity</b><small>91 candidate configurations · 5% to 95%</small></div>
-      {optimum && <div className="aero-chart-wrap">
-        <svg viewBox="0 0 600 180" role="img" aria-label="Ideal velocity increment versus stage one propellant fraction">
-          {[38, 94, 150].map(y=><line key={y} x1="18" x2="582" y1={y} y2={y} stroke="rgba(255,255,255,.10)" strokeDasharray="4 5"/>)}
-          <path d={chartPath} fill="none" stroke="#51ddff" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"/>
-          <line x1={18 + (optimum.stage1PropellantFraction * 100 - 5) / 90 * 564} x2={18 + (optimum.stage1PropellantFraction * 100 - 5) / 90 * 564} y1="22" y2="150" stroke="#42df82" strokeDasharray="4 4"/>
-          <circle cx={18 + (optimum.stage1PropellantFraction * 100 - 5) / 90 * 564} cy={150 - ((optimum.totalDeltaVMs - min) / Math.max(1, max - min)) * 112} r="5" fill="#42df82" stroke="#071019" strokeWidth="2"/>
-          <text x="18" y="171" fill="#8d9aa7" fontSize="9">5%</text><text x="582" y="171" fill="#8d9aa7" fontSize="9" textAnchor="end">95%</text>
-        </svg>
-        <div className="aero-chart-legend"><span><i/> Total ideal Δv</span><span><i/> Best split: {format(optimum.stage1PropellantFraction * 100, 1)}%</span></div>
-      </div>}
-    </section>
+    {sensitivity && <section className="card aero-chart-card">
+      <div className="card-head"><span><Activity size={17}/></span><b>Stage 1 specific impulse sensitivity</b><small>Sampled study · {sensitivity.samples.length} points</small></div>
+      <div className="aero-sensitivity-table">
+        {sensitivity.samples.map((sample, index) => <div key={index}>
+          <span>{fmt(sample.inputValue, 1)} s</span>
+          <div className="aero-sensitivity-track"><i style={{ width: (sample.achievedDeltaVMs ? sample.achievedDeltaVMs / chartMax * 100 : 0) + '%' }}/></div>
+          <b>{sample.achievedDeltaVMs === null ? sample.status : fmt(sample.achievedDeltaVMs / 1000, 3) + ' km/s'}</b>
+        </div>)}
+      </div>
+    </section>}
 
     <section className="card aero-theory-card">
-      <button className="aero-theory-toggle" type="button" onClick={()=>setShowTheory(value=>!value)}>
-        <span><BookOpen size={17}/> Engineering model & assumptions</span><span>{showTheory ? 'HIDE' : 'SHOW'}</span>
+      <button className="aero-theory-toggle" type="button" onClick={() => setShowMethod(value => !value)}>
+        <span><BookOpen size={17}/> Numerical method, equations and assumptions</span><span>{showMethod ? 'HIDE' : 'SHOW'}</span>
       </button>
-      {showTheory && <div className="aero-theory-content">
-        <p>The ideal rocket equation is applied separately to each stage. The first-stage inert mass is discarded before the second-stage burn.</p>
-        <div className="aero-equation">Δv = I<sub>sp</sub> g₀ ln(m₀ / m<sub>f</sub>)</div>
+      {showMethod && <div className="aero-theory-content">
+        <div className="aero-equation">Δvᵢ = Ispᵢ × g₀ × ln(mᵢ,ignition / mᵢ,burnout)</div>
+        <p>Maximum ideal Δv holds initial wet mass and payload fixed while exploring propellant allocations. Target Δv mode searches allocations and bisects total propellant under the initial wet-mass ceiling.</p>
         <ul>
-          <li>Initial vehicle mass and payload mass are fixed.</li>
-          <li>Structural fraction means inert mass divided by stage wet mass (propellant + inert mass).</li>
-          <li>Propellant is divided between stages; the total mass constraint determines the total propellant load.</li>
-          <li>Stage burns are idealised instantaneous mass-depletion calculations using constant specific impulse.</li>
-          <li>Gravity, atmospheric drag, steering, finite-burn losses, engine dry-mass variation and separation losses are excluded.</li>
+          <li>Stage inert mass remains attached during its burn and is jettisoned before the next stage ignition.</li>
+          <li>Final-stage inert mass remains attached to the payload.</li>
+          <li>Search is deterministic and bounded. The best candidate found is not a proof of global optimality.</li>
+          <li>Target-mode search failure is reported as inconclusive unless infeasibility is established; sampled search does not prove continuous-domain infeasibility.</li>
+          <li>Gravity, drag, steering, finite burns, residual propellant, engine transients, thrust-to-weight, timing and separation losses are excluded.</li>
         </ul>
-        <div className="aero-caution">This is an ideal staging trade study, not a launch trajectory prediction or flight-certified vehicle design.</div>
+        <div className="aero-caution">Educational and preliminary trade-study only. Not a trajectory prediction, launch vehicle qualification or flight-certified design.</div>
       </div>}
-    </section>
-
-    <section className="aero-roadmap-section">
-      <div className="aero-section-heading"><div><small>ENGINEERING ROADMAP</small><h2>Six more studies in the suite</h2></div><span>01 / 07 ACTIVE</span></div>
-      <div className="aero-roadmap-grid">
-        {upcoming.map(project=><article className="aero-roadmap-card" key={project.number}>
-          <small>PROJECT {project.number}</small><h3>{project.name}</h3><p>{project.discipline}</p><span>{project.status}</span>
-        </article>)}
-      </div>
     </section>
   </div>;
 }

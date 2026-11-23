@@ -1,4 +1,5 @@
 import { expect, test, type Locator } from '@playwright/test';
+import { openWorkspace } from './helpers/navigation';
 import { EARTH_CAMERA_MARGIN, fitCameraDistance, MOON_CAMERA_MARGIN, SYSTEM_CAMERA_MARGIN, SYSTEM_DISPLAY_DISTANCE_RATIO } from '../../src/earth3dMath';
 
 async function disableContextCoach(page: import('@playwright/test').Page) {
@@ -47,7 +48,7 @@ test('Earth 3D exposes responsive camera modes and lunar layer controls', async 
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await disableContextCoach(page);
-  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await openWorkspace(page, 'Simulation');
 
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByLabel('Interactive 3D Earth with trackable spacecraft')).toBeVisible();
@@ -174,7 +175,7 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await disableContextCoach(page);
-  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await openWorkspace(page, 'Simulation');
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
   const canvas = page.locator('.earth3d-canvas canvas');
   await expect(canvas).toBeVisible();
@@ -264,7 +265,7 @@ test('Earth 3D creates a live WebGL canvas and keeps its drawing buffer sized to
 test('Earth 3D reports a recoverable viewport state when WebGL context is lost', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await openWorkspace(page, 'Simulation');
   const canvas = page.locator('.earth3d-canvas canvas');
   await expect(canvas).toBeVisible();
 
@@ -485,7 +486,7 @@ test('Earth 3D captures desktop and mobile Earth-Moon visual evidence without sh
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await openWorkspace(page, 'Simulation');
   await page.locator('.earth3d-canvas canvas').scrollIntoViewIfNeeded();
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
   await expect(page.locator('.earth3d-canvas canvas')).toBeVisible();
@@ -586,7 +587,7 @@ test('Earth 3D uses deterministic local textures when NASA imagery is blocked by
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await openWorkspace(page, 'Simulation');
 
   await expect(page.getByRole('heading', { name: 'Earth 3D', exact: true })).toBeVisible();
   const imageryStatus = page.getByTestId('earth-imagery-status');
@@ -616,7 +617,7 @@ test('Earth 3D desktop timeline is opt-in and never overlays the globe', async (
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await openWorkspace(page, 'Simulation');
 
   const workspace = page.locator('.earth3d-workspace');
   const canvas = page.locator('.earth3d-canvas');
@@ -652,7 +653,7 @@ test('Earth 3D releases its WebGL context on unmount and remounts cleanly', asyn
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await openWorkspace(page, 'Simulation');
 
   const canvas = page.locator('.earth3d-canvas canvas');
   await expect(canvas).toBeVisible({ timeout: 15000 });
@@ -663,11 +664,11 @@ test('Earth 3D releases its WebGL context on unmount and remounts cleanly', asyn
     (window as any).__earth3dUnmountContext = context;
   });
 
-  await page.getByRole('button', { name: 'Satellite Tracking', exact: true }).click();
+  await openWorkspace(page, 'Satellite Tracking');
   await expect(canvas).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => Boolean((window as any).__earth3dUnmountContext?.isContextLost())), { timeout: 10000 }).toBe(true);
 
-  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await openWorkspace(page, 'Simulation');
   await expect(canvas).toBeVisible({ timeout: 15000 });
   await canvas.evaluate(element => {
     const htmlCanvas = element as HTMLCanvasElement;
@@ -806,7 +807,7 @@ test('Earth 3D Moon camera tracks the Earth-facing hemisphere on desktop and mob
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await disableContextCoach(page);
-  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await openWorkspace(page, 'Simulation');
 
   const canvas = page.locator('.earth3d-canvas');
   const webglCanvas = canvas.locator('canvas');
@@ -922,7 +923,7 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await disableContextCoach(page);
-  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await openWorkspace(page, 'Simulation');
 
   const setup = page.getByTestId('earth3d-mission-setup');
   const controls = page.getByTestId('earth3d-simulation-controls');
@@ -993,7 +994,7 @@ test('Earth 3D reference dashboard connects mission setup, controls and derived 
 
   await setup.getByRole('button', { name: 'Open full orbit design' }).click();
   await expect(page.getByRole('heading', { name: 'Make the orbital mechanics visible.' })).toBeVisible();
-  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await openWorkspace(page, 'Simulation');
   // The Orbit workspace can leave the document scrolled near its previous
   // lower controls. Restore the document viewport before exercising the
   // mission-setup action; retain a normal, hit-tested Playwright click.
@@ -1082,7 +1083,7 @@ test('Earth 3D desktop shell matches the reference three-column mission-control 
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await disableContextCoach(page);
-  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await openWorkspace(page, 'Simulation');
 
   const primaryNav = page.getByTestId('simulation-primary-nav');
   const canvas = page.locator('.earth3d-canvas');
@@ -1228,7 +1229,7 @@ test('Earth imagery provenance and physical-scale disclosures remain legible at 
   await page.setViewportSize({ width: 1536, height: 1024 });
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await openWorkspace(page, 'Simulation');
 
   const status = page.getByTestId('earth-imagery-status');
   const scale = page.locator('.earth3d-page-header > div > small:last-child');

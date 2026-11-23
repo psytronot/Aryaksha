@@ -384,3 +384,27 @@ body{background:var(--bg)}
 .app-footer span:first-child{color:#d5e0e6;letter-spacing:.12em}.app-footer span:nth-child(2){color:#a0acb8}
 @media(max-width:760px){.topbar{height:62px}.engine-status{display:none}.mission-strip{align-items:flex-start;gap:12px}.mission-strip-actions{flex-wrap:wrap}.mission-strip button{min-height:36px}.page-header{margin-top:20px}.app-footer{padding:18px}}
 @media(prefers-reduced-motion:reduce){.nav-item,.mission-strip button,.card{transition:none}}
+
+
+/* Aryaksha UX simplification: grouped, progressive-disclosure navigation */
+.nav-groups{display:grid;gap:4px}
+.nav-group{margin:0;border-bottom:1px solid rgba(255,255,255,.045);padding-bottom:4px}
+.nav-group>summary,.mobile-nav-group>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;list-style:none;cursor:pointer;padding:9px 10px;border-radius:7px;color:rgba(232,242,248,.62);font:8px ui-monospace,monospace;letter-spacing:.8px}
+.nav-group>summary::-webkit-details-marker,.mobile-nav-group>summary::-webkit-details-marker{display:none}
+.nav-group>summary::after,.mobile-nav-group>summary::after{content:'+';color:var(--cyan);font:12px ui-monospace,monospace}
+.nav-group[open]>summary::after,.mobile-nav-group[open]>summary::after{content:'−'}
+.nav-group>summary:hover,.mobile-nav-group>summary:hover{background:rgba(255,255,255,.035);color:#fff}
+.nav-group>summary span,.mobile-nav-group>summary span{margin-left:auto;color:rgba(255,255,255,.3);font-size:7px}
+.nav-group .nav-item{height:36px;font-size:9px}
+.nav-group .nav-item svg{flex:0 0 15px}
+.mobile-nav-group{grid-column:1/-1;min-width:0;border-bottom:1px solid var(--line)}
+.mobile-nav-group>summary{padding:10px 9px}
+.mobile-nav-group .nav-item{display:flex;width:100%;min-height:42px}
+@media(max-width:800px){
+  .mobile-nav-panel.is-open{grid-template-columns:repeat(2,minmax(0,1fr));align-content:start}
+  .mobile-nav-group[open]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+  .mobile-nav-group>summary{grid-column:1/-1}
+  .mobile-nav-group .nav-item{min-width:0}
+}
+
+.nav-group>summary:focus-visible,.mobile-nav-group>summary:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}

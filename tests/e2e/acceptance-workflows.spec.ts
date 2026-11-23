@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openWorkspace } from './helpers/navigation';
 
 const issTle = [
   'ISS (ZARYA)',
@@ -19,7 +20,7 @@ test('primary engineering workflow connects design, simulation, analysis, verifi
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Satellite tracking & pass planning' })).toBeVisible();
-  await page.getByRole('button', { name: 'Mission', exact: true }).click();
+  await openWorkspace(page, 'Mission');
   await expect(page.getByRole('heading', { name: 'Start with the engineering problem.' })).toBeVisible();
 
   const workspaces = [
@@ -54,7 +55,7 @@ test('satellite tracking validates TLEs and exposes SGP4 look angles and Doppler
   await stubCelesTrak(page);
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Satellite Tracking', exact: true }).click();
+  await openWorkspace(page, 'Satellite Tracking');
 
   await expect(page.getByRole('heading', { name: 'Satellite tracking & pass planning' })).toBeVisible({ timeout: 15000 });
   await expect(page.getByText('Live data loaded · 1 objects · Space stations')).toBeVisible();
@@ -112,4 +113,37 @@ test('mobile tracking supports catalogue groups, name filtering and pass CSV exp
   await page.getByRole('button', { name: 'Export pass predictions as CSV' }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe('orbital-lab-pass-predictions.csv');
+});
+
+
+test('mobile spacecraft design journey remains navigable without horizontal overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
+
+  const steps = [
+    { name: 'Mission', heading: 'Start with the engineering problem.', groupIndex: 0 },
+    { name: 'Payload', heading: 'Turn the payload into spacecraft constraints.', groupIndex: 1 },
+    { name: 'Spacecraft', heading: 'Build the vehicle around the mission.', groupIndex: 1 },
+    { name: 'Orbit & Maneuver', heading: 'Make the orbital mechanics visible.', groupIndex: 1 },
+    { name: 'Engineering Analysis', heading: 'See where the spacecraft succeeds or fails.', groupIndex: 2 },
+    { name: 'Verification', heading: 'Prove the design meets the requirements.', groupIndex: 2 }
+  ];
+
+  for (const step of steps) {
+    await page.getByRole('button', { name: 'Open navigation' }).click();
+    const mobileNavigation = page.getByRole('navigation', { name: 'Mobile navigation' });
+    const targetGroup = mobileNavigation.locator('details').nth(step.groupIndex);
+    if (!(await targetGroup.evaluate(element => (element as HTMLDetailsElement).open))) {
+      await targetGroup.locator('summary').click();
+    }
+    await mobileNavigation.getByRole('button', { name: step.name, exact: true }).click();
+    await expect(page.getByRole('heading', { name: step.heading, exact: true })).toBeVisible();
+    const dimensions = await page.evaluate(() => ({
+      viewport: document.documentElement.clientWidth,
+      document: document.documentElement.scrollWidth
+    }));
+    expect(dimensions.document, `horizontal overflow in ${step.name} at 375px`).toBeLessThanOrEqual(dimensions.viewport + 1);
+  }
 });

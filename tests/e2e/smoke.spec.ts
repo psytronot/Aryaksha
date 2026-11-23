@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openWorkspace } from './helpers/navigation';
 
 test('desktop app shell renders and mission analysis navigation works', async ({ page }) => {
   const pageErrors: string[] = [];
@@ -9,7 +10,7 @@ test('desktop app shell renders and mission analysis navigation works', async ({
   await expect(page.getByRole('heading', { name: /Explore Space/ })).toBeVisible();
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
 
-  await page.getByRole('button', { name: 'Mission Analysis', exact: true }).click();
+  await openWorkspace(page, 'Mission Analysis');
   await expect(page.getByRole('heading', { name: 'Orbital Mission Analysis' })).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
@@ -79,7 +80,7 @@ test('mission analysis submits numeric inputs and renders the engine result', as
 
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Mission Analysis', exact: true }).click();
+  await openWorkspace(page, 'Mission Analysis');
   await page.getByRole('button', { name: 'Run analysis', exact: true }).click();
 
   await expect(page.getByText(/Analysis completed · Orekit/)).toBeVisible();
@@ -98,7 +99,7 @@ test('mission analysis displays a structured service error and remains usable', 
 
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Mission Analysis', exact: true }).click();
+  await openWorkspace(page, 'Mission Analysis');
   await page.getByRole('button', { name: 'Run analysis', exact: true }).click();
 
   await expect(page.getByRole('alert')).toContainText('Orekit service is configured but unavailable.');
@@ -128,10 +129,10 @@ test('invalid engineering orbit inputs produce a visible FAIL in Verification', 
   await page.addInitScript(() => localStorage.setItem('orbital-lab-coach-enabled', 'false'));
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Orbit & Maneuver', exact: true }).click();
+  await openWorkspace(page, 'Orbit & Maneuver');
 
   await page.getByLabel('INCLINATION', { exact: true }).fill('181');
-  await page.getByRole('button', { name: 'Verification', exact: true }).click();
+  await openWorkspace(page, 'Verification');
 
   const inputCheck = page.locator('.verification-row').filter({ hasText: 'Engineering inputs valid' });
   await expect(inputCheck).toContainText('FAIL');
@@ -143,7 +144,7 @@ test('seasonal ground-track overlay matches equinox and solstice calibration', a
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Simulation', exact: true }).click();
+  await openWorkspace(page, 'Simulation');
 
   const epoch = page.getByLabel('Solar overlay epoch');
   const readSubsolarLatitude = async () => {

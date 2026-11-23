@@ -101,7 +101,26 @@ export const handler = router({
         } finally {
           clearTimeout(timeout);
         }
-        if (!response.ok) return error(`Orekit service returned HTTP ${response.status}.`, 502);
+        if (response.status === 429) {
+          const retryAfter = response.headers.get('retry-after');
+          console.warn('Orekit service rate-limited orbit analysis', { retryAfter: retryAfter || 'not provided' });
+          return error('Orekit service is temporarily rate-limited. Please retry shortly.', 503);
+        }
+        if (!response.ok) {
+          const responseText = await response.text();
+          let upstreamMessage = '';
+          try {
+            const upstreamPayload = JSON.parse(responseText);
+            if (typeof upstreamPayload?.error === 'string') upstreamMessage = upstreamPayload.error.slice(0, 300);
+          } catch {
+            upstreamMessage = responseText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);
+          }
+          console.error('Orekit service rejected orbit analysis', { status: response.status, reason: upstreamMessage || 'No error detail returned' });
+          return error(
+            upstreamMessage ? `Orekit service rejected the analysis request: ${upstreamMessage}` : `Orekit service returned HTTP ${response.status}.`,
+            502
+          );
+        }
         const result = await response.json() as Record<string, unknown>;
         if (result.valid !== true || typeof result.engine !== 'string' || !result.orbit || typeof result.orbit !== 'object') {
           return error('Orekit service returned an invalid analysis response.', 502);

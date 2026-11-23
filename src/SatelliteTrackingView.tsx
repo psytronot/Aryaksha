@@ -400,7 +400,7 @@ export default function SatelliteTrackingView() {
               {loading ? 'Refreshing…' : 'Refresh TLEs'}
             </button>
           </div>
-          <div className="sat-track-status"><span className={catalog.length ? 'sat-track-status-dot' : 'sat-track-status-dot amber'} />{catalogStatus}</div>
+          <div className="sat-track-status" role="status" aria-live="polite"><span className={catalog.length ? 'sat-track-status-dot' : 'sat-track-status-dot amber'} />{catalogStatus}</div>
           <label className="sat-track-field sat-track-search">
             <span>FIND AN OBJECT</span>
             <div><Search size={14} /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Filter by satellite name" /></div>
@@ -462,7 +462,7 @@ export default function SatelliteTrackingView() {
             <p className="sat-track-note">First-order geometric estimate from range change. Receiver tuning, radio hardware and signal acquisition are not controlled by this page.</p>
           </div>
           <div className="sat-track-clock"><Clock3 size={14} /> LIVE UTC <b>{now.toISOString().replace('T', ' ').slice(0, 19)} Z</b><span>{formatIST(now, true)}</span></div>
-          <button className="sat-track-button sat-track-wide" onClick={runPrediction} disabled={!tracking || predicting}>
+          <button className="sat-track-button sat-track-wide" onClick={runPrediction} disabled={!tracking || predicting} aria-busy={predicting}>
             <Target size={14} />{predicting ? 'Computing pass windows…' : 'Predict next 24 hours'}
           </button>
         </section>
@@ -523,7 +523,7 @@ export default function SatelliteTrackingView() {
             <button className="sat-track-icon-button" title="Export pass predictions as CSV" aria-label="Export pass predictions as CSV" onClick={() => exportPassesCsv(passes, tracking?.name || 'Satellite')} disabled={!passes.length}><Download size={14} /></button>
           </div>
           {!passes.length ? (
-            <p className="sat-track-note">{predicting ? 'Propagating orbital state and evaluating station elevation…' : 'Run a prediction to list acquisition, peak elevation and loss-of-signal times.'}</p>
+            <p className="sat-track-note" role="status" aria-live="polite">{predicting ? 'Propagating orbital state and evaluating station elevation…' : 'Run a prediction to list acquisition, peak elevation and loss-of-signal times.'}</p>
           ) : (
             <>
               <label className="sat-track-field">

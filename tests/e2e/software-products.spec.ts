@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openWorkspace } from './helpers/navigation';
 import { readFile } from 'node:fs/promises';
 
 test('software products hub is reachable and presents honest product availability', async ({ page }) => {
@@ -6,7 +7,7 @@ test('software products hub is reachable and presents honest product availabilit
   page.on('pageerror', error => pageErrors.push(error.message));
 
   await page.goto('/');
-  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+  await openWorkspace(page, 'Software Products');
 
   await expect(page.getByRole('heading', { name: 'Useful software. Open access. Practical outcomes.' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Google Maps Scrapper' })).toBeVisible();
@@ -45,7 +46,7 @@ test('software products hub remains reachable through mobile navigation', async 
 
 test('First Customer Finder validates and prepares a research brief without inventing prospects', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+  await openWorkspace(page, 'Software Products');
 
   await page.getByRole('button', { name: 'Prepare research brief' }).click();
   await expect(page.getByText('Add your offer, intended customer and geography to continue.')).toBeVisible();
@@ -67,7 +68,7 @@ test('First Customer Finder validates and prepares a research brief without inve
 
 test('user-supplied business CSV is processed locally and duplicate rows are reported', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+  await openWorkspace(page, 'Software Products');
 
   await page.getByLabel('Upload a business CSV').setInputFiles({
     name: 'prospects.csv',
@@ -92,7 +93,7 @@ test('user-supplied business CSV is processed locally and duplicate rows are rep
 
 test('CSV cleanup rejects files without a recognised organisation column', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+  await openWorkspace(page, 'Software Products');
   await page.getByLabel('Upload a business CSV').setInputFiles({
     name: 'invalid.csv',
     mimeType: 'text/csv',
@@ -105,7 +106,7 @@ test('CSV cleanup rejects files without a recognised organisation column', async
 
 test('CSV cleanup rejects malformed quoting and inconsistent row widths', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+  await openWorkspace(page, 'Software Products');
 
   await page.getByLabel('Upload a business CSV').setInputFiles({
     name: 'malformed.csv',
@@ -125,7 +126,7 @@ test('CSV cleanup rejects malformed quoting and inconsistent row widths', async 
 
 test('cleaned CSV neutralizes spreadsheet formula prefixes in exported cells', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+  await openWorkspace(page, 'Software Products');
   await page.getByLabel('Upload a business CSV').setInputFiles({
     name: 'formula.csv',
     mimeType: 'text/csv',
@@ -147,7 +148,7 @@ test('cleaned CSV neutralizes spreadsheet formula prefixes in exported cells', a
 
 test('CSV cleanup handles a UTF-8 BOM, quoted commas and escaped quotes', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+  await openWorkspace(page, 'Software Products');
   await page.getByLabel('Upload a business CSV').setInputFiles({
     name: 'quoted.csv',
     mimeType: 'text/csv',
@@ -160,7 +161,7 @@ test('CSV cleanup handles a UTF-8 BOM, quoted commas and escaped quotes', async 
 
 test('CSV cleanup enforces the 2 MB upload limit', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+  await openWorkspace(page, 'Software Products');
   await page.getByLabel('Upload a business CSV').setInputFiles({
     name: 'oversized.csv',
     mimeType: 'text/csv',
@@ -173,7 +174,7 @@ test('CSV cleanup enforces the 2 MB upload limit', async ({ page }) => {
 
 test('Finder rejects whitespace-only briefs and keeps intake fields bounded', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+  await openWorkspace(page, 'Software Products');
 
   const offer = page.getByLabel('What are you offering?');
   const customer = page.getByLabel('Who should benefit?');
@@ -192,7 +193,7 @@ test('Finder rejects whitespace-only briefs and keeps intake fields bounded', as
 
 test('CSV cleanup rejects duplicate headers and unclosed quoted fields', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+  await openWorkspace(page, 'Software Products');
 
   await page.getByLabel('Upload a business CSV').setInputFiles({
     name: 'duplicate-headers.csv',
@@ -212,7 +213,7 @@ test('CSV cleanup rejects duplicate headers and unclosed quoted fields', async (
 
 test('CSV cleanup bounds rows, columns and individual cell size', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+  await openWorkspace(page, 'Software Products');
   const upload = page.getByLabel('Upload a business CSV');
 
   const tooManyRows = 'Company\n' + Array.from({ length: 10_001 }, (_, index) => `Company ${index}`).join('\n');
@@ -242,7 +243,7 @@ test('CSV cleanup bounds rows, columns and individual cell size', async ({ page 
 
 test('CSV utility provides a blank header template download', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+  await openWorkspace(page, 'Software Products');
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download blank CSV template' }).click();
   const download = await downloadPromise;

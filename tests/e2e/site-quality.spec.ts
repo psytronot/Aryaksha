@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openWorkspace } from './helpers/navigation';
 
 test('mobile navigation remains usable without horizontal page overflow', async ({ page }) => {
   for (const width of [320, 375, 390]) {
@@ -34,7 +35,7 @@ test('desktop software hub remains within the viewport', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
   await page.getByRole('button', { name: 'Start Exploring', exact: true }).click();
-  await page.getByRole('button', { name: 'Software Products', exact: true }).click();
+  await openWorkspace(page, 'Software Products');
   await expect(page.getByRole('heading', { name: 'First Customer Finder', exact: true })).toBeVisible();
 
   const dimensions = await page.evaluate(() => ({
