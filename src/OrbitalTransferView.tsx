@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Activity, ArrowDownUp, BookOpen, Download, Orbit, Rocket, Satellite, SlidersHorizontal, TriangleAlert } from 'lucide-react';
+import { Activity, ArrowDownUp, BookOpen, Download, Orbit, Satellite, SlidersHorizontal, TriangleAlert } from 'lucide-react';
 import { calculateOrbitalTransfer, type OrbitalTransferInputs } from './aerospace/orbitalTransfer';
 
 const defaults: OrbitalTransferInputs = {
@@ -12,7 +12,6 @@ type Tab = 'overview' | 'configure' | 'results' | 'method';
 export default function OrbitalTransferView() {
   const [inputs, setInputs] = useState(defaults);
   const [tab, setTab] = useState<Tab>('overview');
-  const [copied, setCopied] = useState(false);
   const solution = useMemo(() => {
     try { return { result: calculateOrbitalTransfer(inputs), error: '' }; }
     catch (error) { return { result: null, error: error instanceof Error ? error.message : 'Invalid orbital inputs.' }; }
