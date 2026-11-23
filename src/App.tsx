@@ -53,7 +53,7 @@ const nav: { id: View; label: string; icon: React.ReactNode; group: string }[] =
   { id: 'report', label: 'Design Report', icon: <Download size={16} />, group: 'Output' },
   { id: 'instructions', label: 'Instructions & Glossary', icon: <BookOpen size={16} />, group: 'Learn' },
   { id: 'tools', label: 'Calculator & Reference', icon: <Calculator size={16} />, group: 'Tools' },
-  { id: 'aerospace', label: 'Rocket Staging', icon: <Rocket size={16} />, group: 'Engineering' },
+  { id: 'aerospace', label: 'Aerospace Engineering', icon: <Rocket size={16} />, group: 'Engineering' },
   { id: 'rocketAscent', label: 'Rocket Ascent', icon: <Activity size={16} />, group: 'Engineering' },
   { id: 'software', label: 'Software Products', icon: <Search size={16} />, group: 'Tools' }
 ];
